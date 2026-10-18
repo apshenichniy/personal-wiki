@@ -166,6 +166,12 @@ export const prepareX = <E, R>(input: P.ProcessingInput, acquire: Acquire<E, R>)
         warnings.add("article_priority_changed_after_acquisition");
       }
     });
+    const refreshMain = Effect.fn(function* () {
+      focus = resolveFocus(normalized.anchorId, posts);
+      main = selectMain();
+      anchor = posts.get(normalized.anchorId)?.post;
+      yield* expandMain();
+    });
     yield* expandMain();
     const discussionIds = () => {
       const roots = new Set(main);
@@ -176,27 +182,25 @@ export const prepareX = <E, R>(input: P.ProcessingInput, acquire: Acquire<E, R>)
     };
     if (anchor && main.length) {
       yield* request("direct", allocate(main, policy.direct));
+      yield* refreshMain();
       yield* request(
         "latest",
         [{ targetId: normalized.anchorId, limit: policy.latest }],
         null,
         anchor.conversationId,
       );
+      yield* refreshMain();
       yield* repair(discussionCandidates(posts, anchor));
-      focus = resolveFocus(normalized.anchorId, posts);
-      main = selectMain();
-      yield* expandMain();
+      yield* refreshMain();
       // Different branches share the remaining allowance. One provider branch
       // cannot consume the nested reserve by appearing first or having more likes.
       const branches = discussionIds().filter((id) => main.includes(posts.get(id)!.post.parentId!));
       const remaining = Math.max(0, policy.discussion - discussionIds().length);
       if (remaining) yield* request("nested", allocate(branches, remaining));
+      yield* refreshMain();
       yield* repair(discussionCandidates(posts, anchor));
     }
-    focus = resolveFocus(normalized.anchorId, posts);
-    main = selectMain();
-    anchor = posts.get(normalized.anchorId)?.post;
-    yield* expandMain();
+    yield* refreshMain();
     const articleCandidates = [
       ...new Set(order.flatMap((id) => posts.get(id)?.post.articleId ?? [])),
     ];

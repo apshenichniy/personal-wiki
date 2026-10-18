@@ -497,3 +497,40 @@ for (const rows of [
     expect(result.materials[1]?.originalText).toContain("An important qualification.");
     expect(result.materials[1]?.article?.origins).toHaveLength(rows[0]?.id === "800" ? 2 : 1);
   });
+
+test("an Article discovered by direct replies precedes optional Latest spending", async () => {
+  const driver = fixtureDriver((request) => {
+    if (request.mode === "anchor") return { posts: [post("100")] };
+    if (request.mode === "direct")
+      return { posts: [post("101", { parentId: "100", articleId: "800" })] };
+    if (request.mode === "article") return { articles: [article("800")] };
+    if (request.mode === "latest") return { status: "budget" };
+    return {};
+  });
+  const result = await runFixture(input(), driver);
+  expect(result.materials[1]?.source.primaryId).toBe("800");
+  expect(driver.calls.findIndex((c) => c.mode === "article")).toBeLessThan(
+    driver.calls.findIndex((c) => c.mode === "latest"),
+  );
+});
+
+test("Latest main discovery prioritizes Article over unrelated parent repair", async () => {
+  const driver = fixtureDriver((request) => {
+    if (request.mode === "anchor") return { posts: [post("100")] };
+    if (request.mode === "latest")
+      return {
+        posts: [
+          post("101", { parentId: "100", articleId: "800" }),
+          post("300", { parentId: "200", authorId: "20" }),
+        ],
+      };
+    if (request.mode === "article") return { articles: [article("800")] };
+    if (request.mode === "parents") return { status: "budget" };
+    return {};
+  });
+  const result = await runFixture(input(), driver);
+  expect(result.materials[1]?.source.primaryId).toBe("800");
+  expect(driver.calls.findIndex((c) => c.mode === "article")).toBeLessThan(
+    driver.calls.findIndex((c) => c.mode === "parents"),
+  );
+});
