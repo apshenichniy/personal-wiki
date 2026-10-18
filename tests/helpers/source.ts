@@ -20,7 +20,6 @@ export async function prepareSource(
   );
   const current = await Effect.runPromise(client.knowledge.list({ query: {} }));
   const captures: K.Capture[] = [];
-  const notes: K.Note[] = [];
   for (const slot of draft.slots) {
     const original =
       slot.source.kind === "x_article"
@@ -77,6 +76,16 @@ export async function prepareSource(
       coverage: { main: "acquired", discussion: "not_acquired", context: "not_required" },
       warnings: ["Synthetic evidence; no live provider."],
     });
+  }
+  return { draft, proposal: syntheticProposal(draft, captures, current.appliedRevision) };
+}
+export function syntheticProposal(
+  draft: K.Draft,
+  captures: ReadonlyArray<K.Capture>,
+  baseRevision: typeof K.Revision.Type,
+): K.Proposal {
+  const notes: K.Note[] = [];
+  for (const slot of draft.slots) {
     notes.push({
       schemaVersion: 1,
       noteId: slot.noteId,
@@ -105,13 +114,13 @@ export async function prepareSource(
     operationId: crypto.randomUUID(),
     proposalId: crypto.randomUUID(),
     jobId: draft.jobId,
-    baseRevision: current.appliedRevision,
+    baseRevision,
     notes,
     captures,
     policyVersion: "fixture-v1",
     derivation: { agent: "synthetic", model: "none", skillVersion: "fixture-v1" },
   };
-  return { draft, proposal };
+  return proposal;
 }
 export const postSource = (id: string) => ({
   kind: "x_post" as const,

@@ -131,6 +131,11 @@ completed result is retained before publication; publication activation stores t
 job result with its receipt, projection, revision and event in one transaction.
 Cancellation/deadline and credential revocation are checked at commit intent.
 After intent, recovery finishes the existing publication without another executor.
+A publication request intent records the authenticated identity, exact request
+fingerprint and operation before Git work. Replaying that request after activation
+returns its stored receipt even when the response journal was not yet written.
+An uncertain source resolution retains evidence but does not establish an alias;
+subsequent verified author-thread relationships can refine it before reservation.
 
 An uncertain process or provider operation blocks new execution until the relevant
 trusted reconciliation proves safety. `reconciledProcess` is an internal lifecycle
@@ -139,9 +144,12 @@ supervisor evidence to it; P6 owns external-operation reconciliation. Synthetic
 `processStopped` attestations do not establish actual CLI/process-tree exclusion.
 
 A fake executor is built separately as `apps/runner/dist/synthetic.js`. It takes
-`WIKI_SERVICE_URL` and a private `WIKI_RUNNER_TOKEN_FILE`, claims one fresh job,
+`WIKI_SERVICE_URL` and a private `WIKI_RUNNER_TOKEN_FILE`, claims one job,
 creates a redistributable fixture through the scoped API and exits after its
-publication receipt. It never invokes Apify or Codex. The earlier default Runner
+publication receipt. The scoped claim includes retained capture/draft and the next
+eligible attempt reason. A prepared checkpoint reuses its immutable capture;
+a validating checkpoint goes straight to publication without another launch.
+Explicit retained retry uses new job ownership with the original capture IDs. It never invokes Apify or Codex. The earlier default Runner
 entry point still performs the P1 echo; P7 supplies the real runtime adapter.
 Do not ship the synthetic entry point or fixture helpers as a production executor.
 
@@ -149,7 +157,7 @@ Reproducible two-process demonstration, including temporary synthetic credential
 
 ```sh
 mise exec -- bun run verify
-mise exec -- bun test tests/job-http.test.ts
+mise exec -- bun test tests/job-http.test.ts tests/job-runner-recovery.test.ts
 ```
 
 Focused persistence/policy checks:

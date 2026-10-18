@@ -106,7 +106,7 @@ export const makeResolution = Effect.gen(function* () {
           yield* store.put(next, saved.version);
           result = { outcome: "continued", job: yield* jobs.view(next), noteId: null };
         }
-        for (const key of keys)
+        for (const key of source.resolution === "resolved" ? keys : [])
           yield* sql`INSERT INTO source_aliases VALUES(${key},${canonical}) ON CONFLICT(alias_key) DO NOTHING`;
         // Exact extractor evidence is operational state, separate from agent prose.
         yield* sql`INSERT INTO source_resolutions(job_id,request_id,payload) VALUES(${job.jobId},${input.requestId},${stable(input)})`;

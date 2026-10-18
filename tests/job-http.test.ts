@@ -187,9 +187,16 @@ for (const scenario of [
       });
       const output = new Response(child.stdout).text();
       const errors = new Response(child.stderr).text();
-      const marker = Bun.file(join(data, `fault-${fault}`));
-      for (let i = 0; i < 500 && !(await marker.exists()); i++) await Bun.sleep(20);
-      expect(await marker.exists()).toBe(true);
+      const marker = () => Bun.file(join(data, `fault-${fault}`)).exists();
+      for (let i = 0; i < 500 && !(await marker()); i++) await Bun.sleep(20);
+      expect(
+        await marker(),
+        child.exitCode === null
+          ? JSON.stringify(
+              await Effect.runPromise(client.jobs.get({ params: { jobId: accepted.job!.jobId } })),
+            )
+          : await errors,
+      ).toBe(true);
       if (scenario === "revoke-before-intent")
         await Effect.runPromise(
           client.jobs.revokeCredential({ payload: { identityId: runnerId } }),

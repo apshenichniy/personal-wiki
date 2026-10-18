@@ -1,5 +1,14 @@
 import { Schema } from "effect";
-import { Id, Instant, Receipt, Revision, Capture, SourceInput, AssetUpload } from "./knowledge.ts";
+import {
+  Id,
+  Instant,
+  Receipt,
+  Revision,
+  Capture,
+  Draft,
+  SourceInput,
+  AssetUpload,
+} from "./knowledge.ts";
 
 export const JobStage = Schema.Literals([
   "queued",
@@ -72,7 +81,18 @@ export const SubmissionResult = Schema.Struct({
   appliedRevision: Revision,
 }).annotate({ identifier: "SubmissionResult" });
 export const ClaimRequest = Schema.Struct({ requestId: Id, instanceId: Id });
-export const Claim = Schema.NullOr(Schema.Struct({ scope: JobScope, job: JobView }));
+export const RetainedCapture = Schema.Struct({
+  draft: Draft,
+  captures: Schema.Array(Capture).check(Schema.isMinLength(1), Schema.isMaxLength(2)),
+});
+export const Claim = Schema.NullOr(
+  Schema.Struct({
+    scope: JobScope,
+    job: JobView,
+    capture: Schema.NullOr(RetainedCapture),
+    nextReason: AttemptReason,
+  }),
+);
 export const Attempt = Schema.Struct({
   attemptId: Id,
   jobId: Id,

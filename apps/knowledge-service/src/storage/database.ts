@@ -16,6 +16,7 @@ const migrations = {
     yield* sql`CREATE TABLE source_aliases (alias_key TEXT PRIMARY KEY, canonical_key TEXT NOT NULL)`;
     yield* sql`CREATE TABLE scheduling_outbox (job_id TEXT NOT NULL REFERENCES ingestion_jobs(job_id), generation INTEGER NOT NULL, offered INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(job_id,generation))`;
     yield* sql`CREATE TABLE job_requests (identity_id TEXT NOT NULL, request_id TEXT NOT NULL, digest TEXT NOT NULL, result TEXT NOT NULL, PRIMARY KEY(identity_id,request_id))`;
+    yield* sql`CREATE TABLE publication_requests (identity_id TEXT NOT NULL, request_id TEXT NOT NULL, digest TEXT NOT NULL, operation_id TEXT NOT NULL, PRIMARY KEY(identity_id,request_id))`;
     yield* sql`CREATE TABLE execution_attempts (attempt_id TEXT PRIMARY KEY, job_id TEXT NOT NULL REFERENCES ingestion_jobs(job_id), number INTEGER NOT NULL, record TEXT NOT NULL, state TEXT NOT NULL, output TEXT, UNIQUE(job_id,number))`;
     yield* sql`CREATE TABLE adapter_gates (adapter TEXT PRIMARY KEY, reason TEXT NOT NULL)`;
     yield* sql`CREATE TABLE machine_credentials (identity_id TEXT PRIMARY KEY, verifier TEXT UNIQUE NOT NULL, role TEXT NOT NULL, revoked INTEGER NOT NULL DEFAULT 0)`;

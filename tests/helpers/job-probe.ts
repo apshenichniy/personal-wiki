@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { Console, Effect, Layer } from "effect";
+import { Console, Effect, Layer, Schema } from "effect";
 import * as J from "@personal-wiki/contracts/jobs";
 import { Library } from "../../apps/knowledge-service/src/storage/library.ts";
 import { JobStore } from "../../apps/knowledge-service/src/jobs/store.ts";
@@ -32,9 +32,10 @@ const program = Effect.gen(function* () {
   const library = yield* Library;
   const store = yield* JobStore;
   const scheduler = yield* JobScheduler;
-  const identity = randomUUID();
+  const identity =
+    process.env.WIKI_TEST_JOB_CRASH === "1" ? "00000000-0000-4000-8000-000000000001" : randomUUID();
   const instanceId = randomUUID();
-  yield* store.sql`INSERT INTO machine_credentials VALUES(${identity},${digest(identity)},'runner',0)`;
+  yield* store.sql`INSERT INTO machine_credentials VALUES(${identity},${digest(identity)},'runner',0) ON CONFLICT(identity_id) DO NOTHING`;
   let serial = 1000;
   const submit = Effect.fn(function* () {
     const id = String(serial++);
@@ -116,6 +117,14 @@ const program = Effect.gen(function* () {
           scope: ownership.scope,
         });
       }
+      const pending = Bun.file(`${root}/publication-request.json`);
+      if (yield* Effect.promise(() => pending.exists())) {
+        const request = yield* Effect.tryPromise(async () =>
+          Schema.decodeUnknownSync(J.WorkerRequest)(await pending.json()),
+        );
+        const replay = yield* publication.publish(identity, request);
+        assert.equal(replay.receipt?.operationId, restored.receipt?.operationId);
+      }
       assert.equal(restored.stage, "succeeded");
       assert.equal(restored.counters.launches, 1);
       assert(restored.receipt);
@@ -148,6 +157,10 @@ const program = Effect.gen(function* () {
   assert.equal(output.stage, "validating");
   assert.deepEqual(yield* execution.complete(identity, completedInput), output);
   const publicationInput = { requestId: randomUUID(), scope: happy.scope };
+  if (process.env.WIKI_TEST_JOB_CRASH === "1")
+    yield* Effect.promise(() =>
+      Bun.write(`${root}/publication-request.json`, JSON.stringify(publicationInput)),
+    );
   const result = yield* publication.publish(identity, publicationInput);
   assert.equal(result.stage, "succeeded");
   assert(result.receipt);
@@ -375,6 +388,18 @@ const program = Effect.gen(function* () {
   yield* scheduler.reconcile();
   const anchor = yield* submit();
   const anchorClaim = yield* claim(anchor.jobId);
+  const uncertainResolution = yield* resolution.resolve(identity, {
+    requestId: randomUUID(),
+    scope: anchorClaim.scope,
+    source: { ...postSource(anchor.id), resolution: "uncertain" },
+    evidence: "Synthetic initial acquisition without an established relationship.",
+  });
+  assert.equal(uncertainResolution.outcome, "continued");
+  assert.equal(
+    (yield* store.sql`SELECT alias_key FROM source_aliases WHERE alias_key=${`x:post:${anchor.id}`}`)
+      .length,
+    0,
+  );
   const canonical = yield* submit();
   const resolved = yield* resolution.resolve(identity, {
     requestId: randomUUID(),

@@ -438,11 +438,50 @@
                         },
                         "job": {
                           "$ref": "#/components/schemas/JobView"
+                        },
+                        "capture": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "draft": {
+                                  "$ref": "#/components/schemas/Draft"
+                                },
+                                "captures": {
+                                  "type": "array",
+                                  "items": {
+                                    "$ref": "#/components/schemas/Capture"
+                                  },
+                                  "minItems": 1,
+                                  "maxItems": 2
+                                }
+                              },
+                              "required": [
+                                "draft",
+                                "captures"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "nextReason": {
+                          "type": "string",
+                          "enum": [
+                            "initial",
+                            "repair",
+                            "transient",
+                            "stale"
+                          ]
                         }
                       },
                       "required": [
                         "scope",
-                        "job"
+                        "job",
+                        "capture",
+                        "nextReason"
                       ],
                       "additionalProperties": false
                     },

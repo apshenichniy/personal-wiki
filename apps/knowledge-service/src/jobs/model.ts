@@ -4,10 +4,7 @@ import * as K from "@personal-wiki/contracts/knowledge";
 
 const Millis = Schema.Number.check(Schema.isFinite(), Schema.isGreaterThanOrEqualTo(0));
 export const Lease = Schema.Struct({ identityId: K.Id, instanceId: K.Id, expiresAt: Millis });
-export const RetainedCapture = Schema.Struct({
-  draft: K.Draft,
-  captures: Schema.Array(K.Capture).check(Schema.isMinLength(1), Schema.isMaxLength(2)),
-});
+export const RetainedCapture = J.RetainedCapture;
 export const JobRecord = Schema.Struct({
   jobId: K.Id,
   sourceKey: Schema.String,

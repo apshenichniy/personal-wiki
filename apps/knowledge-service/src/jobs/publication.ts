@@ -4,7 +4,7 @@ import * as K from "@personal-wiki/contracts/knowledge";
 import { Jobs } from "./service.ts";
 import { JobStore } from "./store.ts";
 import { Library } from "../storage/library.ts";
-import { stable } from "../storage/io.ts";
+import { digest, stable } from "../storage/io.ts";
 import { JobError, nextLaunch } from "./policy.ts";
 import type { JobRecord } from "./model.ts";
 
@@ -106,6 +106,26 @@ export const makeJobPublication = Effect.gen(function* () {
             });
           const prior = yield* jobs.priorRequest(identityId, input.requestId, input, J.JobView);
           if (prior) return { prior, proposal: null };
+          const intent = (yield* store.sql<{
+            digest: string;
+            operation_id: string;
+          }>`SELECT digest,operation_id FROM publication_requests WHERE identity_id=${identityId} AND request_id=${input.requestId}`)[0];
+          if (intent && intent.digest !== digest(stable(input)))
+            return yield* new JobError({
+              code: "idempotency_conflict",
+              message: "Publication request identity has different input.",
+            });
+          // The request was authorized before Git work. Activation can commit its
+          // receipt and clear the lease before the HTTP response is recorded.
+          if (
+            intent &&
+            saved.record.stage === "succeeded" &&
+            saved.record.receiptOperationId === intent.operation_id
+          ) {
+            const result = yield* jobs.view(saved.record);
+            yield* jobs.remember(identityId, input.requestId, input, result);
+            return { prior: result, proposal: null };
+          }
           yield* jobs.owned(identityId, input.scope);
           const job = saved.record;
           if (
@@ -118,6 +138,8 @@ export const makeJobPublication = Effect.gen(function* () {
               code: "invalid_transition",
               message: "No retained completed output is ready for publication.",
             });
+          if (!intent)
+            yield* store.sql`INSERT INTO publication_requests VALUES(${identityId},${input.requestId},${digest(stable(input))},${job.result.operationId})`;
           yield* store.put(
             { ...job, stage: "publishing", operationId: job.result.operationId },
             saved.version,

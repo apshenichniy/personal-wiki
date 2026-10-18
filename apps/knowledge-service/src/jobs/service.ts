@@ -306,6 +306,8 @@ export const makeJobs = Effect.fn("Jobs.make")(function* (root: string) {
         const result: typeof J.Claim.Type = {
           scope: { jobId: job.jobId, instanceId: input.instanceId, epoch: job.epoch },
           job: yield* view(job),
+          capture: job.capture,
+          nextReason: job.nextReason,
         };
         yield* remember(identityId, input.requestId, input, result);
         return result;
