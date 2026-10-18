@@ -1,6 +1,6 @@
 # Access readiness for the first slice
 
-**Refreshed: 2026-10-18, 20:20–20:25 UTC.** This is the P0 audit for [Prepare unattended execution access](https://github.com/apshenichniy/personal-wiki/issues/24). Existing resource access works. P0 remains open until the remaining R2 credential provisioning requiring owner consent is completed. The application has not been implemented.
+**P0 completed: 2026-10-18, 20:28 UTC.** This records [Prepare unattended execution access](https://github.com/apshenichniy/personal-wiki/issues/24). Existing access and the new isolated R2 credentials are verified. No owner-dependent access-preparation step remains. The application, its authentication/deployment integrations and owner acceptance are still to be implemented and verified.
 
 ## Fresh verification
 
@@ -10,24 +10,33 @@
 | GitHub and Actions | Repository administration/push and Actions access confirmed. The production environment permits main without a reviewer gate. [Fresh access smoke](https://github.com/apshenichniy/personal-wiki/actions/runs/39162481873) passed at 603846ba3ddfb7267dc23b17564b7db18589a59e. | This is an access workflow, not application CI or deployment. |
 | Restricted CI identity | wiki-deploy works; root SSH, sudo, runtime-secret reads and the tested disallowed network paths are denied. Zero CI-tagged peers remain after cleanup. | No broader CI permissions were added. See [CI access](ci-access.md). |
 | Apify | Existing Actor-scoped credentials read metadata on Mac and VPS. All ten retained Personal Wiki pilot runs are terminal and have reported usage. No other active Actor runs appeared in the listing. | No new capture was launched. Private creation, durable correlation and budget enforcement remain application gates. A shared Actor listing is not a project ledger. |
-| Private source R2 | VPS synthetic write/read/list/delete passed; anonymous access was rejected. The retained pilot archive matches its current local archive manifest and SHA-256. Mac/VPS credential copies match and have mode 0600. | This refresh tests the VPS object path; the earlier Mac/VPS cross-read smoke is historical evidence. Staging and backup isolation remain pending. An old throwaway verifier contained an earlier archive hash; the current manifest and both current archives agree. |
+| Private R2 storage | Fresh Mac/VPS cross-read, write/list/delete and anonymous-denial checks pass for source, staging and backup buckets. All 18 directed cross-bucket read/write/list probes return 403 AccessDenied. The retained source archive matches its current local manifest. | Credential isolation is verified; service credential injection, encrypted backups and restore remain implementation work. |
 | Pocket ID | One enabled administrator, one passkey, zero application clients and zero persistent admin API keys. Verified discovery returns the configured issuer. Owner administrative SSH and the official administrative CLI are available. The encryption key matches its private off-VPS copy. | No new login token was minted and no application login was claimed. Clients and exact local/staging callbacks still need provisioning. |
 | Server Codex | Version 0.163.0; ChatGPT login present. A fresh ephemeral read-only headless check returned ACCESS_OK with exit 0, using a clean environment and no API-key fallback. | This verifies subscription execution, not the production profile, curation quality, containment or recovery contract. |
 | Mac HTTPS | After the owner enabled VPN, verified TLS requests return 200 for discovery and the expected temporary 404 for wiki. The owner also reports Chrome opens the identity page through VPN. | The direct route had a certificate failure. Keep the working VPN route available during Mac-based execution; the underlying disruption was not independently diagnosed or repaired. |
-| Cloudflare administration | The existing owner browser session reaches the correct account, source bucket and R2 token-management controls. The source token is limited to Object Read & Write on its EU bucket. | A browser session is not a durable unattended provisioning credential. No broad account token was created. |
+| Cloudflare administration | Owner-confirmed staging and backup account tokens are active, each limited to Object Read & Write on its specified EU bucket. The existing source token remains separate. | Object credentials do not administer buckets or DNS. No broad account credential was added; future account-level changes may need owner involvement. |
 
 HTTPS checks preserve certificate validation. A default Python user agent initially received HTTP 403 from the VPS; explicit access-check user agents subsequently received valid discovery and the expected wiki response. Verify the eventual HTTP/OIDC client in the real integration.
 
-## Remaining owner-dependent preparation
+## Completed staging and backup access
 
-Prepare these resources before a run expected to finish without credential questions. They are concrete proposals, not resources already created:
+Both buckets use EU jurisdiction and Standard storage. Public access is disabled. The owner confirmed the exact permissions, indefinite validity and private Mac/VPS storage immediately before token creation.
 
-| Resource | Intended scope |
+| Resource | Verified scope |
 | --- | --- |
-| Private EU personal-wiki-staging-sources bucket and a dedicated staging credential | Object Read & Write on this bucket only. A separate bucket gives staging an enforceable archive boundary; a prefix alone does not restrict the existing bucket-wide credential. Keep it outside Git/CI and production application access. |
-| Private EU personal-wiki-backups bucket and a dedicated backup credential | Object Read & Write on this bucket only. Store separately for the backup/operator component and off-VPS recovery; never expose it to Runner or ordinary deployment. |
+| `personal-wiki-staging-sources` / `personal-wiki-staging-storage` | Object Read & Write on this bucket only, including deletion of its objects. Source and backup buckets reject this credential. |
+| `personal-wiki-backups` / `personal-wiki-backup-storage` | Object Read & Write on this bucket only, including deletion of its objects. Source and staging buckets reject this credential. |
 
-Cloudflare administration is available, but these credentials have not been issued. Browser-based creation of persistent credentials requires action-time owner confirmation. Provision them while the owner is available; do not substitute the source credential or a broad R2 administration token. Creating storage access does not implement the backup protocol.
+The source credential also receives access denial for both new buckets. Checks used unique synthetic objects under one disposable `_provision-check/` prefix in each bucket: Mac wrote, VPS read and wrote, Mac read and deleted. All three test prefixes were verified empty afterward. Anonymous object requests were rejected. No captured material or paid Apify acquisition was used.
+
+| Credential | Private Mac location | Private VPS location |
+| --- | --- | --- |
+| Staging | `~/.config/personal-wiki/secrets/r2-staging.json` | `/etc/personal-wiki/staging/r2.json` |
+| Backup / recovery | `~/.config/personal-wiki/recovery/r2-backups.json` | `/etc/personal-wiki/backup/r2.json` |
+
+Files have mode `0600`; VPS parent directories are `0700`, owned by root. Byte checks confirm matching off-VPS copies. Both `wiki-deploy` and `wiki-runner` were explicitly denied reads of both new credentials. Implementation must inject staging credentials only into the appropriate isolated service and reserve backup access for the backup/operator component. Credentials are not in Git, GitHub secrets or public CI artifacts. These prepared buckets are not an implemented backup protocol or an immutable/WORM backup.
+
+## Execution conditions and deferred application work
 
 The Mac VPN route is an execution prerequisite while its direct Cloudflare route is affected. No further VPS purchase, Hetzner token, Apify token, Codex account selection or Apple signing access is needed for this slice.
 
@@ -41,8 +50,9 @@ Private references on the owner's Mac:
 
 - `~/.config/personal-wiki/access-status.json`: refreshed access inventory and remaining actions.
 - `~/.config/personal-wiki/evidence/2026-10-18-preflight/`: command results and provider reconciliation, excluded from the public repository.
+- `~/.config/personal-wiki/evidence/2026-10-18-r2-isolation/`: three cross-platform check results, 18 denial probes, file-protection checks and exact private command arguments/helper checksum.
 - `~/.config/personal-wiki/acceptance-campaign-ledger.json`: bootstrap accounting authority until imported through the service/operator interface.
-- `~/.config/personal-wiki/recovery/`: private off-VPS destination for the future backup key and credential. The backup key has not been generated.
+- `~/.config/personal-wiki/recovery/`: private off-VPS recovery inventory, now containing the verified backup-bucket credential. The backup encryption key has not been generated.
 - `~/.config/personal-wiki/secrets/pocket-id-encryption-key`: existing verified off-VPS identity recovery material.
 
 The ledger has a root-only recovery replica at `/etc/personal-wiki/private/acceptance-campaign-ledger.json` on CX33. It is not another spending allowance or an independently writable authority.
@@ -53,4 +63,4 @@ The recovery location exists outside CX33. It is not a completed encrypted backu
 
 ## Scope of this check
 
-The audit read account capabilities, checked existing credentials, ran the existing CI access smoke, executed one synthetic subscription Codex response and round-tripped disposable R2 content. It refreshed private inventory/accounting and documentation. It did not implement the application, start a paid acceptance campaign, issue new credentials, modify public routing or start unattended implementation.
+The audit checked account capabilities and existing credentials, ran the CI access smoke and one synthetic subscription Codex response, then provisioned the two owner-confirmed R2 buckets/credentials and verified their isolation. It refreshed private inventory/accounting and documentation. Application implementation, paid acquisition, public routing changes and an unattended implementation run were not started.
