@@ -1,0 +1,50 @@
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+!.env.*.example
+.mise.local.toml
+mise.local.toml
+*.pem
+*.key
+*.p12
+*.p8
+*.mobileprovision
+*.session
+*.session-journal
+.codex/auth.json
+.codex/sessions/
+.claude/settings.local.json
+
+# Private knowledge and runtime state
+/knowledge-data/
+/private-data/
+/runtime-data/
+/captures/
+/backups/
+/.scratch/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+*.sqlite-shm
+*.sqlite-wal
+*.sqlite3-shm
+*.sqlite3-wal
+*.log
+
+# JavaScript / TypeScript tooling
+node_modules/
+dist/
+coverage/
+.moon/cache/
+
+# Apple and editor artifacts
+.DS_Store
+.build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.ipa
+*.dSYM/
