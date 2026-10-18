@@ -43,7 +43,7 @@ These are input constraints for planning. Reopen one only when new evidence just
 | Code quality | Oxlint and Oxfmt. |
 | CI | GitHub Actions. Runner choices and cost controls remain implementation decisions within that platform. |
 | Work tracking | GitHub Issues and Matt Pocock's skills flow. Beads is not part of the selected setup. |
-| Authentication | Pocket ID as the OIDC provider. Client flows and authorization rules still need concrete design. |
+| Authentication | Pocket ID owner sign-in; revocable server-side web sessions lasting at most 30 days. Unauthenticated private pages/APIs return 401 without content disclosure; a verified non-owner gets 404. |
 | Native clients | Custom SwiftUI applications for iPhone and Mac, initially read-only. Obsidian is not a client dependency. |
 | iPhone delivery | TestFlight for personal use; no public App Store release is planned. |
 | Offline search | Bootstrap with a server-built searchable snapshot, then apply incremental updates and maintain the local index. |
@@ -51,7 +51,7 @@ These are input constraints for planning. Reopen one only when new evidence just
 | Transcription | Outside the first slice. If added, use Deepgram or AssemblyAI; no local transcription on the VPS. |
 | Clipper | Deferred and non-blocking. A fork is not selected; upstream Web Clipper file export plus an uploader remains an option. |
 | First-slice completion | Develop and verify locally first; complete the slice on CX33 with the computer off. |
-| First-slice interface | Minimal web interface for submitting a source, observing status, finding notes, and reading sources. Telegram and native clients follow. |
+| First-slice interface | Responsive Mac/iPhone web interface with library/submission/search, job status/actions, and note/source reader views. Updates appear automatically. Telegram and native clients follow. |
 | First source | An X post/thread and its replies through Apify. Reuse `xquik/x-tweet-scraper` behind an adapter with independent coverage checks, following the representative capture pilot. |
 | Capture limits | Configurable defaults: 50 main author posts, 200 discussion posts shared across modes, 30 additional parent/context lookups, and a five-minute acquisition window. Coverage limits remain visible. |
 | Apify budgets | USD 0.25 per save/refresh job including retries; USD 5 per calendar month across Personal Wiki jobs. The future runtime must enforce shared reservations and accounting. |
@@ -201,6 +201,10 @@ The [capture/curation contract](specs/x-capture-curation.md) still owns acquisit
 
 ## 7. Reading, synchronization, search, and languages
 
+### First-slice web reader
+
+The [private reader and access contract](specs/private-reader-access.md) defines the three accepted web views, save/refresh/job actions, retained-source switching, lexical search over active notes and associated originals, revision consistency and safe rendering. Stable note URLs carry identity, not access rights. This first browser interface has no offline cache; the native replica requirements below remain subsequent work.
+
 ### Read-only native clients
 
 The initial iPhone and Mac apps provide folders, recent notes, search, a reader, related notes, and source navigation. The text corpus may be replicated in full; roughly 1 GB of text is considered acceptable. Large media can be downloaded selectively.
@@ -227,11 +231,11 @@ Index original text, notes, and available translations with language and represe
 
 ## 8. Identity, privacy, and operations
 
-Pocket ID supplies owner authentication through OIDC. The service must additionally restrict access to the intended owner identity and enforce client permissions. Native Authorization Code + PKCE and browser cookie sessions are proposed mechanisms; the exact client libraries and session policy remain open.
+Pocket ID supplies owner authentication through OIDC. The [access contract](specs/private-reader-access.md) selects a confidential web client using Authorization Code + PKCE, exact issuer/subject owner binding and revocable server-side cookie sessions with a 30-day absolute lifetime. Client registration and application enforcement are still implementation work. Native authentication remains deferred.
 
-Give assistants, ingestion clients, and readers independently revocable credentials with appropriate capabilities. Reading/search, submitting a capture, requesting a job, and publishing are distinct permissions. Exact OAuth/MCP flows must match the clients actually used.
+Give assistants, ingestion clients, and readers independently revocable credentials with appropriate capabilities. The first Runner uses a separate restricted service identity; owner sessions, worker capabilities and operator/deployment authority are not interchangeable. Future OAuth/MCP flows must match the clients actually used.
 
-Unauthenticated users must not receive private note content, titles, search results, Git data, or assets. The exact 401/404 and owner login behavior can be resolved during API design. A note URL contains identity, not an access token. Raw HTML and generated Markdown must be rendered safely.
+Unauthenticated private HTML requests receive a generic 401 sign-in view and APIs return 401; a verified non-owner receives a generic 404. No private title, content or existence signal is disclosed. Authorized source delivery goes through the service rather than reusable bearer links. The access contract also specifies session revocation, cache isolation, CSRF and safe Markdown/source rendering.
 
 Trusted runtime skills and policy are separate from captured source content. Treat source instructions as data, keep canonical write authority out of the research process, and limit job context and credentials to what the task needs.
 
@@ -331,11 +335,7 @@ Maintain a coarse product-wide inventory of scope bags and agree an implementati
 
 ### Current planning position
 
-The [first-slice planning map](https://github.com/apshenichniy/personal-wiki/issues/13) tracks the agreed identity, capture/curation, publication and execution contracts linked above. Their required verification is future implementation work, not evidence of completed behavior. Remaining decision areas are:
-
-- What owner and machine authorization flows are required locally and for the first Pocket ID-protected deployment?
-- What belongs in the first diagnostic read/search surface, and which acceptance cases decide that the slice is useful?
-- Which versioned API boundaries must be fixed now so native readers can be added without a storage rewrite, while offline synchronization remains deferred?
+The [first-slice planning map](https://github.com/apshenichniy/personal-wiki/issues/13) tracks the agreed identity, capture/curation, publication, execution and private-reader/access contracts linked above. Their required verification is future implementation work, not evidence of completed behavior. Remaining decision areas are:
 - What are the staging, backup/restore, and GitHub Actions gates for the first deliverable?
 - Does the consolidated first-slice specification cover the intended outcome sufficiently to authorize implementation-task breakdown?
 
