@@ -26,6 +26,10 @@ jobs:
         with:
           version: 2026.9.1
           cache: false
+      - name: Record OS process prerequisites
+        run: |
+          git --version
+          python3 --version
       - name: Frozen install
         run: mise exec -- bun install --frozen-lockfile
       - name: Deterministic verification including Linux process probes

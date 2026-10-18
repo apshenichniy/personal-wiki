@@ -1,3 +1,4 @@
+import { prepareSource, postSource } from "./helpers/source.ts";
 import { Database } from "bun:sqlite";
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
@@ -11,6 +12,8 @@ import * as K from "@personal-wiki/contracts/knowledge";
 let server: Bun.Subprocess<"ignore", "pipe", "pipe">;
 let root = "";
 let url = "";
+let errors: Promise<string>;
+let diagnostics: Promise<string>;
 let client: Effect.Success<ReturnType<typeof makeClient>>;
 const request = async (path: string, body?: unknown) => {
   const result = await fetch(
@@ -29,13 +32,21 @@ const checksum = (value: string) => createHash("sha256").update(value).digest("h
 
 beforeAll(async () => {
   root = await mkdtemp(join(tmpdir(), "personal-wiki-library-"));
-  server = Bun.spawn([process.execPath, "apps/knowledge-service/dist/index.js"], {
-    env: { PATH: process.env.PATH, PORT: "0", WIKI_DATA_DIR: root },
-    stdin: "ignore",
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-  const errors = new Response(server.stderr).text();
+  server = Bun.spawn(
+    [
+      "python3",
+      "tools/runtime/locked-service.py",
+      process.execPath,
+      "apps/knowledge-service/dist/index.js",
+    ],
+    {
+      env: { PATH: process.env.PATH, PORT: "0", WIKI_DATA_DIR: root },
+      stdin: "ignore",
+      stdout: "pipe",
+      stderr: "pipe",
+    },
+  );
+  errors = new Response(server.stderr).text();
   const timer = setTimeout(() => server.kill("SIGKILL"), 10000);
   try {
     const reader = server.stdout.getReader();
@@ -50,7 +61,16 @@ beforeAll(async () => {
             line,
           ).url;
     }
-    reader.releaseLock();
+    diagnostics = (async () => {
+      let output = "";
+      for (;;) {
+        const part = await reader.read();
+        if (part.done) break;
+        output += new TextDecoder().decode(part.value);
+      }
+      reader.releaseLock();
+      return output;
+    })();
     client = await Effect.runPromise(makeClient(url));
   } finally {
     clearTimeout(timer);
@@ -59,114 +79,12 @@ beforeAll(async () => {
 afterAll(async () => {
   server?.kill();
   if (server) await server.exited;
+  if (process.env.WIKI_TEST_DEBUG) console.error(await errors, await diagnostics);
   if (root) await rm(root, { recursive: true, force: true });
 });
 
-async function prepare(sources: (typeof K.ReserveRequest.Type)["sources"], upload = true) {
-  const draft = await Effect.runPromise(
-    client.knowledge.reserve({ payload: { requestId: crypto.randomUUID(), sources } }),
-  );
-  const current = await Effect.runPromise(client.knowledge.list({ query: {} }));
-  const captures: K.Capture[] = [];
-  const notes: K.Note[] = [];
-  for (const slot of draft.slots) {
-    const original =
-      slot.source.kind === "x_article"
-        ? "Efficient widget architecture and an article example."
-        : "Durable widgets use a transactional outbox. Original-only keyword Flibbertigibbet.";
-    if (upload)
-      await Effect.runPromise(
-        client.knowledge.upload({
-          payload: {
-            jobId: draft.jobId,
-            assetId: slot.assetId,
-            mediaType: "text/plain",
-            base64: Buffer.from(original).toString("base64"),
-            sha256: checksum(original),
-          },
-        }),
-      );
-    captures.push({
-      schemaVersion: 1,
-      captureId: slot.captureId,
-      sourceId: slot.source.sourceId,
-      startedAt: "2026-10-18T12:00:00.000Z",
-      endedAt: "2026-10-18T12:00:01.000Z",
-      submittedUrl: slot.source.canonicalUrl,
-      submittedAnchorId: slot.source.primaryId,
-      focusIds: [slot.source.primaryId],
-      assetIds: [slot.assetId],
-      observations: [
-        {
-          providerId: slot.source.primaryId,
-          canonicalUrl: slot.source.canonicalUrl,
-          text: original,
-          authorId: "12345",
-          parentId: null,
-          conversationId: slot.source.primaryId,
-          quotedId: null,
-          articleId: null,
-          postedAt: null,
-        },
-      ],
-      representations: [
-        {
-          schemaVersion: 1,
-          representationId: slot.representationId,
-          captureId: slot.captureId,
-          assetId: slot.assetId,
-          language: "en",
-          kind: "original_text",
-          text: original,
-          derivation: "Synthetic fixture; retained UTF-8 source.",
-        },
-      ],
-      provenance: { provider: "synthetic", runIds: [], policyVersion: "fixture-v1" },
-      coverage: { main: "acquired", discussion: "not_acquired", context: "not_required" },
-      warnings: ["Synthetic evidence; no live provider."],
-    });
-    notes.push({
-      schemaVersion: 1,
-      noteId: slot.noteId,
-      kind: slot.source.kind === "x_article" ? "article" : "material",
-      language: "ru",
-      title: slot.source.kind === "x_article" ? "Архитектура виджетов" : "Надёжная публикация",
-      path: `notes/${slot.noteId}.md`,
-      markdown: `# Синтетическая заметка\n\nТранзакционная публикация сохраняет согласованность. [Источник](${slot.source.canonicalUrl})\n`,
-      sourceId: slot.source.sourceId,
-      captureIds: [slot.captureId],
-      citations: [
-        {
-          citationId: "c1",
-          sourceId: slot.source.sourceId,
-          captureId: slot.captureId,
-          providerId: slot.source.primaryId,
-          canonicalUrl: slot.source.canonicalUrl,
-        },
-      ],
-      relatedNoteIds: draft.slots.filter((s) => s.noteId !== slot.noteId).map((s) => s.noteId),
-      aliases: ["batch publication"],
-    });
-  }
-  const proposal: K.Proposal = {
-    schemaVersion: 1,
-    operationId: crypto.randomUUID(),
-    proposalId: crypto.randomUUID(),
-    jobId: draft.jobId,
-    baseRevision: current.appliedRevision,
-    notes,
-    captures,
-    policyVersion: "fixture-v1",
-    derivation: { agent: "synthetic", model: "none", skillVersion: "fixture-v1" },
-  };
-  return { draft, proposal };
-}
-const postSource = (id: string) => ({
-  kind: "x_post" as const,
-  primaryId: id,
-  aliases: [],
-  resolution: "resolved" as const,
-});
+const prepare = (sources: (typeof K.ReserveRequest.Type)["sources"], upload = true) =>
+  prepareSource(client, sources, upload);
 let first: Awaited<ReturnType<typeof prepare>>;
 let receipt: K.Receipt;
 

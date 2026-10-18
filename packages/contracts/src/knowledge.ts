@@ -155,7 +155,7 @@ export const CaptureDetail = Schema.Struct({
   appliedRevision: Revision,
   capture: Capture,
   source: Source,
-}).annotate({ identifier: "NoteList" });
+}).annotate({ identifier: "CaptureDetail" });
 export const SearchRequest = Schema.Struct({
   query: Schema.String.check(Schema.isMaxLength(512)),
   revision: Schema.optional(Revision),
@@ -182,3 +182,17 @@ export type Proposal = typeof Proposal.Type;
 export type Receipt = typeof Receipt.Type;
 export type Snapshot = typeof Snapshot.Type;
 export type Slot = typeof Slot.Type;
+
+export const CancelPublication = Schema.Struct({ operationId: Id });
+export const CancellationResult = Schema.Struct({
+  operationId: Id,
+  outcome: Schema.Literals(["cancelled", "too_late", "rejected"]),
+});
+export const Compensation = Schema.Struct({
+  operationId: Id,
+  targetPublicationId: Id,
+  expectedRevision: Revision,
+});
+export const OutboxEvent = Schema.Struct({ eventId: Id, operationId: Id, revision: Revision });
+export const Outbox = Schema.Array(OutboxEvent);
+export const AckEvent = Schema.Struct({ eventId: Id });

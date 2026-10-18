@@ -14,7 +14,7 @@
     "format": "oxfmt --ignore-path .gitignore --ignore-path .oxfmtignore --write apps packages tools tests negative package.json tsconfig.json .oxlintrc.json",
     "format-check": "oxfmt --ignore-path .gitignore --ignore-path .oxfmtignore --check apps packages tools tests negative package.json tsconfig.json .oxlintrc.json",
     "contracts": "bun run tools/contracts.ts",
-    "service": "bun run apps/knowledge-service/src/index.ts",
+    "service": "python3 tools/runtime/locked-service.py bun apps/knowledge-service/src/index.ts",
     "runner": "bun run apps/runner/src/index.ts"
   },
   "devDependencies": {

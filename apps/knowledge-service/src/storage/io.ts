@@ -1,6 +1,4 @@
 import { createHash } from "node:crypto";
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import { constants } from "node:fs";
 import { mkdir, open, readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -15,6 +13,7 @@ export class LibraryError extends Schema.TaggedError<LibraryError>()("LibraryErr
     "revision_changed",
     "not_found",
     "unavailable",
+    "cancelled",
   ]),
   message: Schema.String,
 }) {}
@@ -74,23 +73,15 @@ export async function syncDirectory(path: string) {
 export async function prepareDirectory(path: string) {
   await mkdir(path, { recursive: true, mode: 0o700 });
 }
-const execute = promisify(execFile);
 export const git = (
-  root: string,
+  _root: string,
   args: ReadonlyArray<string>,
   options?: { raw?: boolean; env?: NodeJS.ProcessEnv },
 ) =>
   io(async () => {
-    const { stdout } = await execute("git", ["--git-dir", join(root, "knowledge.git"), ...args], {
-      env: {
-        PATH: process.env.PATH,
-        HOME: root,
-        GIT_CONFIG_NOSYSTEM: "1",
-        GIT_CONFIG_GLOBAL: "/dev/null",
-        GIT_TERMINAL_PROMPT: "0",
-        ...options?.env,
-      },
-      maxBuffer: 16 * 1024 * 1024,
-    });
-    return options?.raw ? stdout : stdout.trim();
+    const { publisherRequest } = await import("./ownership.ts");
+    const response = await publisherRequest({ method: "git", args, env: options?.env ?? {} });
+    if (!response.ok || typeof response.output !== "string") throw new Error("Git command failed");
+    const output = Buffer.from(response.output, "base64").toString("utf8");
+    return options?.raw ? output : output.trim();
   });

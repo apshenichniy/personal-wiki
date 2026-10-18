@@ -22,6 +22,11 @@ const KnowledgeHandlers = HttpApiBuilder.group(
   Effect.fn(function* (handlers) {
     const library = yield* Library;
     return handlers.handleAll({
+      cancelPublication: ({ payload }) =>
+        library.cancelPublication(payload.operationId).pipe(Effect.orDie),
+      compensate: ({ payload }) => library.compensate(payload).pipe(Effect.orDie),
+      outbox: () => library.outbox().pipe(Effect.orDie),
+      ackEvent: ({ payload }) => library.ackEvent(payload.eventId).pipe(Effect.orDie),
       reserve: ({ payload }) => library.reserve(payload).pipe(Effect.orDie),
       upload: ({ payload }) => library.upload(payload).pipe(Effect.orDie),
       publish: ({ payload }) => library.publish(payload).pipe(Effect.orDie),
@@ -58,6 +63,7 @@ const Boundary = HttpRouter.middleware(
                 revision_changed: 409,
                 not_found: 404,
                 unavailable: 503,
+                cancelled: 409,
               }[domain.code]
             : invalid
               ? 400
