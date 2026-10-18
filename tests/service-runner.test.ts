@@ -16,12 +16,20 @@ let dataDir = "";
 
 beforeAll(async () => {
   dataDir = await mkdtemp(join(tmpdir(), "personal-wiki-http-"));
-  service = Bun.spawn([process.execPath, "apps/knowledge-service/dist/index.js"], {
-    env: { PATH: process.env.PATH, PORT: "0", WIKI_DATA_DIR: dataDir },
-    stdin: "ignore",
-    stdout: "pipe",
-    stderr: "pipe",
-  });
+  service = Bun.spawn(
+    [
+      "python3",
+      "tools/runtime/locked-service.py",
+      process.execPath,
+      "apps/knowledge-service/dist/index.js",
+    ],
+    {
+      env: { PATH: process.env.PATH, PORT: "0", WIKI_DATA_DIR: dataDir },
+      stdin: "ignore",
+      stdout: "pipe",
+      stderr: "pipe",
+    },
+  );
   errors = new Response(service.stderr).text();
   const timeout = setTimeout(() => service.kill(), 10000);
   try {

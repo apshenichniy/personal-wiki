@@ -5,6 +5,14 @@ import { join } from "node:path";
 import { io, prepareDirectory, LibraryError } from "./io.ts";
 
 const migrations = {
+  "0002_publisher_epoch": Effect.gen(function* () {
+    const sql = yield* SqlClient.SqlClient;
+    yield* sql`CREATE TABLE publisher_state (singleton INTEGER PRIMARY KEY CHECK(singleton=1), epoch INTEGER NOT NULL)`;
+    yield* sql`INSERT INTO publisher_state VALUES(1,0)`;
+    yield* sql`ALTER TABLE operations ADD COLUMN publisher_epoch INTEGER NOT NULL DEFAULT 0`;
+    yield* sql`ALTER TABLE operations ADD COLUMN kind TEXT NOT NULL DEFAULT 'ingestion'`;
+    yield* sql`ALTER TABLE operations ADD COLUMN target_publication_id TEXT`;
+  }),
   "0001_library": Effect.gen(function* () {
     const sql = yield* SqlClient.SqlClient;
     yield* sql`CREATE TABLE library_state (singleton INTEGER PRIMARY KEY CHECK(singleton=1), applied_revision TEXT NOT NULL, sequence INTEGER NOT NULL)`;

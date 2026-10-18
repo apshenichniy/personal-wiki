@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$ref": "#/$defs/NoteList",
+  "$ref": "#/$defs/CaptureDetail",
   "$defs": {
     "Observation": {
       "type": "object",
@@ -331,7 +331,7 @@
       ],
       "additionalProperties": true
     },
-    "NoteList": {
+    "CaptureDetail": {
       "type": "object",
       "properties": {
         "appliedRevision": {

@@ -1,3 +1,5 @@
+import { publicationFault } from "./faults.ts";
+import { ownershipLayer } from "./ownership.ts";
 import { Context, Effect, Layer, Schema, Semaphore } from "effect";
 import { SqlClient } from "effect/sql";
 import { randomUUID } from "node:crypto";
@@ -28,6 +30,17 @@ const fail = (code: LibraryError["code"], message: string) =>
 export const makeLibrary = Effect.fn("Knowledge.makeLibrary")(function* (root: string) {
   const sql = yield* SqlClient.SqlClient;
   const lane = yield* Semaphore.make(1);
+  const epoch = yield* sql.withTransaction(
+    Effect.gen(function* () {
+      const changed = yield* sql<{
+        epoch: number;
+      }>`UPDATE publisher_state SET epoch=epoch+1 WHERE singleton=1 RETURNING epoch`;
+      const value = changed[0]?.epoch;
+      if (!value) return yield* fail("unavailable", "Publisher epoch is unavailable.");
+      yield* sql`UPDATE operations SET publisher_epoch=${value}`;
+      return value;
+    }),
+  );
   yield* io(() => prepareDirectory(join(root, "objects")));
   yield* git(root, ["init", "--bare"]);
   yield* git(root, ["config", "core.fsync", "all"]);
@@ -71,12 +84,17 @@ export const makeLibrary = Effect.fn("Knowledge.makeLibrary")(function* (root: s
       { schemaVersion: 1, kind: "genesis" },
       "2000-01-01T00:00:00.000Z",
     );
-    yield* git(root, [
-      "update-ref",
-      canonicalRef,
-      genesis,
-      "0000000000000000000000000000000000000000",
-    ]);
+    const existing = yield* git(root, ["for-each-ref", "--format=%(objectname)", canonicalRef]);
+    if (existing && existing !== genesis)
+      return yield* fail("unavailable", "Unrecorded canonical history requires recovery.");
+    if (!existing)
+      yield* git(root, [
+        "update-ref",
+        canonicalRef,
+        genesis,
+        "0000000000000000000000000000000000000000",
+      ]);
+    yield* publicationFault(root, "genesis");
     yield* sql.withTransaction(
       Effect.gen(function* () {
         yield* index(empty);
@@ -84,12 +102,6 @@ export const makeLibrary = Effect.fn("Knowledge.makeLibrary")(function* (root: s
       }),
     );
   }
-  const current = yield* read();
-  if ((yield* git(root, ["rev-parse", canonicalRef])) !== current.appliedRevision)
-    return yield* fail(
-      "unavailable",
-      "Unapplied publication requires recovery before this development service starts.",
-    );
 
   const reserve = Effect.fn("Knowledge.reserve")(function* (input: typeof K.ReserveRequest.Type) {
     return yield* lane.withPermit(
@@ -209,111 +221,304 @@ export const makeLibrary = Effect.fn("Knowledge.makeLibrary")(function* (root: s
     }
     return assets;
   });
-  const publish = Effect.fn("Knowledge.publish")(function* (proposal: K.Proposal) {
+  type Operation = {
+    operation_id: string;
+    digest: string;
+    publication_id: string;
+    job_id: string;
+    base_revision: string;
+    payload: string;
+    published_at: string;
+    phase: string;
+    candidate: string | null;
+    rejection: string | null;
+    publisher_epoch: number;
+    kind: "ingestion" | "compensation";
+    target_publication_id: string | null;
+  };
+  const assertEpoch = Effect.fn("Knowledge.assertEpoch")(function* () {
+    const rows = yield* sql`SELECT epoch FROM publisher_state WHERE singleton=1 AND epoch=${epoch}`;
+    if (!rows.length) return yield* fail("unavailable", "Publisher ownership changed.");
+  });
+  const operation = Effect.fn("Knowledge.operation")(function* (id: string) {
+    const row = (yield* sql<Operation>`SELECT * FROM operations WHERE operation_id=${id}`)[0];
+    if (!row) return yield* fail("not_found", "Publication operation not found.");
+    if (row.publisher_epoch !== epoch)
+      return yield* fail("unavailable", "Publisher ownership changed.");
+    return row;
+  });
+  const transition = Effect.fn("Knowledge.transition")(function* (
+    id: string,
+    from: string,
+    to: string,
+    candidate: string | null = null,
+  ) {
+    const changed =
+      yield* sql`UPDATE operations SET phase=${to},candidate=COALESCE(${candidate},candidate) WHERE operation_id=${id} AND phase=${from} AND publisher_epoch=${epoch} AND EXISTS(SELECT 1 FROM publisher_state WHERE epoch=${epoch}) RETURNING operation_id`;
+    if (!changed.length) {
+      const row = yield* operation(id);
+      return yield* fail(
+        row.phase === "cancelled" ? "cancelled" : "unavailable",
+        row.phase === "cancelled"
+          ? "Publication was cancelled before commit intent."
+          : "Publication transition was fenced.",
+      );
+    }
+  });
+  const terminal = Effect.fn("Knowledge.terminalResult")(function* (op: Operation) {
+    const result = (yield* sql<{
+      payload: string;
+    }>`SELECT payload FROM receipts WHERE operation_id=${op.operation_id}`)[0];
+    if (result) return decode(K.Receipt, result.payload);
+    if (op.phase === "cancelled")
+      return yield* fail("cancelled", "Publication was cancelled before commit intent.");
+    if (op.phase === "rejected" && op.rejection)
+      return yield* Effect.fail(decode(LibraryError, op.rejection));
+    return null;
+  });
+  const manifestFor = (op: Operation, noteIds: ReadonlyArray<string>) => ({
+    schemaVersion: 1,
+    kind: op.kind,
+    operationId: op.operation_id,
+    publicationId: op.publication_id,
+    jobId: op.job_id,
+    payloadDigest: op.digest,
+    baseRevision: op.base_revision,
+    targetPublicationId: op.target_publication_id,
+    noteIds: [...noteIds].sort(),
+    publishedAt: op.published_at,
+  });
+  const prepareOperation = Effect.fn("Knowledge.prepareOperation")(function* (op: Operation) {
+    const base = yield* read();
+    if (
+      base.appliedRevision !== op.base_revision ||
+      (yield* git(root, ["rev-parse", canonicalRef])) !== op.base_revision
+    )
+      return yield* fail("stale_proposal", "Proposal base is stale.");
+    let snapshot: K.Snapshot;
+    let noteIds: ReadonlyArray<string>;
+    if (op.kind === "compensation") {
+      const target =
+        (yield* sql<Operation>`SELECT * FROM operations WHERE publication_id=${op.target_publication_id} AND phase='applied'`)[0];
+      if (!target || target.candidate !== op.base_revision)
+        return yield* fail(
+          "stale_proposal",
+          "Compensation target is no longer the latest publication.",
+        );
+      const parent = yield* readTree(root, target.base_revision);
+      snapshot = { ...base.snapshot, notes: parent.notes };
+      noteIds = [...new Set([...parent.notes, ...base.snapshot.notes].map((n) => n.noteId))];
+      yield* verifiedAssets(snapshot.captures.flatMap((capture) => capture.assetIds));
+    } else {
+      const proposal = decode(K.Proposal, op.payload);
+      const draft = yield* getDraft(proposal.jobId);
+      const assets = yield* verifiedAssets(
+        [...base.snapshot.captures, ...proposal.captures].flatMap((c) => c.assetIds),
+      );
+      snapshot = yield* Effect.try({
+        try: () => validateBatch(proposal, draft, base.snapshot, assets),
+        catch: (error) =>
+          error instanceof LibraryError ? error : invalid("Invalid proposed metadata."),
+      });
+      noteIds = proposal.notes.map((n) => n.noteId);
+    }
+    const candidate = yield* createCommit(
+      root,
+      snapshot,
+      op.base_revision,
+      manifestFor(op, noteIds),
+      op.published_at,
+    );
+    yield* git(root, ["update-ref", `refs/prepared/${op.publication_id}`, candidate]);
+    yield* publicationFault(root, "candidate");
+    yield* transition(op.operation_id, "received", "prepared", candidate);
+  });
+  const executeOperation = Effect.fn("Knowledge.executeOperation")(function* (id: string) {
+    yield* assertEpoch();
+    let op = yield* operation(id);
+    const previous = yield* terminal(op);
+    if (previous) return previous;
+    if (op.phase === "received") {
+      yield* prepareOperation(op).pipe(
+        Effect.catchTag("LibraryError", (error) =>
+          Effect.gen(function* () {
+            if (error.code !== "unavailable" && error.code !== "cancelled") {
+              yield* sql`UPDATE operations SET phase='rejected',rejection=${stable({ _tag: error._tag, code: error.code, message: error.message })} WHERE operation_id=${id} AND phase='received' AND publisher_epoch=${epoch} AND EXISTS(SELECT 1 FROM publisher_state WHERE epoch=${epoch})`;
+            }
+            return yield* Effect.fail(error);
+          }),
+        ),
+      );
+      yield* publicationFault(root, "prepared");
+      op = yield* operation(id);
+    }
+    const afterPreparation = yield* terminal(op);
+    if (afterPreparation) return afterPreparation;
+    if (!op.candidate) return yield* fail("unavailable", "Publication candidate is missing.");
+    const candidate = op.candidate;
+    const committed = yield* readTree(root, candidate);
+    const storedManifest = yield* git(root, [
+      "show",
+      `${candidate}:.wiki/publications/${op.publication_id}.json`,
+    ]);
+    const noteIds =
+      op.kind === "ingestion"
+        ? decode(K.Proposal, op.payload).notes.map((n) => n.noteId)
+        : [
+            ...new Set(
+              [...(yield* readTree(root, op.base_revision)).notes, ...committed.notes].map(
+                (n) => n.noteId,
+              ),
+            ),
+          ];
+    if (
+      storedManifest !== stable(manifestFor(op, noteIds)) ||
+      (yield* git(root, ["rev-parse", `${candidate}^`])) !== op.base_revision
+    )
+      return yield* fail("unavailable", "Publication candidate manifest or parent diverged.");
+    if (op.phase === "prepared") {
+      if ((yield* git(root, ["rev-parse", canonicalRef])) !== op.base_revision)
+        return yield* fail("unavailable", "Canonical revision changed before commit intent.");
+      yield* verifiedAssets(committed.captures.flatMap((capture) => capture.assetIds));
+      yield* sql.withTransaction(
+        Effect.gen(function* () {
+          yield* assertEpoch();
+          yield* read(op.base_revision);
+          yield* transition(id, "prepared", "committing");
+        }),
+      );
+      yield* publicationFault(root, "committing");
+      op = yield* operation(id);
+    }
+    if (op.phase === "committing") {
+      const canonical = yield* git(root, ["rev-parse", canonicalRef]);
+      if (canonical === op.base_revision)
+        yield* git(root, ["update-ref", canonicalRef, candidate, op.base_revision]);
+      else if (canonical !== candidate)
+        return yield* fail("unavailable", "Canonical revision diverged from publication intent.");
+      yield* publicationFault(root, "ref-advanced");
+      yield* transition(id, "committing", "committed");
+      yield* publicationFault(root, "committed");
+      op = yield* operation(id);
+    }
+    if (op.phase !== "committed" || (yield* git(root, ["rev-parse", canonicalRef])) !== candidate)
+      return yield* fail("unavailable", "Publication cannot be activated from this state.");
+    const receipt = yield* sql.withTransaction(
+      Effect.gen(function* () {
+        yield* assertEpoch();
+        const before = yield* read(op.base_revision);
+        const receipt: K.Receipt = {
+          schemaVersion: 1,
+          operationId: id,
+          publicationId: op.publication_id,
+          jobId: op.job_id,
+          appliedRevision: candidate,
+          sequence: before.sequence + 1,
+          noteIds,
+          publishedAt: op.published_at,
+        };
+        yield* index(committed);
+        yield* publicationFault(root, "activating");
+        yield* sql`UPDATE library_state SET applied_revision=${candidate},sequence=${receipt.sequence} WHERE singleton=1`;
+        yield* sql`INSERT INTO receipts VALUES (${id},${op.job_id},${stable(receipt)})`;
+        yield* sql`INSERT INTO outbox(event_id,operation_id,revision) VALUES (${op.publication_id},${id},${candidate})`;
+        yield* transition(id, "committed", "applied");
+        return receipt;
+      }),
+    );
+    yield* publicationFault(root, "activated");
+    return receipt;
+  });
+  const submit = Effect.fn("Knowledge.submitPublication")(function* (
+    input: K.Proposal | typeof K.Compensation.Type,
+    kind: Operation["kind"],
+  ) {
     return yield* lane.withPermit(
       Effect.gen(function* () {
-        const payloadDigest = digest(stable(proposal));
-        const old = (yield* sql<{
-          digest: string;
-          phase: string;
-          rejection: string | null;
-        }>`SELECT digest,phase,rejection FROM operations WHERE operation_id=${proposal.operationId}`)[0];
+        yield* assertEpoch();
+        const payload = stable(input);
+        const payloadDigest = digest(payload);
+        const old =
+          (yield* sql<Operation>`SELECT * FROM operations WHERE operation_id=${input.operationId}`)[0];
         if (old) {
-          if (old.digest !== payloadDigest)
+          if (old.digest !== payloadDigest || old.kind !== kind)
             return yield* fail("idempotency_conflict", "Operation identity has different input.");
-          const receipt = (yield* sql<{
-            payload: string;
-          }>`SELECT payload FROM receipts WHERE operation_id=${proposal.operationId}`)[0];
-          if (receipt) return decode(K.Receipt, receipt.payload);
-          if (old.phase === "rejected" && old.rejection)
-            return yield* Effect.fail(decode(LibraryError, old.rejection));
-          return yield* fail("unavailable", "Publication is pending recovery.");
+          return yield* executeOperation(old.operation_id);
         }
-        if ((yield* sql`SELECT operation_id FROM receipts WHERE job_id=${proposal.jobId}`).length)
+        if (Buffer.byteLength(payload, "utf8") > 1_048_576)
+          return yield* fail(
+            "invalid_request",
+            "Publication input exceeds the retained byte limit.",
+          );
+        const jobId = "jobId" in input ? input.jobId : randomUUID();
+        if ((yield* sql`SELECT operation_id FROM receipts WHERE job_id=${jobId}`).length)
           return yield* fail("already_published", "This job already has a publication receipt.");
         if (
           (yield* sql`SELECT operation_id FROM operations WHERE phase NOT IN ('applied','rejected','cancelled')`)
             .length
         )
           return yield* fail("unavailable", "An earlier publication must be reconciled first.");
-        const draft = yield* getDraft(proposal.jobId);
-        const base = yield* read();
-        const publicationId = randomUUID();
-        const publishedAt = new Date().toISOString();
-        yield* sql`INSERT INTO operations(operation_id,digest,publication_id,job_id,base_revision,payload,published_at,phase) VALUES (${proposal.operationId},${payloadDigest},${publicationId},${proposal.jobId},${proposal.baseRevision},${stable(proposal)},${publishedAt},'received')`;
-        if (
-          base.appliedRevision !== proposal.baseRevision ||
-          (yield* git(root, ["rev-parse", canonicalRef])) !== proposal.baseRevision
-        ) {
-          yield* sql`UPDATE operations SET phase='rejected',rejection=${stable({ _tag: "LibraryError", code: "stale_proposal", message: "Proposal base is stale." })} WHERE operation_id=${proposal.operationId}`;
-          return yield* fail("stale_proposal", "Proposal base is stale.");
-        }
-        const snapshot = yield* Effect.gen(function* () {
-          const assets = yield* verifiedAssets(
-            [...base.snapshot.captures, ...proposal.captures].flatMap((c) => c.assetIds),
-          );
-          return yield* Effect.try({
-            try: () => validateBatch(proposal, draft, base.snapshot, assets),
-            catch: (error) =>
-              error instanceof LibraryError ? error : invalid("Invalid proposed metadata."),
-          });
-        }).pipe(
-          Effect.catchTag("LibraryError", (error) =>
-            Effect.gen(function* () {
-              yield* sql`UPDATE operations SET phase='rejected',rejection=${stable({ _tag: error._tag, code: error.code, message: error.message })} WHERE operation_id=${proposal.operationId}`;
-              return yield* Effect.fail(error);
-            }),
-          ),
-        );
-        const manifest = {
-          schemaVersion: 1,
-          operationId: proposal.operationId,
-          publicationId,
-          jobId: proposal.jobId,
-          payloadDigest,
-          baseRevision: proposal.baseRevision,
-          noteIds: proposal.notes.map((n) => n.noteId),
-          publishedAt,
-        };
-        const candidate = yield* createCommit(
-          root,
-          snapshot,
-          proposal.baseRevision,
-          manifest,
-          publishedAt,
-        );
-        yield* git(root, ["update-ref", `refs/prepared/${publicationId}`, candidate]);
-        yield* sql`UPDATE operations SET phase='prepared',candidate=${candidate} WHERE operation_id=${proposal.operationId}`;
-        yield* sql`UPDATE operations SET phase='committing' WHERE operation_id=${proposal.operationId}`;
-        yield* git(root, ["update-ref", canonicalRef, candidate, proposal.baseRevision]);
-        yield* sql`UPDATE operations SET phase='committed' WHERE operation_id=${proposal.operationId}`;
-        const committed = yield* readTree(root, candidate);
-        const receipt: K.Receipt = {
-          schemaVersion: 1,
-          operationId: proposal.operationId,
-          publicationId,
-          jobId: proposal.jobId,
-          appliedRevision: candidate,
-          sequence: base.sequence + 1,
-          noteIds: proposal.notes.map((n) => n.noteId),
-          publishedAt,
-        };
-        yield* sql.withTransaction(
-          Effect.gen(function* () {
-            const before = yield* read(proposal.baseRevision);
-            if (before.sequence !== base.sequence)
-              return yield* fail("unavailable", "Publication sequence changed.");
-            yield* index(committed);
-            yield* sql`UPDATE library_state SET applied_revision=${candidate},sequence=${receipt.sequence} WHERE singleton=1`;
-            yield* sql`INSERT INTO receipts VALUES (${proposal.operationId},${proposal.jobId},${stable(receipt)})`;
-            yield* sql`INSERT INTO outbox(event_id,operation_id,revision) VALUES (${publicationId},${proposal.operationId},${candidate})`;
-            yield* sql`UPDATE operations SET phase='applied' WHERE operation_id=${proposal.operationId}`;
-          }),
-        );
-        return receipt;
+        if (kind === "ingestion") yield* getDraft(jobId);
+        const baseRevision = "baseRevision" in input ? input.baseRevision : input.expectedRevision;
+        const target = "targetPublicationId" in input ? input.targetPublicationId : null;
+        yield* sql`INSERT INTO operations(operation_id,digest,publication_id,job_id,base_revision,payload,published_at,phase,publisher_epoch,kind,target_publication_id) VALUES (${input.operationId},${payloadDigest},${randomUUID()},${jobId},${baseRevision},${payload},${new Date().toISOString()},'received',${epoch},${kind},${target})`;
+        yield* publicationFault(root, "received");
+        return yield* executeOperation(input.operationId);
       }),
     );
   });
+  const publish = (proposal: K.Proposal) => submit(proposal, "ingestion");
+  const compensate = (input: typeof K.Compensation.Type) => submit(input, "compensation");
+  const cancelPublication = Effect.fn("Knowledge.cancelPublication")(function* (id: string) {
+    return yield* sql.withTransaction(
+      Effect.gen(function* () {
+        yield* assertEpoch();
+        yield* sql`UPDATE operations SET phase='cancelled' WHERE operation_id=${id} AND phase IN ('received','prepared') AND publisher_epoch=${epoch}`;
+        const op = yield* operation(id);
+        return {
+          operationId: id,
+          outcome:
+            op.phase === "cancelled"
+              ? ("cancelled" as const)
+              : op.phase === "rejected"
+                ? ("rejected" as const)
+                : ("too_late" as const),
+        };
+      }),
+    );
+  });
+  const outbox = () =>
+    sql<{
+      eventId: string;
+      operationId: string;
+      revision: string;
+    }>`SELECT event_id AS eventId,operation_id AS operationId,revision FROM outbox WHERE delivered_at IS NULL ORDER BY rowid`;
+  const ackEvent = (id: string) =>
+    sql.withTransaction(
+      Effect.gen(function* () {
+        yield* assertEpoch();
+        if (!(yield* sql`SELECT event_id FROM outbox WHERE event_id=${id}`).length)
+          return yield* fail("not_found", "Publication event not found.");
+        yield* sql`UPDATE outbox SET delivered_at=COALESCE(delivered_at,${new Date().toISOString()}) WHERE event_id=${id}`;
+      }),
+    );
+  // Startup adopts the journal under the new epoch and reconciles before admission.
+  const pending =
+    yield* sql<Operation>`SELECT * FROM operations WHERE phase NOT IN ('applied','rejected','cancelled') ORDER BY rowid`;
+  if (pending.length > 1)
+    return yield* fail("unavailable", "Multiple pending publications require investigation.");
+  for (const op of pending)
+    yield* executeOperation(op.operation_id).pipe(
+      Effect.catchTag("LibraryError", (error) =>
+        error.code === "invalid_request" ||
+        error.code === "stale_proposal" ||
+        error.code === "cancelled"
+          ? Effect.void
+          : Effect.fail(error),
+      ),
+    );
+  if ((yield* git(root, ["rev-parse", canonicalRef])) !== (yield* read()).appliedRevision)
+    return yield* fail("unavailable", "Canonical and applied revisions diverged.");
   const list = (revision?: string) =>
     sql.withTransaction(
       read(revision).pipe(
@@ -401,12 +606,28 @@ export const makeLibrary = Effect.fn("Knowledge.makeLibrary")(function* (root: s
         return { appliedRevision: state.appliedRevision, notes: snapshot.notes };
       }),
     );
-  return { reserve, upload, publish, list, note, capture, search, rebuild };
+  return {
+    reserve,
+    upload,
+    publish,
+    list,
+    note,
+    capture,
+    search,
+    rebuild,
+    cancelPublication,
+    compensate,
+    outbox,
+    ackEvent,
+  };
 });
 export class Library extends Context.Service<
   Library,
   Effect.Success<ReturnType<typeof makeLibrary>>
 >()("personal-wiki/Library") {
   static layer = (root: string) =>
-    Layer.effect(Library, makeLibrary(root)).pipe(Layer.provide(databaseLayer(root)));
+    Layer.effect(Library, makeLibrary(root)).pipe(
+      Layer.provide(databaseLayer(root)),
+      Layer.provide(ownershipLayer()),
+    );
 }

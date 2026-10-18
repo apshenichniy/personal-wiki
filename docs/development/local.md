@@ -36,7 +36,7 @@ The service binds **127.0.0.1:3000** only. `PORT=0` selects an available loopbac
 
 ## Contract ownership
 
-`packages/contracts/src/index.ts` defines Effect schemas and HttpApi; `packages/client` derives the typed HTTP client. Runner depends on those boundaries, not Service implementation or SQLite. `apps/knowledge-service` owns server handlers; the SQLite dependency is selected but not used by the synthetic path.
+`packages/contracts/src/index.ts` defines Effect schemas and HttpApi; `packages/client` derives the typed HTTP client. Runner depends on those boundaries, not Service implementation or SQLite. `apps/knowledge-service` owns server handlers; the SQLite adapter is used only inside the Service-owned library.
 
 After a contract change:
 
@@ -70,4 +70,16 @@ The publication lane records received/prepared/committing/committed/applied phas
 
 P2 tests use actual Git and SQLite, observe the library during a two-note publication, verify lexical Russian/English/original-only matches, concurrent replay, malformed assets and proposals, and delete/rebuild only the search projection while retaining operational rows. A move keeps note and old capture/citation IDs.
 
-**P2 is the happy-path storage foundation.** Process-level writer exclusion, publisher epochs, interrupted-publication recovery and compensation are P3 gates, before durable jobs or real integrations. Startup currently refuses a canonical/applied mismatch; it does not repair it by guessing. No live acquisition or crash-recovery claim follows from these tests.
+## Publication recovery and compensation (P3)
+
+Start through `bun run service`, which invokes `tools/runtime/locked-service.py`. Python 3.12+ and Git are system prerequisites in addition to mise-managed Bun/moon. The supervisor owns a persistent `publisher.lock` inode with non-blocking `flock`, starts the scoped Bun service, and executes its bounded Git commands through a private Unix socket. It passes its lock descriptor to Git using Python's `pass_fds`; a surviving child retains exclusion even if the supervisor dies. Bun never owns or passes that descriptor. A direct Bun startup without supervisor ownership fails before opening SQLite. Socket ownership loss stops the service; normal shutdown terminates/reaps its process group. Deployment must preserve the lock inode and stop the old process group before takeover.
+
+This helper arrangement replaces an unsuccessful local probe of direct Bun descriptor inheritance: a descriptor supplied as extra subprocess stdio was sometimes closed in the parent, producing intermittent storage errors and loss of exclusion. This observation is specific to the pinned local runtime; it is not a general claim about all Bun versions. The supervisor uses the Python standard library, no additional application framework or service credentials. Its main thread uses bounded child waits: a signal received by a socket worker must still reach Python's main-thread signal handler. A deterministic non-main-thread signal probe guards against shutdown deadlock.
+
+Startup increments a persisted publisher epoch and adopts retained operations. It reconstructs a pre-prepare candidate with its recorded identity/time or verifies the stored candidate, manifest and parent. A durable committing intent finishes the same expected-old-value Git update; committed candidates activate the exact tree without reacquiring source material. The catalog, FTS, pointer, receipt and outbox activate together. Unexpected ref/manifest divergence fails closed and retains the journal for investigation. Interrupted deterministic genesis initialization also reconciles its recorded candidate rather than creating another history.
+
+`POST /api/v1/worker/publications/cancel` accepts an operation ID. Cancellation races the SQL transition into `committing`: before intent it prevents publication; afterward it returns `too_late`, and recovery must finish. `POST /api/v1/operator/compensations` accepts a new operation ID, the target publication ID and expected current revision. It restores the latest batch's previous active notes through a new commit while retaining captures/assets/identities/manifests/receipts. Replaying the original ingestion still returns its old receipt and does not resurrect undone notes.
+
+`GET /api/v1/operator/outbox` returns undelivered events with stable IDs. `POST /api/v1/operator/outbox/ack` is idempotent. A lost delivery acknowledgement leaves the same event available; the reader's eventual polling/transport integration is separate work. These routes remain private development interfaces until P9 capability enforcement.
+
+`bun run verify` includes actual process death at received, candidate, prepared, committing, ref-advanced, committed, activating and activated boundaries; cancellation interleavings; epoch fencing; contradictory-ref refusal; compensation/rebuild/resave; and OS exclusion with a paused owner and an orphaned Git process. Test faults are selected only through process-local `WIKI_TEST_*` environment variables, never API/source input. Production service definitions must not set these variables. Process-kill tests do not establish arbitrary disk-loss durability or live provider behavior; encrypted restore and deployment rehearsals remain P11/P12 gates.

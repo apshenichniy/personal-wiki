@@ -21,6 +21,7 @@ export const ErrorEnvelope = Schema.Struct({
     "revision_changed",
     "not_found",
     "unavailable",
+    "cancelled",
   ]),
   message: Schema.String,
   requestId: RequestId,
@@ -41,6 +42,23 @@ const errors = [400, 404, 409, 500, 503].map((status) =>
   ErrorEnvelope.pipe(HttpApiSchema.status(status)),
 );
 export class KnowledgeApi extends HttpApiGroup.make("knowledge").add(
+  HttpApiEndpoint.post("cancelPublication", "/api/v1/worker/publications/cancel", {
+    payload: K.CancelPublication,
+    success: K.CancellationResult,
+    error: errors,
+  }),
+  HttpApiEndpoint.post("compensate", "/api/v1/operator/compensations", {
+    payload: K.Compensation,
+    success: K.Receipt,
+    error: errors,
+  }),
+  HttpApiEndpoint.get("outbox", "/api/v1/operator/outbox", { success: K.Outbox, error: errors }),
+  HttpApiEndpoint.post("ackEvent", "/api/v1/operator/outbox/ack", {
+    payload: K.AckEvent,
+    success: HttpApiSchema.NoContent,
+    error: errors,
+  }),
+
   HttpApiEndpoint.post("reserve", "/api/v1/worker/reservations", {
     payload: K.ReserveRequest,
     success: K.Draft,

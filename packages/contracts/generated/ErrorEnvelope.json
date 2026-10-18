@@ -12,7 +12,8 @@
         "already_published",
         "revision_changed",
         "not_found",
-        "unavailable"
+        "unavailable",
+        "cancelled"
       ]
     },
     "message": {
