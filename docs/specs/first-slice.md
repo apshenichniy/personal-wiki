@@ -100,6 +100,8 @@ A bag groups responsibility; it is not one implementation task or necessarily on
 
 The owner approved these independently verifiable task boundaries and their dependency approach. GitHub implementation issues carry execution status, native dependencies, acceptance evidence and bounded ownership. Local P-labels below are specification references, not issue numbers. If code inspection requires a smaller task, preserve the approved observable outcome and scope and update its dependency/coverage links.
 
+The [published backlog and autonomous-run handoff](../plans/first-slice-delivery.md) link all fourteen executable issues under [Deliver the first X-to-wiki slice](https://github.com/apshenichniy/personal-wiki/issues/23). The table below remains the approved specification boundary; GitHub owns current execution status.
+
 | Ref / title | Deliverable and decisive verification | Depends on |
 | --- | --- | --- |
 | P0 — Prepare unattended execution access | Refresh private access inventory; finish owner-dependent login/passkey steps; establish scoped provisioning access for remaining app clients/backup resources and the acceptance budget record. Distinguish access readiness from an implemented deployment. Verify required credentials are usable without exposing them. | None; before an unattended run. |

@@ -340,7 +340,7 @@ Maintain a coarse product-wide inventory of scope bags and agree an implementati
 
 ### Current planning position
 
-The [first-slice planning map](https://github.com/apshenichniy/personal-wiki/issues/13) records the accepted identity, capture/curation, publication, execution, private-reader/access and delivery/verification contracts. The owner approved the consolidated specification and task-breakdown approach. No material first-slice policy decision remains open; required implementation and verification are still future work.
+The completed [first-slice planning map](https://github.com/apshenichniy/personal-wiki/issues/13) records the accepted identity, capture/curation, publication, execution, private-reader/access and delivery/verification contracts. The owner approved the consolidated specification and task breakdown. The [published backlog and autonomous-run handoff](plans/first-slice-delivery.md) link fourteen implementation issues under a separate delivery epic. No material first-slice policy decision remains open; required implementation and verification are still future work.
 
 Use the map's actual issue dependencies and resolution comments rather than treating this brief as a separate task tracker.
 

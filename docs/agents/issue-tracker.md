@@ -15,6 +15,19 @@ Issues, specifications, and wayfinding maps live in GitHub Issues for `apshenich
 
 When a skill says “publish to the issue tracker,” create a GitHub issue. When it says “fetch the relevant ticket,” read the issue and its comments.
 
+## Implementation delivery
+
+Executable issues are native children of a delivery epic, separate from wayfinder decision tickets. Link each issue's primary scope bag in its body; a bag groups responsibility and can outlive the delivery. Use the native dependency operations below for implementation blockers too.
+
+| Label | Meaning |
+| --- | --- |
+| `implementation` | Executable work derived from an approved specification. |
+| `ready-for-agent` | Specified for AFK execution after native blockers are closed and the run is authorized. |
+| `ready-for-human` | Specified work requiring owner participation, such as authentication preparation. |
+| `delivery:epic` | Bounded outcome tracking implementation and owner acceptance; not an individual executable task. |
+
+These readiness labels describe the specification, not an override of dependency state. Claim an unassigned implementation issue only after checking its blockers. Complete it with evidence and an integrated revision/PR link. The first-slice delivery epic stays open until its separate owner acceptance check is recorded; automated delivery readiness alone does not close it. See the [first-slice handoff](../plans/first-slice-delivery.md) for task selection and evidence routing.
+
 ## Pull requests as a triage surface
 
 **PRs as a request surface: no.**
