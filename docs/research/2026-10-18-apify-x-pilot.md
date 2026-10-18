@@ -82,7 +82,7 @@ Carry these requirements into [Agree X capture coverage and note curation rules]
 
 The private HTML was revised against the same captures: case A retains all three techniques, their context and the attribution dispute; case B retains all four advertised capabilities and the distinct quoted-post/article relationship; case C retains all ten numbered takeaways, including examples and qualifications. Selected discussion now has inline post links.
 
-Revision 2 is an editorial revision by the assistant, not a second headless execution. The original CLI output remains unchanged. These examples illustrate the owner's requested direction; their exact prose has not been separately approved, and automated curation repeatability remains untested. No additional acquisition or paid Actor run was needed.
+Revision 2 is an editorial revision by the assistant, not a second headless execution. The original CLI output remains unchanged. The owner subsequently accepted the revised examples as the first-slice quality baseline, allowing future refinement. Automated curation repeatability remains untested; approval of these examples is not approval of the remaining capture and curation contracts. No additional acquisition or paid Actor run was needed.
 
 ## Curation and archive evidence
 
