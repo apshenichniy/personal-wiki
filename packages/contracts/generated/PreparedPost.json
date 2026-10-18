@@ -1,0 +1,272 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$ref": "#/$defs/PreparedPost",
+  "$defs": {
+    "XPost": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "authorId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "parentId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "parentStatus": {
+          "type": "string",
+          "enum": [
+            "root",
+            "reply",
+            "unknown"
+          ]
+        },
+        "conversationId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 16777216
+        },
+        "longText": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 16777216
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "language": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "quotedId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "articleId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "postedAt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "isBot": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "references": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "external_page",
+                  "image",
+                  "video",
+                  "audio"
+                ]
+              },
+              "url": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind",
+              "url"
+            ],
+            "additionalProperties": true
+          }
+        }
+      },
+      "required": [
+        "id",
+        "authorId",
+        "parentId",
+        "parentStatus",
+        "conversationId",
+        "text",
+        "longText",
+        "language",
+        "quotedId",
+        "articleId",
+        "postedAt",
+        "isBot",
+        "references"
+      ],
+      "additionalProperties": true
+    },
+    "RawEvidence": {
+      "type": "object",
+      "properties": {
+        "assetId": {
+          "type": "string",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+          "format": "uuid"
+        },
+        "sha256": {
+          "type": "string"
+        },
+        "byteLength": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "provider": {
+          "type": "string"
+        },
+        "runId": {
+          "type": "string"
+        },
+        "page": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "assetId",
+        "sha256",
+        "byteLength",
+        "provider",
+        "runId",
+        "page"
+      ],
+      "additionalProperties": true
+    },
+    "AcquisitionOrigin": {
+      "type": "object",
+      "properties": {
+        "requestKey": {
+          "type": "string"
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "anchor",
+            "parents",
+            "author",
+            "quotes",
+            "article",
+            "direct",
+            "latest",
+            "nested"
+          ]
+        },
+        "raw": {
+          "$ref": "#/$defs/RawEvidence"
+        },
+        "row": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "requestKey",
+        "mode",
+        "raw",
+        "row"
+      ],
+      "additionalProperties": true
+    },
+    "PreparedPost": {
+      "type": "object",
+      "properties": {
+        "post": {
+          "$ref": "#/$defs/XPost"
+        },
+        "canonicalUrl": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "main",
+            "discussion",
+            "context",
+            "quote"
+          ]
+        },
+        "origins": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AcquisitionOrigin"
+          }
+        },
+        "textVariantDigests": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "post",
+        "canonicalUrl",
+        "role",
+        "origins",
+        "textVariantDigests"
+      ],
+      "additionalProperties": true
+    }
+  }
+}

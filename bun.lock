@@ -48,6 +48,13 @@
         "effect": "4.0.5",
       },
     },
+    "packages/source-processing": {
+      "name": "@personal-wiki/source-processing",
+      "dependencies": {
+        "@personal-wiki/contracts": "workspace:*",
+        "effect": "4.0.5",
+      },
+    },
   },
   "packages": {
     "@effect/platform-bun": ["@effect/platform-bun@4.0.5", "", { "dependencies": { "@effect/platform-node-shared": "^4.0.5" }, "peerDependencies": { "effect": "^4.0.5" } }, "sha512-tB/GapZ/bVoCbwRgnojGP4TwopvkMoFoSCipXT1sf0guvG/2oRVhWzJW/1vkrYFEdLM7XyRnVVLrSJyqdok7DA=="],
@@ -167,6 +174,8 @@
     "@personal-wiki/knowledge-service": ["@personal-wiki/knowledge-service@workspace:apps/knowledge-service"],
 
     "@personal-wiki/runner": ["@personal-wiki/runner@workspace:apps/runner"],
+
+    "@personal-wiki/source-processing": ["@personal-wiki/source-processing@workspace:packages/source-processing"],
 
     "@types/bun": ["@types/bun@1.3.13", "", { "dependencies": { "bun-types": "1.3.13" } }, "sha512-9fqXWk5YIHGGnUau9TEi+qdlTYDAnOj+xLCmSTwXfAIqXr2x4tytJb43E9uCvt09zJURKXwAtkoH4nLQfzeTXw=="],
 

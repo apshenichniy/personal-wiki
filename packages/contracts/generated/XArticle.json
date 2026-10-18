@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$ref": "#/$defs/XArticle",
+  "$defs": {
+    "XArticle": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "body": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 16777216
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "bodyStatus": {
+          "type": "string",
+          "enum": [
+            "acquired",
+            "partial",
+            "preview",
+            "unavailable"
+          ]
+        },
+        "language": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "references": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "external_page",
+                  "image",
+                  "video",
+                  "audio"
+                ]
+              },
+              "url": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind",
+              "url"
+            ],
+            "additionalProperties": true
+          }
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "body",
+        "bodyStatus",
+        "language",
+        "references"
+      ],
+      "additionalProperties": true
+    }
+  }
+}

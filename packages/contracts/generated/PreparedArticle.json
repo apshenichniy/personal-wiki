@@ -1,0 +1,178 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$ref": "#/$defs/PreparedArticle",
+  "$defs": {
+    "XArticle": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "body": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 16777216
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "bodyStatus": {
+          "type": "string",
+          "enum": [
+            "acquired",
+            "partial",
+            "preview",
+            "unavailable"
+          ]
+        },
+        "language": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "references": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "external_page",
+                  "image",
+                  "video",
+                  "audio"
+                ]
+              },
+              "url": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind",
+              "url"
+            ],
+            "additionalProperties": true
+          }
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "body",
+        "bodyStatus",
+        "language",
+        "references"
+      ],
+      "additionalProperties": true
+    },
+    "RawEvidence": {
+      "type": "object",
+      "properties": {
+        "assetId": {
+          "type": "string",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+          "format": "uuid"
+        },
+        "sha256": {
+          "type": "string"
+        },
+        "byteLength": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "provider": {
+          "type": "string"
+        },
+        "runId": {
+          "type": "string"
+        },
+        "page": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "assetId",
+        "sha256",
+        "byteLength",
+        "provider",
+        "runId",
+        "page"
+      ],
+      "additionalProperties": true
+    },
+    "AcquisitionOrigin": {
+      "type": "object",
+      "properties": {
+        "requestKey": {
+          "type": "string"
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "anchor",
+            "parents",
+            "author",
+            "quotes",
+            "article",
+            "direct",
+            "latest",
+            "nested"
+          ]
+        },
+        "raw": {
+          "$ref": "#/$defs/RawEvidence"
+        },
+        "row": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "requestKey",
+        "mode",
+        "raw",
+        "row"
+      ],
+      "additionalProperties": true
+    },
+    "PreparedArticle": {
+      "type": "object",
+      "properties": {
+        "article": {
+          "$ref": "#/$defs/XArticle"
+        },
+        "canonicalUrl": {
+          "type": "string"
+        },
+        "origins": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AcquisitionOrigin"
+          }
+        }
+      },
+      "required": [
+        "article",
+        "canonicalUrl",
+        "origins"
+      ],
+      "additionalProperties": true
+    }
+  }
+}
