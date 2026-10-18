@@ -71,3 +71,7 @@ _Avoid_: Agent success message
 **Compensating publication**:
 A new publication reversing a previous batch's active effects while preserving the record and evidence of both operations.
 _Avoid_: History deletion
+
+**Ingestion job**:
+One accepted request to turn selected source material into published knowledge, including its capture, curation attempts and publication outcome.
+_Avoid_: Queue delivery, agent session

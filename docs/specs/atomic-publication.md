@@ -58,7 +58,7 @@ Deploy with verified durable settings: SQLite WAL with `synchronous=FULL`, forei
 
 ## Publication state machine
 
-These are publication-operation phases, separate from the ingestion job's full lifecycle.
+These are publication-operation phases, separate from the ingestion job's [execution lifecycle](execution-lifecycle.md).
 
 | Phase | Durable meaning | Read visibility |
 | --- | --- | --- |
@@ -81,7 +81,7 @@ Verify assets and tree, construct the commit with the recorded metadata, and pin
 
 Under publisher ownership, recheck current base, scope, candidate readiness, epoch and cancellation. A short SQLite transaction chooses between an accepted pre-commit cancellation and `committing`. Once `committing` is durable, finish or reconcile this publication; do not accept cancellation as successfully removing its effects.
 
-This intent is the cancellation fence, slightly earlier than the actual Git commit boundary. A later cancellation request reports publication in progress/too late and may inspect the result; it must not return a successful cancellation followed by publication. The execution contract will expose that distinction in job status.
+This intent is the cancellation fence, slightly earlier than the actual Git commit boundary. A later cancellation request reports publication in progress/too late and may inspect the result; it must not return a successful cancellation followed by publication. The execution contract exposes that distinction in job status and preserves recovery after an execution deadline.
 
 ### 3. Advance the canonical Git ref
 

@@ -55,6 +55,8 @@ These are input constraints for planning. Reopen one only when new evidence just
 | First source | An X post/thread and its replies through Apify. Reuse `xquik/x-tweet-scraper` behind an adapter with independent coverage checks, following the representative capture pilot. |
 | Capture limits | Configurable defaults: 50 main author posts, 200 discussion posts shared across modes, 30 additional parent/context lookups, and a five-minute acquisition window. Coverage limits remain visible. |
 | Apify budgets | USD 0.25 per save/refresh job including retries; USD 5 per calendar month across Personal Wiki jobs. The future runtime must enforce shared reservations and accounting. |
+| Execution limits | 15 minutes per Codex launch; 30 minutes per active job excluding initial queue wait; three launches total shared by original curation, repair, transient retry and stale-base rebuild. Restarts do not reset limits. |
+| Execution recovery | Bounded transient recovery uses retained material. Auth/subscription problems pause the affected stage without paid API/provider fallback. An ambiguous Apify start is reconciled or blocked, never blindly repeated. |
 | Note depth and citations | Retell essentially all substantive content of the main post, preserving its points, examples, qualifications, and attribution. Curate discussion separately. Place clickable links to the specific supporting X posts next to the corresponding statements. |
 | Submitted focus | A deliberately selected reply is its own material with parent/root context. A resolved author continuation belongs to its author material; preserve the exact submitted anchor. |
 | Save and refresh | Ordinary save returns the existing note or active job. Explicit refresh creates a new capture and may update the same stable note, retaining history; weaker captures do not silently erase knowledge. |
@@ -191,11 +193,11 @@ Effect PersistedQueue backed by SQL is selected. The service owns it, and Runner
 
 The one-slot constraint applies across Codex, Claude, ingestion research, and maintenance jobs. It does not limit how many development agents may work on this codebase.
 
-The spike demonstrated a scoped HTTP lease adapter, but a lease does not guarantee that an old CLI process has stopped. Specify process supervision, startup reconciliation, ownership fencing, heartbeat failure, and cleanup before claiming the physical single-agent invariant. Distinguish intentional cancellation from a failed or unreachable worker; the former and latter have different retry semantics in the tested queue.
+The [execution lifecycle contract](specs/execution-lifecycle.md) defines durable job/attempt/provider-operation state, FIFO eligible scheduling, independent launch counters, physical supervision, lease fencing, cancellation, and startup reconciliation. A lease alone does not establish that the old CLI stopped. No replacement starts until actual process ownership is reconciled. The spike's queue interruption behavior cannot reset product retry allowances.
 
-Persist enough state to distinguish accepted input, a running attempt, validation, publication in progress, completion, retryable failure, terminal failure, and cancellation. These are lifecycle requirements, not final enum names. Define cancellation's commit boundary so the UI never claims a publication was cancelled after it became durable.
+The contract also sets the accepted 15-minute launch, 30-minute job and three-launch ceilings; a shared bounded repair/retry policy; conservative Apify start reconciliation; retained-source reuse; and finite transport, workspace and context limits. Authentication/subscription failures block the affected stage without an automatic paid API/provider fallback. Late publication recovery follows the durable intent even after an execution deadline.
 
-The [capture/curation contract](specs/x-capture-curation.md) fixes the acquisition deadline and shared Apify budgets. CLI timeouts, repair/retry mechanics, model selection, capacity limits, and queue priority remain execution-design work. Account authentication or subscription limits should produce an explicit actionable state; an automatic paid API fallback is not part of the proposed design.
+The [capture/curation contract](specs/x-capture-curation.md) still owns acquisition coverage and shared cost ceilings. The implementation must pin and verify the actual Codex model/profile, isolation, token/output accounting and Linux process controls before claiming these guarantees; the design and earlier pilots do not prove them.
 
 ## 7. Reading, synchronization, search, and languages
 
@@ -327,19 +329,17 @@ Native apps, Telegram ingress, Claude's adapter, Knowledge MCP, and browser capt
 
 Maintain a coarse product-wide inventory of scope bags and agree an implementation-ready specification for the X-to-wiki slice: domain/API contracts, capture/curation policy, recovery and authorization boundaries, and observable acceptance criteria through CX33 deployment. Use the agreed specification to create the subsequent implementation backlog; application implementation is a separate effort. The owner requested this overall scope-and-specification destination.
 
-### Already precise questions worth considering
+### Current planning position
 
-- What are the exact identities, schemas, and invariants for sources, captures, notes, jobs, proposals, and publications?
-- What is the publication protocol across Git, SQLite, and R2, including visibility, idempotency retention, recovery, and publisher fencing?
-- How does the Runner supervise a real CLI and preserve one physical agent slot through cancellation, restart, and orphan-process scenarios?
-- Which Apify acquisition modes and budgets preserve author material and a useful discussion, and how are partial capture and per-post provenance represented?
-- What qualifies as meaningful discussion, how is it distinguished from the author's claims, and how should the first Russian note reflect uncertainty and disagreement?
+The [first-slice planning map](https://github.com/apshenichniy/personal-wiki/issues/13) tracks the agreed identity, capture/curation, publication and execution contracts linked above. Their required verification is future implementation work, not evidence of completed behavior. Remaining decision areas are:
+
 - What owner and machine authorization flows are required locally and for the first Pocket ID-protected deployment?
 - What belongs in the first diagnostic read/search surface, and which acceptance cases decide that the slice is useful?
-- Which versioned API and snapshot boundaries must be fixed now so native readers can be added without a storage rewrite?
+- Which versioned API boundaries must be fixed now so native readers can be added without a storage rewrite, while offline synchronization remains deferred?
 - What are the staging, backup/restore, and GitHub Actions gates for the first deliverable?
+- Does the consolidated first-slice specification cover the intended outcome sufficiently to authorize implementation-task breakdown?
 
-These are candidate decision questions, not created tickets or an imposed dependency graph. Let wayfinder discover the needed dependencies and human decisions.
+Use the map's actual issue dependencies and resolution comments rather than treating this brief as a separate task tracker.
 
 ### Deferred, non-blocking work
 
