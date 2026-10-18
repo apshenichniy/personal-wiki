@@ -168,6 +168,7 @@ export const makeLibrary = Effect.fn("Knowledge.makeLibrary")(function* (root: s
         const asset: K.Asset = {
           schemaVersion: 1,
           assetId: input.assetId,
+          objectKey: `objects/${input.assetId}`,
           mediaType: input.mediaType,
           byteLength: bytes.length,
           sha256: input.sha256,

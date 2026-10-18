@@ -55,6 +55,11 @@ export function validateBatch(
       )
         throw invalid("Asset is outside the reserved or published scope.");
     if (!capture.assetIds.includes(slot.assetId)) throw invalid("A retained asset is required.");
+    unique(
+      capture.representations.map((r) => r.representationId),
+      "representation identity",
+    );
+    unique(capture.assetIds, "asset reference");
     for (const representation of capture.representations) {
       if (
         representation.representationId !== slot.representationId ||

@@ -46,6 +46,7 @@ export const AssetUpload = Schema.Struct({
 export const Asset = Schema.Struct({
   schemaVersion: Schema.Literal(1),
   assetId: Id,
+  objectKey: Schema.String,
   mediaType: Schema.String,
   byteLength: Schema.Int,
   sha256: Schema.String,
