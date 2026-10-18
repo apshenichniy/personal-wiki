@@ -1,0 +1,10 @@
+language: typescript
+toolchains:
+  default: [javascript, bun]
+tasks:
+  build:
+    options:
+      cache: false
+    command: bun build src/index.ts --target=bun --packages=external --outdir=dist
+    inputs: ["src/**/*", "package.json", "/bun.lock", "/packages/**/*.ts"]
+    outputs: [dist]

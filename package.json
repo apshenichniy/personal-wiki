@@ -1,0 +1,34 @@
+{
+  "name": "personal-wiki",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "type": "module",
+  "scripts": {
+    "verify": "moon run workspace:verify",
+    "typecheck": "tsc --noEmit",
+    "effect-check": "effect-tsgo diagnostics --project tsconfig.json --format json --strict",
+    "lint": "oxlint --type-aware apps packages tools tests",
+    "format": "oxfmt --ignore-path .gitignore --ignore-path .oxfmtignore --write apps packages tools tests negative package.json tsconfig.json .oxlintrc.json",
+    "format-check": "oxfmt --ignore-path .gitignore --ignore-path .oxfmtignore --check apps packages tools tests negative package.json tsconfig.json .oxlintrc.json",
+    "contracts": "bun run tools/contracts.ts",
+    "service": "bun run apps/knowledge-service/src/index.ts",
+    "runner": "bun run apps/runner/src/index.ts"
+  },
+  "devDependencies": {
+    "@effect/tsgo": "0.53.4",
+    "@personal-wiki/client": "workspace:*",
+    "@personal-wiki/contracts": "workspace:*",
+    "@types/bun": "1.3.13",
+    "ajv": "8.17.1",
+    "ajv-formats": "3.0.1",
+    "effect": "4.0.5",
+    "oxfmt": "0.73.0",
+    "oxlint": "1.88.0",
+    "oxlint-tsgolint": "7.0.2004",
+    "typescript": "7.0.2"
+  },
+  "packageManager": "bun@1.3.13"
+}
