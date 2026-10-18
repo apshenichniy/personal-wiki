@@ -31,3 +31,9 @@ The workflow checks the remote UID/groups, denies sudo and runtime-secret reads,
 It does not check out project code, deploy an artifact, alter services, invoke Codex, or run Apify. The action is pinned by commit and the Tailscale client by version. A future deployment workflow must keep this authentication boundary and introduce separately scoped artifact installation, migration, restart, and rollback operations.
 
 Reference: [official Tailscale GitHub Action](https://github.com/tailscale/github-action).
+
+## Verification record
+
+On 2026-10-18, [run 39156005912](https://github.com/apshenichniy/personal-wiki/actions/runs/39156005912) passed all checks at commit `0d6a7aebbaee1a0983ae651a7bc92b41a972acfa`. A subsequent server-side tailnet inspection found zero remaining `wiki-ci-*` peers. The owner's administrative SSH access and existing services remained operational.
+
+The first attempt exposed GitHub's subject format containing numeric owner and repository IDs. The trust now matches the observed subject above; no wildcard or broader claim was introduced. A second check adjustment added recognition of Tailscale's SSH denial wording.
