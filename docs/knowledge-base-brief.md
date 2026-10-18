@@ -41,7 +41,7 @@ These are input constraints for planning. Reopen one only when new evidence just
 | Agent concurrency | One global product-agent job at a time across providers, including ingestion and maintenance work. |
 | Server stack | TypeScript + Effect 4; Bun as runtime and package manager; moon + mise; Effect SQL + SQLite; Effect PersistedQueue backed by SQL. |
 | Code quality | Oxlint and Oxfmt. |
-| CI | GitHub Actions. Runner choices and cost controls remain implementation decisions within that platform. |
+| CI | GitHub Actions, starting with Linux checks and a verified artifact promoted through isolated staging to CX33. Apple lanes follow with Apple code. |
 | Work tracking | GitHub Issues and Matt Pocock's skills flow. Beads is not part of the selected setup. |
 | Authentication | Pocket ID owner sign-in; revocable server-side web sessions lasting at most 30 days. Unauthenticated private pages/APIs return 401 without content disclosure; a verified non-owner gets 404. |
 | Native clients | Custom SwiftUI applications for iPhone and Mac, initially read-only. Obsidian is not a client dependency. |
@@ -51,6 +51,9 @@ These are input constraints for planning. Reopen one only when new evidence just
 | Transcription | Outside the first slice. If added, use Deepgram or AssemblyAI; no local transcription on the VPS. |
 | Clipper | Deferred and non-blocking. A fork is not selected; upstream Web Clipper file export plus an uploader remains an option. |
 | First-slice completion | Develop and verify locally first; complete the slice on CX33 with the computer off. |
+| Autonomous delivery | During authorized implementation, progress through the accepted gates to private production without approval per routine deploy. Ready for owner acceptance is distinct from actual owner acceptance on iPhone with the Mac off. |
+| Live acceptance budget | USD 2 total Apify spending for the future first-slice acceptance campaign, within the per-job and monthly limits; reuse retained captures and exclude paid providers from ordinary PR CI. |
+| Backup/restore | Daily encrypted incremental backups to a separate private R2 backup bucket; seven daily/four weekly recovery points and a pre-migration copy. Target RPO 24 hours and RTO four hours once operator/credentials are available; verify a clean restore. |
 | First-slice interface | Responsive Mac/iPhone web interface with library/submission/search, job status/actions, and note/source reader views. Updates appear automatically. Telegram and native clients follow. |
 | First source | An X post/thread and its replies through Apify. Reuse `xquik/x-tweet-scraper` behind an adapter with independent coverage checks, following the representative capture pilot. |
 | Capture limits | Configurable defaults: 50 main author posts, 200 discussion posts shared across modes, 30 additional parent/context lookups, and a five-minute acquisition window. Coverage limits remain visible. |
@@ -87,7 +90,7 @@ The accepted [glossary](../GLOSSARY.md) and [X source identity and provenance co
 | Publication | An accepted batch, its Git revision, operation identity, and durable result. |
 | Replica | A client's locally readable version of a published library revision. |
 
-The metadata model preserves stable identities across file renames and moves. Source links, capture identity, and derivation relationships must survive rebuilding SQLite from the retained knowledge data. The identity contract defines the minimum versioned metadata and relation vocabulary; exact API serialization and remaining lifecycle/publication behavior are subsequent specification work.
+The metadata model preserves stable identities across file renames and moves. Source links, capture identity, and derivation relationships must survive rebuilding the SQLite knowledge projection from retained knowledge data. The identity contract defines the minimum versioned metadata and relation vocabulary; the publication and execution contracts below define lifecycle behavior. Concrete API serialization and interoperability tests belong to implementation, within these contracts.
 
 ## 4. Component topology
 
@@ -241,7 +244,7 @@ Trusted runtime skills and policy are separate from captured source content. Tre
 
 The library is private from other users; selected AI providers receive the material sent for processing. It is not an end-to-end encrypted system hiding data from its own server and processors.
 
-Back up knowledge Git, durable service state, archive objects, and restoration configuration outside the VPS failure domain. Test a restore on a clean environment. A local replica and Git history alone are not the backup strategy. Define retention, asset garbage collection, disk limits, and backup objectives before routine use.
+The [delivery and verification contract](specs/delivery-verification.md) requires daily encrypted incremental off-VPS backups in a separate private R2 bucket, with seven daily and four weekly recovery points plus a pre-migration copy. Include coherent operational state, Git history, original bytes and restoration configuration. Test a clean restore against RPO 24-hour / RTO four-hour targets; revoke restored sessions and reconcile external spending before resuming paid work. A local replica and Git history alone are not the backup strategy. Automatic source/orphan garbage collection is outside the first slice.
 
 Run the initial deployment within the CX33's limits: one agent process, bounded temporary storage, remote heavy transcription, and observable resource usage. Measure real RSS, disk growth, and job duration on the VPS; container compatibility testing did not establish server capacity.
 
@@ -294,13 +297,15 @@ Autonomous delivery needs reproducible repository commands, clear module ownersh
 
 Use GitHub Actions for CI. Start with Linux checks for the server; add macOS/Xcode checks when Apple code exists. Reduce cost through affected-project selection, suitable caches, cancellation of superseded checks, and separating ordinary validation from release builds. The particular macOS runner and cache strategy remain open. Do not make paid live-agent calls part of every ordinary test run.
 
-Release verified artifacts to staging before the primary deployment, with explicit migration and rollback behavior. Apple release automation must handle signing and TestFlight delivery separately. TestFlight builds have a limited lifetime; the earlier concept proposed a refresh around every 60 days within the 90-day build window. Verify the current distribution requirements when implementing that lane.
+The [delivery contract](specs/delivery-verification.md) defines local checks, verified artifact promotion through isolated staging, narrow CI installation rights, migration compatibility, restart/rollback and restore evidence. Staging and production share the one product-agent slot and Apify accounting envelope. The future live acceptance campaign has a USD 2 Apify ceiling inside existing job/month limits. Passing autonomous gates means ready for owner acceptance; actual iPhone use with the Mac off remains the owner's final check.
+
+Apple release automation must handle signing and TestFlight delivery separately. TestFlight builds have a limited lifetime; the earlier concept proposed a refresh around every 60 days within the 90-day build window. Verify the current distribution requirements when implementing that lane.
 
 The owner supplies necessary accounts/access when an integration needs them and evaluates working versions. Credentials belong in private local, CI, or deployment configuration, never in issues or committed documentation.
 
-## 10. First end-to-end slice: agreed boundary and proposed specification
+## 10. First end-to-end slice: agreed boundary and contracts
 
-The owner agreed the X-first source, bounded discussion capture, minimal web interface, and CX33 completion boundary during wayfinding on 2026-10-18. The contracts and acceptance details below still need resolution. Implementation begins after planning and authorization.
+The owner agreed the X-first source, bounded discussion capture, minimal web interface, CX33 completion boundary and linked behavior/delivery contracts during wayfinding on 2026-10-18. Consolidated specification approval and implementation-task breakdown remain the next planning step. Implementation begins after planning and authorization.
 
 **Outcome:** submit an X post/thread URL; Apify captures the author material and bounded discussion; the original acquired material is retained; real Codex removes uninformative material from the derived reading result and proposes a Russian note with relevant wiki links; the service publishes the batch; the owner can search and read the note and inspect its captured source through a private minimal web interface on CX33.
 
@@ -335,9 +340,7 @@ Maintain a coarse product-wide inventory of scope bags and agree an implementati
 
 ### Current planning position
 
-The [first-slice planning map](https://github.com/apshenichniy/personal-wiki/issues/13) tracks the agreed identity, capture/curation, publication, execution and private-reader/access contracts linked above. Their required verification is future implementation work, not evidence of completed behavior. Remaining decision areas are:
-- What are the staging, backup/restore, and GitHub Actions gates for the first deliverable?
-- Does the consolidated first-slice specification cover the intended outcome sufficiently to authorize implementation-task breakdown?
+The [first-slice planning map](https://github.com/apshenichniy/personal-wiki/issues/13) tracks the agreed identity, capture/curation, publication, execution, private-reader/access and delivery/verification contracts linked above. Their required verification is future implementation work, not evidence of completed behavior. The remaining decision is whether the consolidated first-slice specification covers the intended outcome sufficiently to authorize implementation-task breakdown.
 
 Use the map's actual issue dependencies and resolution comments rather than treating this brief as a separate task tracker.
 
