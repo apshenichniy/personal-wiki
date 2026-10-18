@@ -55,14 +55,17 @@ These are input constraints for planning. Reopen one only when new evidence just
 | First source | An X post/thread and its replies through Apify. Reuse `xquik/x-tweet-scraper` behind an adapter with independent coverage checks, following the representative capture pilot. |
 | Discussion coverage | Bounded capture is acceptable, with an explicit incompleteness marker. Numeric budgets and acquisition policy remain to be specified. |
 | Note depth and citations | Retell essentially all substantive content of the main post, preserving its points, examples, qualifications, and attribution. Curate discussion separately. Place clickable links to the specific supporting X posts next to the corresponding statements. |
+| Submitted focus | A deliberately selected reply is its own material with parent/root context. A resolved author continuation belongs to its author material; preserve the exact submitted anchor. |
+| Save and refresh | Ordinary save returns the existing note or active job. Explicit refresh creates a new capture and may update the same stable note, retaining history; weaker captures do not silently erase knowledge. |
+| Post and article | A substantive post/discussion and its acquired linked article have separate source identities and separate connected notes. Supported article types remain a capture-policy choice. |
 | Research depth | No additional research outside the submitted conversation in the first slice. The agent can use relevant existing library material. |
 | Languages for development | English documentation, tickets, PRs, and code comments; Russian conversation with the owner. |
 
 Go, plain Hono/TypeScript, pnpm, and Drizzle were explored as alternatives. They are not the selected baseline. Effect SQL does not require introducing an ORM.
 
-## 3. Working domain model
+## 3. Domain model
 
-These are working definitions for domain-modeling, not a finalized schema or glossary.
+The accepted [glossary](../GLOSSARY.md) and [X source identity and provenance contract](specs/x-source-identity.md) establish the first-slice vocabulary, focus, repeat-save/refresh behavior, and minimal v1 identities. The table is a brief orientation; lifecycle and publication details still belong to their own decisions.
 
 | Term | Meaning |
 | --- | --- |
@@ -77,7 +80,7 @@ These are working definitions for domain-modeling, not a finalized schema or glo
 | Publication | An accepted batch, its Git revision, operation identity, and durable result. |
 | Replica | A client's locally readable version of a published library revision. |
 
-The metadata model must preserve stable identities across file renames and moves. Source links, capture identity, and derivation relationships must survive rebuilding SQLite from the retained knowledge data. A precise schema, relation vocabulary, and ID format remain planning work.
+The metadata model preserves stable identities across file renames and moves. Source links, capture identity, and derivation relationships must survive rebuilding SQLite from the retained knowledge data. The identity contract defines the minimum versioned metadata and relation vocabulary; exact API serialization and remaining lifecycle/publication behavior are subsequent specification work.
 
 ## 4. Component topology
 
