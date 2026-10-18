@@ -1,6 +1,6 @@
 # First slice: X to a private reading library
 
-**Status:** approved by the owner on 2026-10-18, including the task-breakdown approach. The linked behavior and delivery contracts are part of this approval. Application implementation has not started.
+**Status:** approved by the owner on 2026-10-18, including the task-breakdown approach. The linked behavior and delivery contracts are part of this approval; implementation progress is tracked in the delivery issues. The 2026-10-19 native planning update changes only the future scope map below, not this slice's behavior, task boundaries or acceptance gates.
 
 Approval ticket: [Approve the first-slice specification for task breakdown](https://github.com/apshenichniy/personal-wiki/issues/22). Planning map: [Specify the X-to-wiki first vertical slice](https://github.com/apshenichniy/personal-wiki/issues/13). Product context: [knowledge-base brief](../knowledge-base-brief.md), [glossary](../../GLOSSARY.md), and [Personal Wiki product scope](https://github.com/apshenichniy/personal-wiki/issues/1).
 
@@ -90,11 +90,13 @@ A bag groups responsibility; it is not one implementation task or necessarily on
 | [Wiki Workflows](https://github.com/apshenichniy/personal-wiki/issues/5) | Trusted X curation skill, faithful Russian notes, citations, meaningful discussion and related-note discovery. | Conversational synthesis, full translations, topic maintenance and restructuring. |
 | [Reading, Search and Sync](https://github.com/apshenichniy/personal-wiki/issues/6) | Private web list/read/source/search, status and foreground/polling refresh. | Offline replicas, snapshots/deltas, native notifications and semantic retrieval. |
 | [Platform and Delivery](https://github.com/apshenichniy/personal-wiki/issues/12) | Reproducible tools, Pocket ID, machine scopes, private R2, CX33/CI delivery, observation, backup and restore. | Apple release lanes and scaling beyond measured first-slice needs. |
-| [Telegram](https://github.com/apshenichniy/personal-wiki/issues/7) | Preserve existing unrelated infrastructure; no new integration. | Owner ingress bot, query/status delivery and Telethon capabilities. |
+| [Telegram](https://github.com/apshenichniy/personal-wiki/issues/7) | Preserve existing unrelated infrastructure; no new integration. | Optional Saved Messages intake and Telegram source retrieval through existing access; no required ingress bot. |
 | [Assistant Integrations](https://github.com/apshenichniy/personal-wiki/issues/8) | Preserve a provider-neutral API boundary. | Knowledge MCP and Codex/Claude/Grok client integration. |
-| [iPhone App](https://github.com/apshenichniy/personal-wiki/issues/9) | No native implementation; phone acceptance uses the web reader. | SwiftUI reader, offline search, deep links and TestFlight. |
-| [Mac App](https://github.com/apshenichniy/personal-wiki/issues/10) | No native implementation; desktop acceptance uses the web reader. | SwiftUI reader, local replica and desktop distribution. |
+| [iPhone App](https://github.com/apshenichniy/personal-wiki/issues/9) | No native implementation; phone acceptance uses the web reader. | Native Inbox/Share and read-only SwiftUI reader on shared foundations; offline search, deep links and TestFlight. |
+| [Mac App](https://github.com/apshenichniy/personal-wiki/issues/10) | No native implementation; desktop acceptance uses the web reader. | Recommended first Native Inbox/Share delivery with a read-only SwiftUI reader; local replica and desktop distribution. |
 | [Browser Capture](https://github.com/apshenichniy/personal-wiki/issues/11) | Deferred, non-blocking. | Decide upstream Clipper export/uploader versus fork, then implement capture transport. |
+
+The next product direction is [Native Inbox + Share](../plans/native-inbox-share.md), with macOS-first delivery proposed for review and iOS following. Saved Messages is optional later work. None of these capabilities are added to P1–P13 or G1–G6.
 
 ## 5. Approved implementation task boundaries
 
