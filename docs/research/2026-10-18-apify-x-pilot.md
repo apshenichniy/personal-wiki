@@ -76,3 +76,5 @@ A real headless Codex execution under `wiki-runner` on CX33 produced three struc
 The private review HTML contains the notes, short source excerpts, retained/omitted examples, and coverage limits. It was statically checked for matching tabs/panels, unique IDs, valid JavaScript syntax, escaped source strings and X-only source links. Automated visual inspection was blocked by the browser tool's local-file URL policy; no rendering verification is claimed.
 
 Raw responses, input parameters, run metadata, checksums and original Codex output were archived in the private R2 bucket. Mac readback and an independent VPS read verified the archive checksum. Public documentation contains measurements and contracts; the private source corpus and provider run/storage identifiers are not committed here.
+
+The sanitized throwaway acquisition utility is preserved on [prototype/apify-bounded-capture](https://github.com/apshenichniy/personal-wiki/tree/4e8398d/prototypes/apify-bounded-capture), outside `main`. Its README explains the private input boundary and remaining limitations. It is evidence to inform implementation, not code to merge into the application unchanged.
