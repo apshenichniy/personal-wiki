@@ -2,6 +2,7 @@ projects:
   workspace: .
   contracts: packages/contracts
   client: packages/client
+  source-processing: packages/source-processing
   knowledge-service: apps/knowledge-service
   runner: apps/runner
 vcs:

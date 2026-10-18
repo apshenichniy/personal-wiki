@@ -170,3 +170,21 @@ These use actual Git/SQLite and separate processes. Controlled clocks and synthe
 supervisor assertions test policy; SIGKILL/response-loss boundaries test retained
 state. They do not prove paid provider integration, physical Codex exclusion,
 Pocket ID login, VPS deployment or owner acceptance.
+
+## Prepared X sources (P5)
+
+`packages/source-processing` plans sequential, bounded acquisition through a supplied
+adapter and returns a provider-neutral prepared-source manifest. It resolves author
+membership, preserves selected replies, merges observations/provenance, applies shared
+limits and keeps original text separate from later Russian curation. See its
+[boundary and replay contract](../../packages/source-processing/README.md).
+
+```sh
+mise exec -- bun test tests/source-processing.test.ts
+mise exec -- bun run tools/processing-demo.ts
+```
+
+The demo emits a complete redistributable middle-of-thread fixture after a schema
+round trip. It makes no provider calls. P6 owns real Apify transport, durable budget
+admission, raw-page retention and binding prepared sources to service-owned captures;
+P8 owns semantic selection and proposed Russian notes.

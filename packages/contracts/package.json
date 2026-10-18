@@ -6,7 +6,9 @@
     ".": "./src/index.ts",
     "./knowledge": "./src/knowledge.ts",
     "./jobs": "./src/jobs.ts",
-    "./jobs-api": "./src/jobs-api.ts"
+    "./jobs-api": "./src/jobs-api.ts",
+    "./processing": "./src/processing.ts",
+    "./x-url": "./src/x-url.ts"
   },
   "dependencies": {
     "effect": "4.0.5"

@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$ref": "#/$defs/UnprocessedReference",
+  "$defs": {
+    "UnprocessedReference": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "external_page",
+            "image",
+            "video",
+            "audio",
+            "article",
+            "quote"
+          ]
+        },
+        "url": {
+          "type": "string"
+        },
+        "fromProviderId": {
+          "type": "string"
+        },
+        "fromKind": {
+          "type": "string",
+          "enum": [
+            "post",
+            "article"
+          ]
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "url",
+        "fromProviderId",
+        "fromKind",
+        "reason"
+      ],
+      "additionalProperties": true
+    }
+  }
+}

@@ -1,3 +1,4 @@
+import * as Processing from "@personal-wiki/contracts/processing";
 import { WorkflowApi } from "@personal-wiki/contracts/jobs-api";
 import * as Jobs from "@personal-wiki/contracts/jobs";
 import * as Knowledge from "@personal-wiki/contracts/knowledge";
@@ -16,6 +17,7 @@ for (const [name, schema] of Object.entries({
   ErrorEnvelope,
   ...Knowledge,
   ...Jobs,
+  ...Processing,
 })) {
   const document = Schema.toJsonSchemaDocument(schema);
   documents.set(`${name}.json`, {

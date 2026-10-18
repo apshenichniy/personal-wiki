@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$ref": "#/$defs/AcquisitionRequest",
+  "$defs": {
+    "AcquisitionRequest": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "anchor",
+            "parents",
+            "author",
+            "quotes",
+            "article",
+            "direct",
+            "latest",
+            "nested"
+          ]
+        },
+        "allocations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "targetId": {
+                "type": "string"
+              },
+              "limit": {
+                "type": "integer",
+                "maximum": 1000,
+                "exclusiveMinimum": 0
+              }
+            },
+            "required": [
+              "targetId",
+              "limit"
+            ],
+            "additionalProperties": true
+          }
+        },
+        "limit": {
+          "type": "integer",
+          "maximum": 1000,
+          "exclusiveMinimum": 0
+        },
+        "authorId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "conversationId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sort": {
+          "type": "string",
+          "enum": [
+            "Latest"
+          ]
+        }
+      },
+      "required": [
+        "key",
+        "mode",
+        "allocations",
+        "limit",
+        "authorId",
+        "conversationId",
+        "sort"
+      ],
+      "additionalProperties": true
+    }
+  }
+}

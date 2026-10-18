@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$ref": "#/$defs/ProcessingInput",
+  "$defs": {
+    "CapturePolicy": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "main": {
+          "type": "integer",
+          "maximum": 1000,
+          "exclusiveMinimum": 0
+        },
+        "discussion": {
+          "type": "integer",
+          "maximum": 1000,
+          "exclusiveMinimum": 0
+        },
+        "context": {
+          "type": "integer",
+          "maximum": 1000,
+          "exclusiveMinimum": 0
+        },
+        "direct": {
+          "type": "integer",
+          "maximum": 1000,
+          "exclusiveMinimum": 0
+        },
+        "latest": {
+          "type": "integer",
+          "maximum": 1000,
+          "exclusiveMinimum": 0
+        },
+        "nestedReserve": {
+          "type": "integer",
+          "maximum": 1000,
+          "exclusiveMinimum": 0
+        },
+        "preparedBytes": {
+          "type": "integer",
+          "maximum": 1048576,
+          "exclusiveMinimum": 0
+        }
+      },
+      "required": [
+        "version",
+        "main",
+        "discussion",
+        "context",
+        "direct",
+        "latest",
+        "nestedReserve",
+        "preparedBytes"
+      ],
+      "additionalProperties": true
+    },
+    "ProcessingInput": {
+      "type": "object",
+      "properties": {
+        "submittedUrl": {
+          "type": "string"
+        },
+        "policy": {
+          "$ref": "#/$defs/CapturePolicy"
+        },
+        "knownSources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "primaryId": {
+                "type": "string"
+              },
+              "aliases": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "primaryId",
+              "aliases"
+            ],
+            "additionalProperties": true
+          }
+        }
+      },
+      "required": [
+        "submittedUrl",
+        "policy",
+        "knownSources"
+      ],
+      "additionalProperties": true
+    }
+  }
+}
