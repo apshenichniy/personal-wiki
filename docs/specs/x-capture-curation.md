@@ -130,4 +130,4 @@ Use synthetic or redistributable fixtures in public CI. Keep the owner's raw cap
 
 ## Handoff to remaining decisions
 
-The publication decision owns atomic visibility, durable commit, receipt/idempotency and stale-base recovery. The execution decision owns physical single-agent enforcement, provider-run reconciliation, capacity limits and bounded repair/retry. The access/reader decision owns authorized delivery and safe rendering. Delivery gates consolidate these acceptance cases before the full specification is approved and implementation tasks are created.
+The [publication contract](atomic-publication.md) defines atomic visibility, durable commit, receipt/idempotency, latest-batch compensation and one stale-base rebuild. The execution decision owns physical single-agent enforcement, provider-run reconciliation, capacity limits and bounded repair/retry. The access/reader decision owns authorized delivery and safe rendering. Delivery gates consolidate these acceptance cases before the full specification is approved and implementation tasks are created.

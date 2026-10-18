@@ -61,6 +61,8 @@ These are input constraints for planning. Reopen one only when new evidence just
 | Post and article | Separate connected notes and source identities. First-slice expansion includes one level of quoted context and one associated X Article; other website/media references remain explicitly unprocessed. |
 | Partial outcomes | Publish useful, quality-checked main text with explicit gaps. Unavailable or unprocessable main material yields an actionable outcome without fabricated content or silent truncation. |
 | First-slice write scope | Current material note, acquired article note, their provenance, and relevant existing-note links. Backlinks are derived; topic-page rewriting and restructuring follow later. |
+| Stale publication | Reject the stale proposal; allow one persisted Runner rebuild from retained captures and current library context, without fresh Apify acquisition. A second conflict is actionable failure. |
+| Rollback | Reverse the latest whole publication through a new compensating publication, retaining source evidence, stable identities and history. An operator command is sufficient initially. |
 | Research depth | No additional research outside the submitted conversation in the first slice. The agent can use relevant existing library material. |
 | Languages for development | English documentation, tickets, PRs, and code comments; Russian conversation with the owner. |
 
@@ -179,7 +181,9 @@ Git, SQLite, and R2 do not share a transaction. Design an operation journal and 
 - Referenced assets are confirmed before publication. Expiring URLs are generated after authorization, not committed into notes.
 - Accidental duplicate service startup cannot produce two active publishers.
 
-The precise journal, locking, commit order, retention windows, and recovery algorithm are open design decisions. Queue-level deduplication alone does not establish these guarantees.
+The [atomic publication contract](specs/atomic-publication.md) defines the design: prepare verified assets and a journaled Git candidate, advance one canonical ref, then activate the catalog/FTS, applied revision, receipt, job result and outbox in one SQLite transaction. Readers use the applied revision while a committed batch awaits recovery. One exclusive writer owns the storage; replay returns the same receipt. Operational and projection tables share one physical SQLite database for this transaction boundary.
+
+The contract also specifies the cancellation fence, one stale-base rebuild, latest-batch compensation, retained identities/evidence, crash cases and verification gates. This is a design, not proof that the implementation already satisfies it. Queue-level deduplication alone does not establish these guarantees.
 
 ## 6. Queue and agent lifecycle
 

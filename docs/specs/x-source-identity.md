@@ -75,7 +75,7 @@ Moving or renaming a note preserves its ID and public link identity. Resolve int
 
 Automatic source/note merging is outside the first slice. Any future merge must retain old identity resolution and historical provenance; deleting an identity or rewriting old citations is not an acceptable merge implementation.
 
-An agent proposal names its base library revision. A publication receipt names the resulting revision. Captures and sources do not use library revisions as their identities. The atomic-publication decision owns stale-base handling, commit order, crash recovery and receipt persistence.
+An agent proposal names its base library revision. A publication receipt names the resulting revision. Captures and sources do not use library revisions as their identities. The [atomic-publication contract](atomic-publication.md) defines stale-base handling, commit order, crash recovery, receipt persistence and latest-batch compensation. Reverting active knowledge preserves its source evidence and identity reservations.
 
 ## Acceptance scenarios for the later specification
 

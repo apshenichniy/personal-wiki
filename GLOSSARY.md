@@ -55,3 +55,19 @@ _Avoid_: Folder
 **Publication**:
 An accepted batch of knowledge changes with an identifiable result and revision.
 _Avoid_: Agent output, capture completion
+
+**Proposed changeset**:
+A suggested batch of knowledge changes against a particular library revision, awaiting the library's acceptance.
+_Avoid_: Publication
+
+**Library revision**:
+An identifiable, complete version of the library's knowledge state.
+_Avoid_: Capture date
+
+**Publication receipt**:
+The retained result identifying an applied publication and its affected knowledge, even if its effects are later reversed.
+_Avoid_: Agent success message
+
+**Compensating publication**:
+A new publication reversing a previous batch's active effects while preserving the record and evidence of both operations.
+_Avoid_: History deletion
