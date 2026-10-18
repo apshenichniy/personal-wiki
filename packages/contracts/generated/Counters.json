@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$ref": "#/$defs/ExecutionCounters",
+  "$defs": {
+    "ExecutionCounters": {
+      "type": "object",
+      "properties": {
+        "launches": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "repair": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "transient": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "stale": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "required": [
+        "launches",
+        "repair",
+        "transient",
+        "stale"
+      ],
+      "additionalProperties": true
+    }
+  }
+}

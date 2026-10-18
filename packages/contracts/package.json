@@ -4,7 +4,9 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./knowledge": "./src/knowledge.ts"
+    "./knowledge": "./src/knowledge.ts",
+    "./jobs": "./src/jobs.ts",
+    "./jobs-api": "./src/jobs-api.ts"
   },
   "dependencies": {
     "effect": "4.0.5"

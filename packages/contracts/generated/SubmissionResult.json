@@ -1,0 +1,354 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$ref": "#/$defs/SubmissionResult",
+  "$defs": {
+    "ExecutionPolicy": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string",
+          "enum": [
+            "execution-v1"
+          ]
+        },
+        "activeJobMs": {
+          "type": "integer",
+          "maximum": 9007199254740991,
+          "exclusiveMinimum": 0
+        },
+        "attemptMs": {
+          "type": "integer",
+          "maximum": 9007199254740991,
+          "exclusiveMinimum": 0
+        },
+        "maxLaunches": {
+          "type": "number",
+          "enum": [
+            3
+          ]
+        },
+        "maxRepair": {
+          "type": "number",
+          "enum": [
+            1
+          ]
+        },
+        "maxTransient": {
+          "type": "number",
+          "enum": [
+            1
+          ]
+        },
+        "maxStale": {
+          "type": "number",
+          "enum": [
+            1
+          ]
+        }
+      },
+      "required": [
+        "version",
+        "activeJobMs",
+        "attemptMs",
+        "maxLaunches",
+        "maxRepair",
+        "maxTransient",
+        "maxStale"
+      ],
+      "additionalProperties": true
+    },
+    "ExecutionCounters": {
+      "type": "object",
+      "properties": {
+        "launches": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "repair": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "transient": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "stale": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "required": [
+        "launches",
+        "repair",
+        "transient",
+        "stale"
+      ],
+      "additionalProperties": true
+    },
+    "Receipt": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "number",
+          "enum": [
+            1
+          ]
+        },
+        "operationId": {
+          "type": "string",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+          "format": "uuid"
+        },
+        "publicationId": {
+          "type": "string",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+          "format": "uuid"
+        },
+        "jobId": {
+          "type": "string",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+          "format": "uuid"
+        },
+        "appliedRevision": {
+          "type": "string"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "noteIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+            "format": "uuid"
+          }
+        },
+        "publishedAt": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "operationId",
+        "publicationId",
+        "jobId",
+        "appliedRevision",
+        "sequence",
+        "noteIds",
+        "publishedAt"
+      ],
+      "additionalProperties": true
+    },
+    "JobView": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "number",
+          "enum": [
+            1
+          ]
+        },
+        "jobId": {
+          "type": "string",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+          "format": "uuid"
+        },
+        "stage": {
+          "type": "string",
+          "enum": [
+            "queued",
+            "acquiring",
+            "prepared",
+            "curating",
+            "validating",
+            "publishing",
+            "blocked",
+            "stopping",
+            "succeeded",
+            "failed",
+            "expired",
+            "cancelled"
+          ]
+        },
+        "submittedUrl": {
+          "type": "string"
+        },
+        "normalizedUrl": {
+          "type": "string"
+        },
+        "anchorId": {
+          "type": "string"
+        },
+        "sourceKey": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "startedAt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "deadline": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "policy": {
+          "$ref": "#/$defs/ExecutionPolicy"
+        },
+        "counters": {
+          "$ref": "#/$defs/ExecutionCounters"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "allowedActions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "cancel",
+              "resume",
+              "retry_retained",
+              "refresh"
+            ]
+          }
+        },
+        "receipt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Receipt"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "previousJobId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "retainedCapture": {
+          "type": "boolean"
+        },
+        "cleanupPending": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "jobId",
+        "stage",
+        "submittedUrl",
+        "normalizedUrl",
+        "anchorId",
+        "sourceKey",
+        "createdAt",
+        "startedAt",
+        "deadline",
+        "policy",
+        "counters",
+        "reason",
+        "warnings",
+        "allowedActions",
+        "receipt",
+        "previousJobId",
+        "retainedCapture",
+        "cleanupPending"
+      ],
+      "additionalProperties": true
+    },
+    "SubmissionResult": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "number",
+          "enum": [
+            1
+          ]
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "accepted",
+            "existing_job",
+            "existing_note",
+            "previous_outcome"
+          ]
+        },
+        "job": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/JobView"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "noteId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "appliedRevision": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "outcome",
+        "job",
+        "noteId",
+        "appliedRevision"
+      ],
+      "additionalProperties": true
+    }
+  }
+}

@@ -1,11 +1,11 @@
 import { Schema } from "effect";
-export async function launch(root: string, extra: Record<string, string> = {}) {
+export async function launch(root: string, extra: Record<string, string> = {}, production = false) {
   const child = Bun.spawn(
     [
       "python3",
       "tools/runtime/locked-service.py",
       process.execPath,
-      "apps/knowledge-service/dist/index.js",
+      production ? "apps/knowledge-service/dist/index.js" : "tests/helpers/library-service.ts",
     ],
     {
       env: { PATH: process.env.PATH, WIKI_DATA_DIR: root, PORT: "0", ...extra },

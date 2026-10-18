@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "string",
+  "enum": [
+    "queued",
+    "acquiring",
+    "prepared",
+    "curating",
+    "validating",
+    "publishing",
+    "blocked",
+    "stopping",
+    "succeeded",
+    "failed",
+    "expired",
+    "cancelled"
+  ],
+  "$defs": {}
+}

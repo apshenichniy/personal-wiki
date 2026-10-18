@@ -22,6 +22,12 @@ export const ErrorEnvelope = Schema.Struct({
     "not_found",
     "unavailable",
     "cancelled",
+    "invalid_transition",
+    "deadline_exceeded",
+    "launch_limit",
+    "stale_owner",
+    "unauthenticated",
+    "forbidden",
   ]),
   message: Schema.String,
   requestId: RequestId,
@@ -38,7 +44,7 @@ export class SystemApi extends HttpApiGroup.make("system", { topLevel: true }).a
     ],
   }),
 ) {}
-const errors = [400, 404, 409, 500, 503].map((status) =>
+const errors = [400, 401, 403, 404, 409, 500, 503].map((status) =>
   ErrorEnvelope.pipe(HttpApiSchema.status(status)),
 );
 export class KnowledgeApi extends HttpApiGroup.make("knowledge").add(

@@ -13,7 +13,13 @@
         "revision_changed",
         "not_found",
         "unavailable",
-        "cancelled"
+        "cancelled",
+        "invalid_transition",
+        "deadline_exceeded",
+        "launch_limit",
+        "stale_owner",
+        "unauthenticated",
+        "forbidden"
       ]
     },
     "message": {

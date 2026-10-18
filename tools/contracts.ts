@@ -1,15 +1,21 @@
+import { WorkflowApi } from "@personal-wiki/contracts/jobs-api";
+import * as Jobs from "@personal-wiki/contracts/jobs";
 import * as Knowledge from "@personal-wiki/contracts/knowledge";
 import { mkdir } from "node:fs/promises";
 import { Schema } from "effect";
 import { OpenApi } from "effect/http-api";
 import { EchoRequest, EchoResponse, ErrorEnvelope, WikiApi } from "@personal-wiki/contracts";
 
-const documents = new Map<string, unknown>([["openapi.json", OpenApi.fromApi(WikiApi)]]);
+const documents = new Map<string, unknown>([
+  ["openapi.json", OpenApi.fromApi(WikiApi)],
+  ["jobs-openapi.json", OpenApi.fromApi(WorkflowApi)],
+]);
 for (const [name, schema] of Object.entries({
   EchoRequest,
   EchoResponse,
   ErrorEnvelope,
   ...Knowledge,
+  ...Jobs,
 })) {
   const document = Schema.toJsonSchemaDocument(schema);
   documents.set(`${name}.json`, {

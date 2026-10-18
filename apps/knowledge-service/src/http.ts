@@ -1,10 +1,17 @@
+import { JobError } from "./jobs/policy.ts";
 import { Library } from "./storage/library.ts";
 import { LibraryError } from "./storage/io.ts";
-import { Cause, Effect, Layer, Schema } from "effect";
+import { Cause, Context, Effect, Layer, Schema } from "effect";
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
 import { HttpApiBuilder, HttpApiError } from "effect/http-api";
 import { ErrorEnvelope, RequestId, WikiApi } from "@personal-wiki/contracts";
 
+// The storage protocol is exposed only by a dedicated synthetic test harness.
+// Production provides a denying capability; URL normalization cannot bypass it.
+export class StorageWrites extends Context.Service<
+  StorageWrites,
+  { authorize: Effect.Effect<void, JobError> }
+>()("personal-wiki/StorageWrites") {}
 const Handlers = HttpApiBuilder.group(WikiApi, "system", (handlers) =>
   handlers.handleAll({
     health: () => Effect.void,
@@ -21,15 +28,22 @@ const KnowledgeHandlers = HttpApiBuilder.group(
   "knowledge",
   Effect.fn(function* (handlers) {
     const library = yield* Library;
+    const writes = yield* StorageWrites;
     return handlers.handleAll({
       cancelPublication: ({ payload }) =>
-        library.cancelPublication(payload.operationId).pipe(Effect.orDie),
+        writes.authorize.pipe(
+          Effect.andThen(library.cancelPublication(payload.operationId)),
+          Effect.orDie,
+        ),
       compensate: ({ payload }) => library.compensate(payload).pipe(Effect.orDie),
       outbox: () => library.outbox().pipe(Effect.orDie),
       ackEvent: ({ payload }) => library.ackEvent(payload.eventId).pipe(Effect.orDie),
-      reserve: ({ payload }) => library.reserve(payload).pipe(Effect.orDie),
-      upload: ({ payload }) => library.upload(payload).pipe(Effect.orDie),
-      publish: ({ payload }) => library.publish(payload).pipe(Effect.orDie),
+      reserve: ({ payload }) =>
+        writes.authorize.pipe(Effect.andThen(library.reserve(payload)), Effect.orDie),
+      upload: ({ payload }) =>
+        writes.authorize.pipe(Effect.andThen(library.upload(payload)), Effect.orDie),
+      publish: ({ payload }) =>
+        writes.authorize.pipe(Effect.andThen(library.publish(payload)), Effect.orDie),
       list: ({ query }) => library.list(query.revision).pipe(Effect.orDie),
       note: ({ params, query }) => library.note(params.noteId, query.revision).pipe(Effect.orDie),
       capture: ({ params, query }) =>
@@ -53,7 +67,8 @@ const Boundary = HttpRouter.middleware(
             HttpApiError.HttpApiSchemaError.is(error) &&
             error.kind !== "Body" &&
             error.kind !== "ResponseHeaders";
-          const domain = error instanceof LibraryError ? error : undefined;
+          const domain =
+            error instanceof LibraryError || error instanceof JobError ? error : undefined;
           const status = domain
             ? {
                 invalid_request: 400,
@@ -64,6 +79,12 @@ const Boundary = HttpRouter.middleware(
                 not_found: 404,
                 unavailable: 503,
                 cancelled: 409,
+                invalid_transition: 409,
+                deadline_exceeded: 409,
+                launch_limit: 409,
+                stale_owner: 409,
+                unauthenticated: 401,
+                forbidden: 403,
               }[domain.code]
             : invalid
               ? 400

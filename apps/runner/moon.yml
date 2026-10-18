@@ -5,6 +5,6 @@ tasks:
   build:
     options:
       cache: false
-    command: bun build src/index.ts --target=bun --packages=external --outdir=dist
-    inputs: ["src/**/*", "package.json", "/bun.lock", "/packages/**/*.ts"]
+    command: bun build src/index.ts src/synthetic.ts --target=bun --packages=external --outdir=dist
+    inputs: ["src/**/*", "package.json", "/bun.lock", "/packages/**/*.ts", "/tests/helpers/source.ts"]
     outputs: [dist]

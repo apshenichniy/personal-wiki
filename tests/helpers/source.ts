@@ -1,10 +1,17 @@
 import { createHash } from "node:crypto";
 import { Effect } from "effect";
-import { makeClient } from "@personal-wiki/client";
 import * as K from "@personal-wiki/contracts/knowledge";
 const checksum = (value: string) => createHash("sha256").update(value).digest("hex");
 export async function prepareSource(
-  client: Effect.Success<ReturnType<typeof makeClient>>,
+  client: {
+    knowledge: {
+      reserve: (input: {
+        payload: typeof K.ReserveRequest.Type;
+      }) => Effect.Effect<K.Draft, unknown>;
+      list: (input: { query: {} }) => Effect.Effect<typeof K.NoteList.Type, unknown>;
+      upload: (input: { payload: typeof K.AssetUpload.Type }) => Effect.Effect<K.Asset, unknown>;
+    };
+  },
   sources: (typeof K.ReserveRequest.Type)["sources"],
   upload = true,
 ) {

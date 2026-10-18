@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$ref": "#/$defs/ExecutionPolicy",
+  "$defs": {
+    "ExecutionPolicy": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string",
+          "enum": [
+            "execution-v1"
+          ]
+        },
+        "activeJobMs": {
+          "type": "integer",
+          "maximum": 9007199254740991,
+          "exclusiveMinimum": 0
+        },
+        "attemptMs": {
+          "type": "integer",
+          "maximum": 9007199254740991,
+          "exclusiveMinimum": 0
+        },
+        "maxLaunches": {
+          "type": "number",
+          "enum": [
+            3
+          ]
+        },
+        "maxRepair": {
+          "type": "number",
+          "enum": [
+            1
+          ]
+        },
+        "maxTransient": {
+          "type": "number",
+          "enum": [
+            1
+          ]
+        },
+        "maxStale": {
+          "type": "number",
+          "enum": [
+            1
+          ]
+        }
+      },
+      "required": [
+        "version",
+        "activeJobMs",
+        "attemptMs",
+        "maxLaunches",
+        "maxRepair",
+        "maxTransient",
+        "maxStale"
+      ],
+      "additionalProperties": true
+    }
+  }
+}

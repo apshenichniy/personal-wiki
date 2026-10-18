@@ -5,6 +5,21 @@ import { join } from "node:path";
 import { io, prepareDirectory, LibraryError } from "./io.ts";
 
 const migrations = {
+  "0003_jobs": Effect.gen(function* () {
+    const sql = yield* SqlClient.SqlClient;
+    yield* sql`CREATE TABLE ingestion_jobs (job_id TEXT PRIMARY KEY, source_key TEXT NOT NULL, stage TEXT NOT NULL, generation INTEGER NOT NULL, ready INTEGER NOT NULL, version INTEGER NOT NULL, record TEXT NOT NULL)`;
+    yield* sql`CREATE INDEX jobs_source_history ON ingestion_jobs(source_key)`;
+    yield* sql`CREATE UNIQUE INDEX jobs_one_active_source ON ingestion_jobs(source_key) WHERE stage NOT IN ('succeeded','failed','expired','cancelled')`;
+    yield* sql`CREATE TABLE job_redirects (job_id TEXT PRIMARY KEY REFERENCES ingestion_jobs(job_id), target_job_id TEXT NOT NULL REFERENCES ingestion_jobs(job_id))`;
+    yield* sql`CREATE TABLE submissions (request_id TEXT PRIMARY KEY, digest TEXT NOT NULL, job_id TEXT REFERENCES ingestion_jobs(job_id), note_id TEXT, result TEXT NOT NULL)`;
+    yield* sql`CREATE TABLE source_resolutions (job_id TEXT NOT NULL REFERENCES ingestion_jobs(job_id), request_id TEXT PRIMARY KEY, payload TEXT NOT NULL)`;
+    yield* sql`CREATE TABLE source_aliases (alias_key TEXT PRIMARY KEY, canonical_key TEXT NOT NULL)`;
+    yield* sql`CREATE TABLE scheduling_outbox (job_id TEXT NOT NULL REFERENCES ingestion_jobs(job_id), generation INTEGER NOT NULL, offered INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(job_id,generation))`;
+    yield* sql`CREATE TABLE job_requests (identity_id TEXT NOT NULL, request_id TEXT NOT NULL, digest TEXT NOT NULL, result TEXT NOT NULL, PRIMARY KEY(identity_id,request_id))`;
+    yield* sql`CREATE TABLE execution_attempts (attempt_id TEXT PRIMARY KEY, job_id TEXT NOT NULL REFERENCES ingestion_jobs(job_id), number INTEGER NOT NULL, record TEXT NOT NULL, state TEXT NOT NULL, output TEXT, UNIQUE(job_id,number))`;
+    yield* sql`CREATE TABLE adapter_gates (adapter TEXT PRIMARY KEY, reason TEXT NOT NULL)`;
+    yield* sql`CREATE TABLE machine_credentials (identity_id TEXT PRIMARY KEY, verifier TEXT UNIQUE NOT NULL, role TEXT NOT NULL, revoked INTEGER NOT NULL DEFAULT 0)`;
+  }),
   "0002_publisher_epoch": Effect.gen(function* () {
     const sql = yield* SqlClient.SqlClient;
     yield* sql`CREATE TABLE publisher_state (singleton INTEGER PRIMARY KEY CHECK(singleton=1), epoch INTEGER NOT NULL)`;
