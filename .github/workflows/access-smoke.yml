@@ -61,11 +61,12 @@ jobs:
           timeout 20s tailscale ssh "root@${CI_VPS_HOST}" true >"${RUNNER_TEMP}/root-probe.log" 2>&1
           status=$?
           set -e
+          cat "${RUNNER_TEMP}/root-probe.log"
           if [ "$status" -eq 0 ] || [ "$status" -eq 124 ]; then
             echo "Expected an explicit SSH denial; exit status was $status" >&2
             exit 1
           fi
-          if ! grep -Eiq 'denied|not allowed|reject|refused' "${RUNNER_TEMP}/root-probe.log"; then
+          if ! grep -Eiq 'denied|not allowed|does not permit|reject|refused' "${RUNNER_TEMP}/root-probe.log"; then
             echo 'SSH failed without a recognizable access denial' >&2
             exit 1
           fi

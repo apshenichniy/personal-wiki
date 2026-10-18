@@ -7,7 +7,7 @@ GitHub Actions joins the existing tailnet through Tailscale workload identity fe
 ## Trust boundary
 
 - Issuer: `https://token.actions.githubusercontent.com`.
-- Subject: `repo:apshenichniy/personal-wiki:environment:production`.
+- Subject: `repo:apshenichniy@34074932/personal-wiki@1424641109:environment:production`.
 - Required claims: repository ID `1424641109`, ref `refs/heads/main`.
 - GitHub environment: `production`, with only the `main` branch allowed.
 - OIDC scopes: writable `auth_keys` and `devices:core`, limited to `tag:personal-wiki-ci`.
