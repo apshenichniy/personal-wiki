@@ -1,6 +1,6 @@
 # Bounded X capture pilot
 
-**Status:** live acquisition completed on 2026-10-18; owner review pending. This is evidence for [the capture pilot](https://github.com/apshenichniy/personal-wiki/issues/16), not an implemented ingestion service or an approved specification.
+**Status:** live acquisition and owner review completed on 2026-10-18. The owner accepted the overall direction with two curation amendments: fuller main-post coverage and inline post citations. This resolves [the capture pilot](https://github.com/apshenichniy/personal-wiki/issues/16), not the complete curation specification or application implementation.
 
 ## Verdict
 
@@ -67,7 +67,22 @@ Each newly created run and its default dataset, key-value store and request queu
 
 No run was automatically repeated after an ambiguous start. The pilot utility's local reservation prevents accidental restart by the same experiment name; it is not a production idempotency design. Crash reconciliation, external cancellation, inaccessible anchors, large multi-post author chains, full browser fidelity, and multi-page dataset retrieval were not demonstrated. The provided sources were long posts with discussion, not a verified numbered author series.
 
-The next gate is the owner's reaction to the private reading examples. Keep issue #16 open until that review, then carry the validated constraints into the first-slice specification.
+These limits are carried into specification and verification work. Closing the capture pilot does not establish guarantees for the untested cases.
+
+## Owner review and revised examples
+
+The owner found the overall result suitable but requested substantially more source detail: the main post should be retold almost in full, and references in the prose should link directly to the individual X posts. The pilot's short-summary instruction is therefore not an acceptable production default.
+
+Carry these requirements into [Agree X capture coverage and note curation rules](https://github.com/apshenichniy/personal-wiki/issues/17):
+
+- Preserve every substantive main-post point, its important examples and qualifications, with source attribution. Remove repetition without replacing the reading body with a short abstract. Do not silently truncate to a fixed word count.
+- Select useful discussion separately from the main-post retelling. Retain corrections, disagreements and uncertainty; do not reinterpret popularity or a bot's confident reply as verification.
+- Place inline links next to supported statements. Comment claims link to their own posts; multiple-source passages retain multiple citations. Source IDs and URLs must come from the retained capture, with explicit article provenance where applicable.
+- Keep original-language captures unchanged. A detailed retelling is not a verbatim copy or a decision to translate every linked article in full.
+
+The private HTML was revised against the same captures: case A retains all three techniques, their context and the attribution dispute; case B retains all four advertised capabilities and the distinct quoted-post/article relationship; case C retains all ten numbered takeaways, including examples and qualifications. Selected discussion now has inline post links.
+
+Revision 2 is an editorial revision by the assistant, not a second headless execution. The original CLI output remains unchanged. These examples illustrate the owner's requested direction; their exact prose has not been separately approved, and automated curation repeatability remains untested. No additional acquisition or paid Actor run was needed.
 
 ## Curation and archive evidence
 
