@@ -1,0 +1,33 @@
+# Production CI access
+
+This is infrastructure preparation, not an application deployment pipeline.
+
+GitHub Actions joins the existing tailnet through Tailscale workload identity federation. No permanent Tailscale API secret or SSH private key is stored in GitHub.
+
+## Trust boundary
+
+- Issuer: `https://token.actions.githubusercontent.com`.
+- Subject: `repo:apshenichniy/personal-wiki:environment:production`.
+- Required claims: repository ID `1424641109`, ref `refs/heads/main`.
+- GitHub environment: `production`, with only the `main` branch allowed.
+- OIDC scopes: writable `auth_keys` and `devices:core`, limited to `tag:personal-wiki-ci`.
+- Ephemeral CI nodes receive only `tag:personal-wiki-ci`. Their network grant permits TCP 22 to `tag:dock-cx33`; their Tailscale SSH rule accepts only `wiki-deploy`.
+- `wiki-deploy` has no sudo, Docker-group membership, or access to runtime credentials. Application installation/restart privileges are not configured yet.
+
+Environment variables: `TS_OIDC_CLIENT_ID`, `TS_OIDC_AUDIENCE`, `CI_VPS_HOST`, and `CI_DENIED_PEER`. These are connection metadata, not bearer credentials. The last variable identifies an owner device used for one negative reachability probe.
+
+The owner retains separate administrative access. The existing Telegram MCP and Cloudflare Tunnel are outside this workflow's control. The trust applies to qualifying workflows in this repository/environment, not to a single workflow filename; protect review and write access to `main` accordingly.
+
+## Access check
+
+Run the manual **Verify production access** workflow on `main`:
+
+```sh
+gh workflow run access-smoke.yml --ref main
+```
+
+The workflow checks the remote UID/groups, denies sudo and runtime-secret reads, requires an explicit root SSH denial, and checks that selected disallowed network endpoints are unreachable. Reachability failures alone are not proof of ACL enforcement: the Tailscale policy additionally contains accept/deny tests for these targets. The action logs out and removes its ephemeral node during cleanup; verify removal in the tailnet after the first run or after an interrupted run.
+
+It does not check out project code, deploy an artifact, alter services, invoke Codex, or run Apify. The action is pinned by commit and the Tailscale client by version. A future deployment workflow must keep this authentication boundary and introduce separately scoped artifact installation, migration, restart, and rollback operations.
+
+Reference: [official Tailscale GitHub Action](https://github.com/tailscale/github-action).

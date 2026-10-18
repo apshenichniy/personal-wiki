@@ -1,0 +1,105 @@
+name: Verify production access
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: production-access-smoke
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    environment: production
+    permissions:
+      id-token: write
+    env:
+      CI_VPS_HOST: ${{ vars.CI_VPS_HOST }}
+      CI_DENIED_PEER: ${{ vars.CI_DENIED_PEER }}
+    steps:
+      - name: Connect an ephemeral CI node using OIDC
+        uses: tailscale/github-action@d1b6cd204f8dceda5b3eaad7f1f767be390056cd # v4
+        with:
+          oauth-client-id: ${{ vars.TS_OIDC_CLIENT_ID }}
+          audience: ${{ vars.TS_OIDC_AUDIENCE }}
+          tags: tag:personal-wiki-ci
+          version: 1.104.1
+          sha256sum: 108d1d96ecf410d305571e173516f27038f870919a9b89c914a167c6d33a4528
+          hostname: wiki-ci-${{ github.run_id }}-${{ github.run_attempt }}
+          use-cache: "false"
+          retry: "2"
+          ping: ${{ vars.CI_VPS_HOST }}
+
+      - name: Verify the unprivileged deployment identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 30s tailscale ssh "wiki-deploy@${CI_VPS_HOST}" 'sh -s' <<'REMOTE'
+          set -eu
+          test "$(id -un)" = wiki-deploy
+          test "$(id -u)" -ne 0
+          test "$(id -Gn)" = wiki-deploy
+          if sudo -n true 2>/dev/null; then
+            echo 'Unexpected sudo access' >&2
+            exit 1
+          fi
+          test ! -r /etc/personal-wiki/secrets/apify-token
+          test ! -r /etc/personal-wiki/secrets/r2.json
+          test ! -r /var/lib/personal-wiki-runner/.codex/auth.json
+          printf '%s\n' 'Deployment identity verified; no root, sudo, or runtime credential access.'
+          REMOTE
+
+      - name: Verify root SSH is explicitly denied
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          timeout 20s tailscale ssh "root@${CI_VPS_HOST}" true >"${RUNNER_TEMP}/root-probe.log" 2>&1
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ] || [ "$status" -eq 124 ]; then
+            echo "Expected an explicit SSH denial; exit status was $status" >&2
+            exit 1
+          fi
+          if ! grep -Eiq 'denied|not allowed|reject|refused' "${RUNNER_TEMP}/root-probe.log"; then
+            echo 'SSH failed without a recognizable access denial' >&2
+            exit 1
+          fi
+          echo 'Root SSH denied.'
+
+      - name: Verify network reachability restrictions
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os
+          import socket
+          from concurrent.futures import ThreadPoolExecutor
+
+          vps = os.environ['CI_VPS_HOST']
+          peer = os.environ['CI_DENIED_PEER']
+          assert vps and peer
+          targets = [(vps, port) for port in (443, 1411, 8765)] + [(peer, 22)]
+
+          def unreachable(target):
+              try:
+                  with socket.create_connection(target, timeout=5):
+                      return False
+              except OSError:
+                  return True
+
+          with ThreadPoolExecutor(max_workers=4) as pool:
+              assert all(pool.map(unreachable, targets)), 'Unexpected reachable endpoint'
+          print('Non-SSH VPS ports and the designated other-device SSH endpoint are unreachable.')
+          PY
+
+      - name: Record result
+        run: |
+          printf '%s\n' \
+            'OIDC authenticated the production job on main.' \
+            'Only wiki-deploy SSH succeeded; root SSH was explicitly denied.' \
+            'The deployment user has no sudo or access to runtime credentials.' \
+            'The action cleanup removes the ephemeral node.' >> "$GITHUB_STEP_SUMMARY"
