@@ -9,6 +9,12 @@ A personal knowledge base maintained by agents, with a private Markdown library,
 - [Agent instructions](AGENTS.md) — repository conventions and Matt Pocock skills configuration.
 - [GitHub Issues](https://github.com/apshenichniy/personal-wiki/issues) — specifications, decision maps, and subsequent implementation work.
 
+Current planning:
+
+- [Personal Wiki product scope](https://github.com/apshenichniy/personal-wiki/issues/1) — the product-wide scope bags.
+- [Specify the X-to-wiki first vertical slice](https://github.com/apshenichniy/personal-wiki/issues/13) — the decision map for bounded Apify capture, real Codex curation, and private CX33 delivery.
+- [Apify X capture findings](docs/research/2026-10-18-apify-x-capture.md) — documented capabilities and the remaining live-pilot gate.
+
 Repository documentation and tickets are written in English. Conversation with the owner is in Russian.
 
 This public repository contains the product's code and planning documents. The owner's actual knowledge library, source archive, credentials, and runtime data belong in separate private storage.
