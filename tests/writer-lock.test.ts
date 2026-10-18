@@ -10,6 +10,7 @@ const start = (root: string, entry = "apps/knowledge-service/dist/index.js") =>
       PATH: process.env.PATH,
       WIKI_DATA_DIR: root,
       PORT: "0",
+      WIKI_TEST_THREAD_SIGNAL: "1",
       WIKI_TEST_ORPHAN_MARKER: join(root, "orphan-ready.json"),
     },
     stdout: "pipe",
@@ -145,3 +146,22 @@ test("direct Bun startup without supervisor ownership never opens writable stora
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test("supervisor handles a stop signal received by a non-main thread while waiting for Service", async () => {
+  const root = await mkdtemp(join(tmpdir(), "wiki-thread-signal-"));
+  const child = start(root, "tests/helpers/signal-holder.ts");
+  try {
+    await ready(child);
+    const completed = await Promise.race([
+      child.exited.then(() => true),
+      Bun.sleep(2000).then(() => false),
+    ]);
+    expect(completed).toBe(true);
+  } finally {
+    if (child.exitCode === null) {
+      process.kill(child.pid, "SIGKILL");
+      await child.exited;
+    }
+    await rm(root, { recursive: true, force: true });
+  }
+}, 5000);

@@ -55,6 +55,11 @@ class Handler(socketserver.StreamRequestHandler):
                 self.wfile.flush()
                 self.rfile.read(1)
                 return
+            if request.get("method") == "test-stop" and os.environ.get("WIKI_TEST_THREAD_SIGNAL") == "1":
+                self.wfile.write(b'{"ok":true}\n')
+                self.wfile.flush()
+                signal.pthread_kill(threading.get_ident(), signal.SIGTERM)
+                return
             if request.get("method") != "git":
                 return
             args = request["args"]
@@ -115,7 +120,15 @@ def stop(signum, frame):
 signal.signal(signal.SIGTERM, stop)
 signal.signal(signal.SIGINT, stop)
 try:
-    code = service.wait()
+    # Python executes signal handlers in the main thread. A signal delivered to
+    # a socket worker cannot interrupt the main thread's indefinite waitpid.
+    # Bounded waits return to Python so stop intent is always processed.
+    while True:
+        try:
+            code = service.wait(timeout=0.2)
+            break
+        except subprocess.TimeoutExpired:
+            pass
 finally:
     stop(signal.SIGTERM, None)
     with children_lock:
