@@ -21,7 +21,7 @@ The negative fixture is excluded from the application TypeScript project. Its se
 In terminal 1:
 
 ```sh
-mise exec -- bun run service
+WIKI_DATA_DIR="$HOME/.local/share/personal-wiki-dev" mise exec -- bun run service
 ```
 
 In terminal 2:
@@ -51,3 +51,23 @@ Commit the generated OpenAPI 3.1 and JSON Schema 2020-12 files in `packages/cont
 ## Repository boundary
 
 Only synthetic inputs are used in these checks. Runtime state, source captures, provider replies, credentials and knowledge documents remain outside this public repository and CI artifacts. The access-only workflow does not grant provider secrets to the verification workflow.
+
+## Retained local publication (P2)
+
+The Service now requires an absolute `WIKI_DATA_DIR` outside the code checkout:
+
+```sh
+WIKI_DATA_DIR="$HOME/.local/share/personal-wiki-dev" mise exec -- bun run service
+```
+
+It owns a bare `knowledge.git`, `library.sqlite` and create-once local `objects/`. The local adapter admits at most 1 MiB per synthetic upload and verifies SHA-256 against readback. Real bounded provider-page streaming and R2 are separate P6 work; do not use this JSON/base64 development transport for large provider responses.
+
+The API reserves service-owned source/note/capture/representation/asset IDs, retains bytes, accepts a schema-validated proposal against a base revision, and returns a durable publication receipt. Worker reservation/upload/publication and operator rebuild routes are **loopback development interfaces** until job capability enforcement (P4/P9). They are not owner-browser capabilities and must never be tunnelled publicly in this state.
+
+Git stores Markdown at safe paths, a service-generated `.wiki/library.json` snapshot and append-only publication manifests. The snapshot includes exact Markdown bytes as well as metadata; reads/rebuild validate those bytes against the corresponding Git blobs. SQLite holds the separate operational journal/receipts and the rebuildable active snapshot/FTS index. Reading uses one SQLite snapshot; an optional requested revision fails explicitly when it is no longer active. The current small-library implementation loads the manifest in memory and bounds Git command output to 16 MiB; larger-library streaming/storage optimization is not established by P2.
+
+The publication lane records received/prepared/committing/committed/applied phases and uses an expected-old-value canonical Git ref update. Active snapshot, FTS, revision, receipt and outbox change in one SQLite transaction. Matching operation retries resolve before stale-base or current asset checks, so a lost response cannot create another publication. Invalid asset/path/scope/citation proposals leave the previous reading state intact.
+
+P2 tests use actual Git and SQLite, observe the library during a two-note publication, verify lexical Russian/English/original-only matches, concurrent replay, malformed assets and proposals, and delete/rebuild only the search projection while retaining operational rows. A move keeps note and old capture/citation IDs.
+
+**P2 is the happy-path storage foundation.** Process-level writer exclusion, publisher epochs, interrupted-publication recovery and compensation are P3 gates, before durable jobs or real integrations. Startup currently refuses a canonical/applied mismatch; it does not repair it by guessing. No live acquisition or crash-recovery claim follows from these tests.
