@@ -23,7 +23,7 @@ The product should accumulate an evolving wiki: a new source can create a note, 
 5. **Inspect provenance:** move from a note to the captured source text, original URL, available translation, or retained media. A summary and its source remain distinguishable.
 6. **Maintain:** an agent periodically checks affected areas for stale links, contradictions, duplication, and outdated topic pages. Ordinary bounded changes may publish automatically; major restructuring requires separate review.
 
-Initial source support is plain text, Markdown, and ordinary HTML. The architecture must permit PDF, video, and audio processors later without redesigning storage and publication.
+The first user-facing source is an **X post or author thread with discussion, captured through Apify**. The owner chose it because it is the most frequent real workflow. Plain text and Markdown remain useful normalized representations and test fixtures; general HTML ingestion and additional PDF, video, and audio processors can follow without redesigning storage and publication.
 
 ## 2. Owner decisions
 
@@ -50,6 +50,11 @@ These are input constraints for planning. Reopen one only when new evidence just
 | Publication policy | Ordinary bounded updates may publish automatically. Major restructuring has a separate review path. |
 | Transcription | Outside the first slice. If added, use Deepgram or AssemblyAI; no local transcription on the VPS. |
 | Clipper | Deferred and non-blocking. A fork is not selected; upstream Web Clipper file export plus an uploader remains an option. |
+| First-slice completion | Develop and verify locally first; complete the slice on CX33 with the computer off. |
+| First-slice interface | Minimal web interface for submitting a source, observing status, finding notes, and reading sources. Telegram and native clients follow. |
+| First source | An X post/thread and its replies through Apify. The existing configured Actor is `xquik/x-tweet-scraper`, the leading integration candidate pending a representative capture pilot. |
+| Discussion coverage | Bounded capture is acceptable, with an explicit incompleteness marker. Numeric budgets and acquisition policy remain to be specified. |
+| Research depth | No additional research outside the submitted conversation in the first slice. The agent can use relevant existing library material. |
 | Languages for development | English documentation, tickets, PRs, and code comments; Russian conversation with the owner. |
 
 Go, plain Hono/TypeScript, pnpm, and Drizzle were explored as alternatives. They are not the selected baseline. Effect SQL does not require introducing an ORM.
@@ -246,7 +251,7 @@ packages/
   contracts/             # public schemas and interop fixtures
   library/               # publication, queries, jobs, sync
   storage/               # Git, SQLite, R2 adapters owned by the service
-  ingestion/             # processor contract and initial text/HTML processors
+  ingestion/             # processor contract and initial X/Apify capture adapter
   agent-adapters/        # Codex, later Claude, and deterministic test adapter
   api-client/            # Runner and future capture clients
 apple/
@@ -276,41 +281,46 @@ Release verified artifacts to staging before the primary deployment, with explic
 
 The owner supplies necessary accounts/access when an integration needs them and evaluates working versions. Credentials belong in private local, CI, or deployment configuration, never in issues or committed documentation.
 
-## 10. Proposed first end-to-end slice
+## 10. First end-to-end slice: agreed boundary and proposed specification
 
-This is a candidate scope for wayfinder to refine. It is the beginning of product implementation once authorized, not another stack-only spike.
+The owner agreed the X-first source, bounded discussion capture, minimal web interface, and CX33 completion boundary during wayfinding on 2026-10-18. The contracts and acceptance details below still need resolution. Implementation begins after planning and authorization.
 
-**Outcome:** submit a text/Markdown/ordinary HTML source to a local service; a real Codex job produces a bounded proposed changeset; the service publishes it; a diagnostic reader can list, open, and search the resulting notes and inspect their source.
+**Outcome:** submit an X post/thread URL; Apify captures the author material and bounded discussion; the original acquired material is retained; real Codex removes uninformative material from the derived reading result and proposes a Russian note with relevant wiki links; the service publishes the batch; the owner can search and read the note and inspect its captured source through a private minimal web interface on CX33.
+
+Preserving the source archive and filtering the derived note are separate operations. Corrections, counterexamples, author clarifications, and meaningful disagreement must remain eligible for inclusion even when unpopular. The exact curation rubric, topic-page update policy, and output depth remain design decisions.
+
+The [Apify capture investigation](research/2026-10-18-apify-x-capture.md) documents the configured Actor's modes and limits. A post lookup alone does not establish conversation capture. Direct replies, nested discussion, and the author's self-reply chain need explicit handling. Provider completion does not prove exhaustive coverage; the live capture pilot remains open.
 
 ### Suggested sequence and acceptance evidence
 
 | Stage | Implement after planning | Verify |
 | --- | --- | --- |
 | Contracts and local foundation | Service/Runner boundary, domain contracts, migrations, request and operation identities, local environment. | Clean installation, deterministic commands, schema validation, no Runner SQL/storage access. |
-| Durable capture and jobs | Store accepted inputs, prepare text/HTML, retain provenance, enqueue recoverable work. | Lost response and duplicate submission yield one accepted job; changed input under the same key conflicts; incomplete extraction is visible. |
-| Real Codex execution | Adapter, trusted skill/context, structured proposal, progress, heartbeat, process supervision. | A genuine CLI execution succeeds; timeout, auth failure, cancellation, and killed-worker behavior are visible and bounded. |
+| Durable capture and jobs | Accept an X URL, resolve the submitted post and conversation, run bounded Apify acquisition, retain dataset/diagnostics and source relationships, enqueue recoverable work. | Root and middle-of-thread inputs retain correct context; duplicate submission is idempotent; missing branches and capture limits are visible; external run identity supports recovery. |
+| Real Codex execution | Adapter, trusted curation skill/context, structured proposal, progress, heartbeat, process supervision. | A genuine CLI execution produces an attributable Russian note; useful corrections survive noise removal; timeout, auth failure, cancellation, and killed-worker behavior are bounded. |
 | Publication and recovery | Batch validation, Git history, operation journal, SQLite projection/search, delivery receipt. | A multi-file batch is visible as one revision; crashes around commit/index/ack recover without duplicate publication; stale proposals are rejected. |
-| Read surface | A minimal diagnostic page or client for job status, note list/read/search, source inspection. | Saved content and provenance are retrievable; original and generated material are distinguishable; unsafe source markup cannot execute. |
+| Read surface | A minimal web interface for source submission, job status, note list/read/search, and source inspection. | Saved content and per-post provenance are retrievable; captured coverage and incompleteness are visible; original and generated material are distinguishable; unsafe markup cannot execute. |
 | Private VPS staging | Linux/amd64 artifact, real R2 test namespace, private authenticated access, real Codex on CX33. | Resource measurement, restart/restore exercise, authorized reads, and denied unauthenticated reads. |
 
-Start deterministic tests with a fake executor and a local object-store adapter. Keep live Codex and live R2 checks separate and explicit; fake success does not count as integration evidence. Review actual note quality on a small representative set of sources with the owner. Do not compare nondeterministic prose byte-for-byte.
+Start deterministic tests with a fake executor, recorded/synthetic Apify fixtures, and a local object-store adapter. Keep live Apify, Codex, and R2 checks separate and explicit; fake success does not count as integration evidence. Review actual note quality on a small representative set of conversations with the owner. Do not compare nondeterministic prose byte-for-byte.
 
-Core failure cases include duplicate input, request timeout after success, stale base revision, repeated queue delivery, invalid agent output, agent termination, and service failure between Git commit and projection/event completion. Physical one-agent enforcement needs a real process-lifecycle test, not only a queue assertion.
+Core failure cases include duplicate input, request timeout after success, stale base revision, repeated queue delivery, invalid agent output, agent termination, and service failure between Git commit and projection/event completion. Persist and reconcile an external Apify run through worker interruptions; a lost start response must not silently trigger unlimited new paid runs. Physical one-agent enforcement needs a real process-lifecycle test, not only a queue assertion.
 
 Native apps, Telegram ingress, Claude's adapter, Knowledge MCP, and browser capture can follow this local path. The later delivery order is to be planned around validated contracts and useful user feedback; completing every planned client is not a condition for the first local slice.
 
 ## 11. Input to wayfinder
 
-### Proposed destination
+### Planning destination
 
-Agree an implementation-ready specification for the first real-Codex end-to-end slice: scope, domain/API contracts, recovery and authorization boundaries, and observable acceptance criteria. Confirm this destination with the owner when charting the map. Reaching it produces decisions and a specification; implementation is the subsequent effort.
+Maintain a coarse product-wide inventory of scope bags and agree an implementation-ready specification for the X-to-wiki slice: domain/API contracts, capture/curation policy, recovery and authorization boundaries, and observable acceptance criteria through CX33 deployment. Use the agreed specification to create the subsequent implementation backlog; application implementation is a separate effort. The owner requested this overall scope-and-specification destination.
 
 ### Already precise questions worth considering
 
 - What are the exact identities, schemas, and invariants for sources, captures, notes, jobs, proposals, and publications?
 - What is the publication protocol across Git, SQLite, and R2, including visibility, idempotency retention, recovery, and publisher fencing?
 - How does the Runner supervise a real CLI and preserve one physical agent slot through cancellation, restart, and orphan-process scenarios?
-- Which initial HTML acquisition and validation behavior is sufficient for the first slice, and how is partial extraction represented?
+- Which Apify acquisition modes and budgets preserve author material and a useful discussion, and how are partial capture and per-post provenance represented?
+- What qualifies as meaningful discussion, how is it distinguished from the author's claims, and how should the first Russian note reflect uncertainty and disagreement?
 - What owner and machine authorization flows are required locally and for the first Pocket ID-protected deployment?
 - What belongs in the first diagnostic read/search surface, and which acceptance cases decide that the slice is useful?
 - Which versioned API and snapshot boundaries must be fixed now so native readers can be added without a storage rewrite?
@@ -320,6 +330,8 @@ These are candidate decision questions, not created tickets or an imposed depend
 
 ### Deferred, non-blocking work
 
+- Additional external research beyond the submitted X conversation and existing library.
+- General website ingestion, linked-article traversal, and a full browser-capture workflow.
 - Browser capture: upstream Obsidian Web Clipper export/uploader versus a maintained fork; no Obsidian application dependency.
 - PDF/OCR, YouTube, audio/video processors, and external ASR integration.
 - Final full-translation policy, multilingual semantic search, and sophisticated fragment alignment.
@@ -338,5 +350,6 @@ These informed the discussion; they are not executable instructions or a substit
 - [Farza's wiki skill](https://gist.github.com/farzaa/c35ac0cfbeb957788650e36aabea836d).
 - [The originally supplied OKF material](https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf); verify the maintained specification before implementing the selected profile.
 - [Recorded stack compatibility findings](research/2026-10-18-stack-spike.md).
+- [Configured Apify Actor investigation](research/2026-10-18-apify-x-capture.md).
 
 The evolving HTML concept and earlier experiments remain outside this new repository. This brief is the portable handoff and does not require access to the original chat or its local files.
