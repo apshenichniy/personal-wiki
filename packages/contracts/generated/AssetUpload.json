@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$ref": "#/$defs/AssetUpload",
+  "$defs": {
+    "AssetUpload": {
+      "type": "object",
+      "properties": {
+        "jobId": {
+          "type": "string",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+          "format": "uuid"
+        },
+        "assetId": {
+          "type": "string",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+          "format": "uuid"
+        },
+        "mediaType": {
+          "type": "string",
+          "enum": [
+            "text/plain",
+            "application/json",
+            "text/html",
+            "text/markdown"
+          ]
+        },
+        "base64": {
+          "type": "string",
+          "maxLength": 1398104
+        },
+        "sha256": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "jobId",
+        "assetId",
+        "mediaType",
+        "base64",
+        "sha256"
+      ],
+      "additionalProperties": true
+    }
+  }
+}

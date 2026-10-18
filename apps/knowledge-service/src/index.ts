@@ -1,3 +1,5 @@
+import { isAbsolute } from "node:path";
+import { Library } from "./storage/library.ts";
 import { BunHttpServer, BunRuntime } from "@effect/platform-bun";
 import { Config, Console, Effect, Layer } from "effect";
 import { HttpRouter, HttpServer } from "effect/http";
@@ -14,8 +16,16 @@ const Server = Layer.unwrap(
 const Ready = Layer.effectDiscard(
   HttpServer.addressFormattedWith((url) => Console.log(JSON.stringify({ event: "ready", url }))),
 );
-const Serving = HttpRouter.serve(Routes, { disableListenLog: true, disableLogger: true }).pipe(
-  Layer.provideMerge(Server),
+const LibraryLive = Layer.unwrap(
+  Effect.flatMap(Config.String("WIKI_DATA_DIR"), (root) =>
+    isAbsolute(root)
+      ? Effect.succeed(Library.layer(root))
+      : Effect.die("WIKI_DATA_DIR must be an absolute private path"),
+  ),
 );
+const Serving = HttpRouter.serve(Routes.pipe(Layer.provide(LibraryLive)), {
+  disableListenLog: true,
+  disableLogger: true,
+}).pipe(Layer.provideMerge(Server));
 const App = Ready.pipe(Layer.provide(Serving));
 Layer.launch(App).pipe(BunRuntime.runMain);

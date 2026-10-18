@@ -1,3 +1,6 @@
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { Ajv2020 } from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
@@ -9,11 +12,12 @@ let service: Bun.Subprocess<"ignore", "pipe", "pipe">;
 let baseUrl = "";
 let errors: Promise<string>;
 const requestId = "a87ed534-78f9-4ddf-b558-14654d232e79";
-const cleanEnv = { PATH: process.env.PATH, PORT: "0" };
+let dataDir = "";
 
 beforeAll(async () => {
+  dataDir = await mkdtemp(join(tmpdir(), "personal-wiki-http-"));
   service = Bun.spawn([process.execPath, "apps/knowledge-service/dist/index.js"], {
-    env: cleanEnv,
+    env: { PATH: process.env.PATH, PORT: "0", WIKI_DATA_DIR: dataDir },
     stdin: "ignore",
     stdout: "pipe",
     stderr: "pipe",
@@ -45,6 +49,7 @@ beforeAll(async () => {
 afterAll(async () => {
   service?.kill("SIGTERM");
   if (service) await service.exited;
+  if (dataDir) await rm(dataDir, { recursive: true, force: true });
 });
 
 const post = (body: string, id = requestId) =>

@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$ref": "#/$defs/SourceInput",
+  "$defs": {
+    "SourceInput": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "x_post",
+            "x_author_thread",
+            "x_article"
+          ]
+        },
+        "primaryId": {
+          "type": "string"
+        },
+        "aliases": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 50
+        },
+        "resolution": {
+          "type": "string",
+          "enum": [
+            "resolved",
+            "uncertain"
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "primaryId",
+        "aliases",
+        "resolution"
+      ],
+      "additionalProperties": true
+    }
+  }
+}
