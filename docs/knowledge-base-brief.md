@@ -1,6 +1,6 @@
 # Personal Wiki: product and architecture brief
 
-**Date:** 2026-10-18. **Status:** first-slice specification and task-breakdown approach approved; application implementation has not started.
+**Updated:** 2026-10-19. **Status:** the approved first slice is being implemented; GitHub delivery issues track progress. The next product direction is Native Inbox + Share. macOS-first delivery is proposed for review, with iOS following on shared Swift foundations.
 
 This document consolidates the owner's discussion and accepted choices, including the final stack decision and subsequent selections of GitHub Actions, GitHub Issues, and Pocket ID. It supersedes the earlier HTML concept where that concept still presents rejected or unresolved alternatives as current.
 
@@ -16,10 +16,10 @@ The product should accumulate an evolving wiki: a new source can create a note, 
 
 ### Core flows
 
-1. **Save:** send a URL, text, or message to a bot. Receive a durable acceptance/status response. An agent prepares linked notes and publishes a batch. Newly published notes become visible on both native clients.
+1. **Save:** share a source to Personal Wiki from an Apple share sheet or paste its URL into the native Inbox; the existing web submission remains available. Distinguish locally retained input from durable server acceptance. Track processing in Inbox and open the resulting notes. Telegram Saved Messages is an optional later intake channel; a Telegram ingress bot is not required.
 2. **Read:** open folders, recent notes, related notes, and sources in the native app. Download the text library and read or search it offline. Retain a clear indication of the last synchronized revision.
 3. **Ask:** ask Codex, Claude Code, or a compatible bot what the library says about a subject. The assistant retrieves relevant material and returns an attributed answer with links to notes. Saving the answer is a separate intentional publication.
-4. **Follow a link:** tap a private note link from a bot. The app opens the corresponding stable note ID, using the local copy or authenticated retrieval. Possessing the URL does not grant access.
+4. **Follow a link:** open a private note link from Inbox, an assistant, or another application. The app opens the corresponding stable note ID, using the local copy or authenticated retrieval. Possessing the URL does not grant access.
 5. **Inspect provenance:** move from a note to the captured source text, original URL, available translation, or retained media. A summary and its source remain distinguishable.
 6. **Maintain:** an agent periodically checks affected areas for stale links, contradictions, duplication, and outdated topic pages. Ordinary bounded changes may publish automatically; major restructuring requires separate review.
 
@@ -44,7 +44,9 @@ These are input constraints for planning. Reopen one only when new evidence just
 | CI | GitHub Actions, starting with Linux checks and a verified artifact promoted through isolated staging to CX33. Apple lanes follow with Apple code. |
 | Work tracking | GitHub Issues and Matt Pocock's skills flow. Beads is not part of the selected setup. |
 | Authentication | Pocket ID owner sign-in; revocable server-side web sessions lasting at most 30 days. Unauthenticated private pages/APIs return 401 without content disclosure; a verified non-owner gets 404. |
-| Native clients | Custom SwiftUI applications for iPhone and Mac, initially read-only. Obsidian is not a client dependency. |
+| Native clients | Custom SwiftUI applications for iPhone and Mac with the same intended product capabilities and platform-appropriate layouts. Published notes are read-only; source submission and ingestion status belong in native Inbox. Obsidian is not a client dependency. |
+| Next product slice | Native Inbox + Share. A macOS-first delivery sequence is recommended; iOS follows using shared Swift logic. Detailed acceptance and implementation tasks still need approval. |
+| Intake channels | Apple sharing, native URL entry, and the existing web entry point use the Knowledge Service. A Telegram ingress bot is removed from the planned baseline. Saved Messages ingestion is optional later work. |
 | iPhone delivery | TestFlight for personal use; no public App Store release is planned. |
 | Offline search | Bootstrap with a server-built searchable snapshot, then apply incremental updates and maintain the local index. |
 | Publication policy | Ordinary bounded updates may publish automatically. Major restructuring has a separate review path. |
@@ -54,7 +56,7 @@ These are input constraints for planning. Reopen one only when new evidence just
 | Autonomous delivery | During authorized implementation, progress through the accepted gates to private production without approval per routine deploy. Ready for owner acceptance is distinct from actual owner acceptance on iPhone with the Mac off. |
 | Live acceptance budget | USD 2 total Apify spending for the future first-slice acceptance campaign, within the per-job and monthly limits; reuse retained captures and exclude paid providers from ordinary PR CI. |
 | Backup/restore | Daily encrypted incremental backups to a separate private R2 backup bucket; seven daily/four weekly recovery points and a pre-migration copy. Target RPO 24 hours and RTO four hours once operator/credentials are available; verify a clean restore. |
-| First-slice interface | Responsive Mac/iPhone web interface with library/submission/search, job status/actions, and note/source reader views. Updates appear automatically. Telegram and native clients follow. |
+| First-slice interface | Responsive Mac/iPhone web interface with library/submission/search, job status/actions, and note/source reader views. Updates appear automatically. Native Inbox + Share follows; optional Telegram Saved Messages ingestion is deferred. |
 | First source | An X post/thread and its replies through Apify. Reuse `xquik/x-tweet-scraper` behind an adapter with independent coverage checks, following the representative capture pilot. |
 | Capture limits | Configurable defaults: 50 main author posts, 200 discussion posts shared across modes, 30 additional parent/context lookups, and a five-minute acquisition window. Coverage limits remain visible. |
 | Apify budgets | USD 0.25 per save/refresh job including retries; USD 5 per calendar month across Personal Wiki jobs. The future runtime must enforce shared reservations and accounting. |
@@ -98,21 +100,28 @@ The high-level responsibilities are agreed; the internal APIs and packaging belo
 
 ```mermaid
 flowchart LR
-    Telegram[Telegram Bot API] --> Runner
-    Capture[Future browser capture] --> Service
+    Share[Apple Share Extensions] --> Inbox
+    Web[Web submission] --> Inbox
+    Capture[Future browser capture] --> Inbox
     Assistants[Desktop assistants and compatible bots] --> MCP
-    Apple[SwiftUI iPhone and Mac] --> Service
+    Apple[SwiftUI Mac and iPhone: Inbox and reader] --> Inbox
+    Apple --> Service
 
     subgraph VPS[Hetzner CX33]
         Proxy[HTTPS reverse proxy]
         IDP[Pocket ID]
         MCP[Knowledge MCP facade]
+        Inbox[Inbox intake: Knowledge Service module]
+        Inbox --> Service
         Service[Knowledge Service]
         Runner[Runner: ingestion and agent orchestration]
         CLI[Codex or Claude CLI: one active slot]
         Git[Private knowledge Git repository]
         SQL[(SQLite: catalog and durable service state)]
-        TMCP[Optional Telethon Telegram MCP]
+        TMCP[Existing Telegram access: read-only]
+        Poller[Optional future Saved Messages adapter]
+        Poller -. bounded polling .-> TMCP
+        Poller -. durable intake .-> Inbox
         MCP --> Service
         Runner <--> Service
         Runner --> CLI
@@ -130,13 +139,13 @@ Public application endpoints sit behind HTTPS and authorization; the diagram emp
 
 ### Knowledge Service
 
-Own canonical Git, SQLite, asset manifests, jobs, publication, read/search APIs, sync revisions, and delivery events. It is the only application component permitted to mutate the canonical library. Expose MCP as a facade over the same operations and authorization, not as a second implementation of library rules.
+Own canonical Git, SQLite, asset manifests, jobs, publication, read/search APIs, sync revisions, and delivery events. The future Inbox module owns incoming-material acceptance and links intake records to existing jobs/results; it is not a separate backend or a replacement queue. The Knowledge Service is the only application component permitted to mutate the canonical library. Expose MCP as a facade over the same operations and authorization, not as a second implementation of library rules.
 
 The service stores and serves knowledge. It does not own the LLM's research strategy or embed a model-specific research workflow into storage operations.
 
 ### Runner
 
-Accept Telegram ingress, prepare inputs through processors, claim work through the service API, assemble relevant context, invoke trusted skills through an agent adapter, and submit a proposed changeset. Report progress, renew execution ownership, and clean up the CLI process on completion or cancellation.
+Claim accepted work through the service API, prepare inputs through processors, assemble relevant context, invoke trusted skills through an agent adapter, and submit a proposed changeset. Intake clients submit through the service; an optional future Saved Messages adapter follows the same boundary. Report progress, renew execution ownership, and clean up the CLI process on completion or cancellation.
 
 Runner has no direct access to the service's SQLite or canonical Git repository. Temporary job workspaces are disposable and never become the published library by themselves. Asset transfer uses the service's authorized interface, potentially including scoped upload URLs.
 
@@ -146,9 +155,11 @@ Codex and Claude adapters implement one project-level executor contract. Provide
 
 A processor turns a capture into a common prepared-source result: normalized text, metadata, provenance, assets, completeness, and warnings. Keep extraction separate from the agent's interpretation. Simple processors can use TypeScript; specialized PDF/OCR/media processing can use a native binding or a separately supervised Python/Rust service when justified.
 
-### Telegram and MCP
+### Native intake, optional Telegram intake, and MCP
 
-The Telegram Bot API ingress receives the owner's requests and reports status or note links. A Telethon-based Telegram MCP service is a separate planned integration for agent access to Telegram; it does not replace the ingress bot or own knowledge storage. Its session belongs in private service configuration.
+[Native Inbox + Share](plans/native-inbox-share.md) defines the next planning direction: native URL submission and Apple Share Extensions, durable local delivery, service-owned intake, status, and access to published results. Read-only knowledge does not imply read-only API permissions: native clients may submit sources without acquiring direct publication authority.
+
+The owner reports existing read-only Telegram MCP access on the VPS. A future Saved Messages adapter may discover newly saved messages through that access and submit them to Inbox. Its exact history/pagination and forwarded-content capabilities still need verification. The service owns checkpoints and deduplication; Telegram remains a source channel rather than the processing queue. The adapter is optional, is outside the next native slice, and does not require a Telegram ingress bot or Telegram write permissions. The Telegram session belongs in private service configuration.
 
 The Knowledge MCP facade supports assistants that can actually connect to it. Grok-bot integration is desired, but its available MCP/authentication interface must be checked before promising a particular connector.
 
@@ -208,11 +219,13 @@ The [capture/curation contract](specs/x-capture-curation.md) still owns acquisit
 
 The [private reader and access contract](specs/private-reader-access.md) defines the three accepted web views, save/refresh/job actions, retained-source switching, lexical search over active notes and associated originals, revision consistency and safe rendering. Stable note URLs carry identity, not access rights. This first browser interface has no offline cache; the native replica requirements below remain subsequent work.
 
-### Read-only native clients
+### Native clients: intake and read-only knowledge
 
-The initial iPhone and Mac apps provide folders, recent notes, search, a reader, related notes, and source navigation. The text corpus may be replicated in full; roughly 1 GB of text is considered acceptable. Large media can be downloaded selectively.
+The intended iPhone and Mac capabilities are equivalent: Inbox/sharing, folders, recent notes, search, a reader, related notes, and source navigation. Editing published Markdown is outside both native clients' initial scope. Share domain models, API access, intake/delivery state, and later replica/search logic in Swift packages; keep layout, navigation, authentication callbacks, extensions, and distribution integration platform-specific. Shared SwiftUI views are useful where they fit, but platform parity must be verified rather than inferred from a common language.
 
-Synchronization happens inside the app. Opening an app after a bot publication should discover and retrieve the new revision without manual Git commands. Push or another notification mechanism is only a hint: reconnect and foreground refresh must repair missed notifications. Offline, retain the last complete usable revision and its working index.
+The [next-slice plan](plans/native-inbox-share.md) recommends proving the native flow on macOS before bringing it to iPhone/TestFlight. Full offline replication/search remains a product requirement with a separate delivery boundary; durable offline source submission is not evidence that offline library reading already works. The text corpus may be replicated in full; roughly 1 GB of text is considered acceptable. Large media can be downloaded selectively.
+
+Synchronization happens inside the app. Opening an app after an agent publication should discover and retrieve the new revision without manual Git commands. Push or another notification mechanism is only a hint: reconnect and foreground refresh must repair missed notifications. Offline, retain the last complete usable revision and its working index.
 
 Deep links address stable note IDs on the owner's domain. Native app association, login behavior, and link routing must be tested on real devices. A link should still open an already downloaded note offline when the platform delivers it to the app.
 
@@ -234,7 +247,7 @@ Index original text, notes, and available translations with language and represe
 
 ## 8. Identity, privacy, and operations
 
-Pocket ID supplies owner authentication through OIDC. The [access contract](specs/private-reader-access.md) selects a confidential web client using Authorization Code + PKCE, exact issuer/subject owner binding and revocable server-side cookie sessions with a 30-day absolute lifetime. Client registration and application enforcement are still implementation work. Native authentication remains deferred.
+Pocket ID supplies owner authentication through OIDC. The [access contract](specs/private-reader-access.md) selects a confidential web client using Authorization Code + PKCE, exact issuer/subject owner binding and revocable server-side cookie sessions with a 30-day absolute lifetime. Client registration and application enforcement are still implementation work. Native authentication is a planning gate for Native Inbox + Share; the native app and extension must not assume that browser cookie sessions or a confidential web client registration are reusable. Define owner binding, token storage, renewal, revocation and extension access before implementation.
 
 Give assistants, ingestion clients, and readers independently revocable credentials with appropriate capabilities. The first Runner uses a separate restricted service identity; owner sessions, worker capabilities and operator/deployment authority are not interchangeable. Future OAuth/MCP flows must match the clients actually used.
 
@@ -265,7 +278,7 @@ Create modules when their boundaries are useful and exercised; the following is 
 ```text
 apps/
   knowledge-service/     # API composition, MCP facade, service startup
-  runner/                # worker, ingestion orchestration, Telegram ingress
+  runner/                # worker, ingestion orchestration, later source adapters
 packages/
   domain/                # domain rules and types
   contracts/             # public schemas and interop fixtures
@@ -275,9 +288,9 @@ packages/
   agent-adapters/        # Codex, later Claude, and deterministic test adapter
   api-client/            # Runner and future capture clients
 apple/
-  WikiKit/               # shared reading, sync, search, models
-  iOS/
-  macOS/
+  WikiKit/               # shared models, API, Inbox/delivery, later replica/search
+  macOS/                 # first proposed native shell and Share Extension target
+  iOS/                   # subsequent shell and Share Extension target
 skills/
   knowledge/             # trusted ingest/query/curate instructions for runtime agents
 tests/                   # integration, recovery, interop, and end-to-end tests
@@ -299,13 +312,13 @@ Use GitHub Actions for CI. Start with Linux checks for the server; add macOS/Xco
 
 The [delivery contract](specs/delivery-verification.md) defines local checks, verified artifact promotion through isolated staging, narrow CI installation rights, migration compatibility, restart/rollback and restore evidence. Staging and production share the one product-agent slot and Apify accounting envelope. The future live acceptance campaign has a USD 2 Apify ceiling inside existing job/month limits. Passing autonomous gates means ready for owner acceptance; actual iPhone use with the Mac off remains the owner's final check.
 
-Apple release automation must handle signing and TestFlight delivery separately. TestFlight builds have a limited lifetime; the earlier concept proposed a refresh around every 60 days within the 90-day build window. Verify the current distribution requirements when implementing that lane.
+macOS-first delivery avoids making TestFlight a prerequisite for the first native flow, but still needs a verified installation/signing path, extension entitlements and shared storage/keychain access. Apple release automation must handle macOS delivery and subsequent iOS signing/TestFlight delivery separately. TestFlight builds have a limited lifetime; the earlier concept proposed a refresh around every 60 days within the 90-day build window. Verify the current distribution requirements when implementing that lane.
 
 The owner supplies necessary accounts/access when an integration needs them and evaluates working versions. Credentials belong in private local, CI, or deployment configuration, never in issues or committed documentation.
 
 ## 10. First end-to-end slice: agreed boundary and contracts
 
-The owner approved the X-first source, bounded discussion capture, minimal web interface, CX33 completion boundary and linked behavior/delivery contracts during wayfinding on 2026-10-18. The approved [consolidated first-slice specification](specs/first-slice.md) assembles those contracts, maps scope bags and defines independently verifiable task boundaries. Creating the implementation backlog and autonomous-run handoff is authorized; starting implementation is a subsequent instruction.
+The owner approved the X-first source, bounded discussion capture, minimal web interface, CX33 completion boundary and linked behavior/delivery contracts during wayfinding on 2026-10-18. The approved [consolidated first-slice specification](specs/first-slice.md) assembles those contracts, maps scope bags and defines independently verifiable task boundaries. The subsequent autonomous implementation instruction is tracked through the delivery epic. The native planning update does not extend that instruction or change first-slice gates.
 
 **Outcome:** submit an X post/thread URL; Apify captures the author material and bounded discussion; the original acquired material is retained; real Codex removes uninformative material from the derived reading result and proposes a Russian note with relevant wiki links; the service publishes the batch; the owner can search and read the note and inspect its captured source through a private minimal web interface on CX33.
 
@@ -330,7 +343,7 @@ Start deterministic tests with a fake executor, recorded/synthetic Apify fixture
 
 Core failure cases include duplicate input, request timeout after success, stale base revision, repeated queue delivery, invalid agent output, agent termination, and service failure between Git commit and projection/event completion. Persist and reconcile an external Apify run through worker interruptions; a lost start response must not silently trigger unlimited new paid runs. Physical one-agent enforcement needs a real process-lifecycle test, not only a queue assertion.
 
-Native apps, Telegram ingress, Claude's adapter, Knowledge MCP, and browser capture can follow this local path. The later delivery order is to be planned around validated contracts and useful user feedback; completing every planned client is not a condition for the first local slice.
+After first-slice acceptance, plan Native Inbox + Share using the existing X pipeline and service APIs. The recommended sequence is macOS first, then iOS using shared Swift foundations; the detailed native specification is still to be agreed. Saved Messages ingestion, Claude's adapter, Knowledge MCP, and browser capture remain independently deferred. See the [native planning brief](plans/native-inbox-share.md).
 
 ## 11. Input to wayfinder
 
@@ -340,7 +353,7 @@ Maintain a coarse product-wide inventory of scope bags and agree an implementati
 
 ### Current planning position
 
-The completed [first-slice planning map](https://github.com/apshenichniy/personal-wiki/issues/13) records the accepted identity, capture/curation, publication, execution, private-reader/access and delivery/verification contracts. The owner approved the consolidated specification and task breakdown. The [published backlog and autonomous-run handoff](plans/first-slice-delivery.md) link fourteen implementation issues under a separate delivery epic. No material first-slice policy decision remains open; required implementation and verification are still future work.
+The completed [first-slice planning map](https://github.com/apshenichniy/personal-wiki/issues/13) records the accepted identity, capture/curation, publication, execution, private-reader/access and delivery/verification contracts. The owner approved the consolidated specification and task breakdown. The [published backlog and autonomous-run handoff](plans/first-slice-delivery.md) link fourteen implementation issues under a separate delivery epic. No material first-slice policy decision remains open; implementation and verification progress belongs to the delivery issues. The next planning destination is Native Inbox + Share; macOS-first sequencing and its remaining decisions are captured in the [next-slice plan](plans/native-inbox-share.md).
 
 Use the map's actual issue dependencies and resolution comments rather than treating this brief as a separate task tracker.
 
@@ -351,8 +364,8 @@ Use the map's actual issue dependencies and resolution comments rather than trea
 - Browser capture: upstream Obsidian Web Clipper export/uploader versus a maintained fork; no Obsidian application dependency.
 - PDF/OCR, YouTube, audio/video processors, and external ASR integration.
 - Final full-translation policy, multilingual semantic search, and sophisticated fragment alignment.
-- Full Apple UI, its concrete libraries, TestFlight automation, and broader device-level offline validation.
-- Grok and Telethon integration details, full MCP client matrix, and additional agent providers.
+- Native Inbox + Share is next for specification; the full offline replica/search, iOS delivery timing, concrete Apple libraries and platform distribution details need their own bounded decisions.
+- Optional Saved Messages ingestion, Grok and Telethon integration details, full MCP client matrix, and additional agent providers.
 - Manual editing, collaboration/multi-user access, visual graph exploration, and broad automated restructuring.
 - Optional Alchemy deployment work and the public code license.
 

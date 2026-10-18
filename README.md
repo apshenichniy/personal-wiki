@@ -7,6 +7,7 @@ A personal knowledge base maintained by agents, with a private Markdown library,
 - [Local development and verification](docs/development/local.md) — pinned setup, two-process synthetic path and canonical verification command.
 - [Knowledge base brief](docs/knowledge-base-brief.md) — the primary input to wayfinder: requirements, owner decisions, architecture proposals, and open questions.
 - [First-slice specification](docs/specs/first-slice.md) — owner-approved scope, behavior contracts, delivery gates and implementation task boundaries.
+- [Native Inbox + Share](docs/plans/native-inbox-share.md) — next product direction, recommended macOS-first sequence, shared Apple foundations, and decisions required before implementation.
 - [Implementation backlog and autonomous-run handoff](docs/plans/first-slice-delivery.md) — fourteen executable GitHub issues, dependencies, verification ownership and a future goal instruction.
 - [Stack spike findings](docs/research/2026-10-18-stack-spike.md) — what the chosen stack has and has not demonstrated.
 - [Agent instructions](AGENTS.md) — repository conventions and Matt Pocock skills configuration.
