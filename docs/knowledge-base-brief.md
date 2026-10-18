@@ -34,7 +34,7 @@ These are input constraints for planning. Reopen one only when new evidence just
 | Hosting | Existing Hetzner CX33 in eu-central: x86, 4 shared vCPU, 8 GB RAM, 80 GB NVMe. |
 | Authority | The server controls the canonical library and publication. Client copies are replicas. |
 | Text and versions | Markdown files in folders, with Git recording complete batches of changes. The knowledge Git repository is private and separate from this public code repository. |
-| Format direction | Markdown plus a basic OKF 0.2 profile. The precise application metadata schema still needs definition. |
+| Format direction | Markdown plus a basic OKF 0.2 direction and the versioned application identity/provenance profile defined by the X source contract; full OKF conformance is not claimed. |
 | Originals and media | Private Cloudflare R2 storage, linked to notes through durable provenance metadata. |
 | Server applications | Separate Knowledge Service and Runner. Storage and publication belong to the service; research and agent execution belong to the Runner. |
 | Agent providers | Support both Codex and Claude Code through adapters. Start the proposed real-agent slice with Codex. Use the owner's account/subscription-based CLI access. |
@@ -305,7 +305,7 @@ The owner supplies necessary accounts/access when an integration needs them and 
 
 ## 10. First end-to-end slice: agreed boundary and contracts
 
-The owner agreed the X-first source, bounded discussion capture, minimal web interface, CX33 completion boundary and linked behavior/delivery contracts during wayfinding on 2026-10-18. Consolidated specification approval and implementation-task breakdown remain the next planning step. Implementation begins after planning and authorization.
+The owner agreed the X-first source, bounded discussion capture, minimal web interface, CX33 completion boundary and linked behavior/delivery contracts during wayfinding on 2026-10-18. The [consolidated first-slice specification](specs/first-slice.md) assembles those contracts, maps scope bags and proposes independently verifiable task boundaries for final approval. Implementation-task creation follows that approval; implementation begins after planning and authorization.
 
 **Outcome:** submit an X post/thread URL; Apify captures the author material and bounded discussion; the original acquired material is retained; real Codex removes uninformative material from the derived reading result and proposes a Russian note with relevant wiki links; the service publishes the batch; the owner can search and read the note and inspect its captured source through a private minimal web interface on CX33.
 
