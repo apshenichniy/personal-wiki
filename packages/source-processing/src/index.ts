@@ -101,7 +101,7 @@ export const prepareX = <E, R>(input: P.ProcessingInput, acquire: Acquire<E, R>)
     });
     yield* request("anchor", [{ targetId: normalized.anchorId, limit: 1 }]);
     // Unrelated provider rows must not replace the selected focus.
-    const anchor = posts.get(normalized.anchorId)?.post;
+    let anchor = posts.get(normalized.anchorId)?.post;
     if (anchor) {
       yield* repair([anchor.id]);
       if (anchor.conversationId && anchor.conversationId !== anchor.id)
@@ -113,16 +113,18 @@ export const prepareX = <E, R>(input: P.ProcessingInput, acquire: Acquire<E, R>)
           anchor.authorId,
           anchor.conversationId,
         );
+      const authorAnchor = posts.get(normalized.anchorId)!.post;
       const possibleAuthors = [...posts.values()]
         .filter(
           ({ post }) =>
             post.authorId !== null &&
-            post.authorId === anchor.authorId &&
-            compatibleConversation(anchor, post),
+            post.authorId === authorAnchor.authorId &&
+            compatibleConversation(authorAnchor, post),
         )
         .map(({ post }) => post.id);
       yield* repair([anchor.id, ...possibleAuthors]);
     }
+    anchor = posts.get(normalized.anchorId)?.post;
     let focus = resolveFocus(normalized.anchorId, posts);
     const selectMain = () => {
       const full = resolveFocus(normalized.anchorId, posts).main;
@@ -134,46 +136,42 @@ export const prepareX = <E, R>(input: P.ProcessingInput, acquire: Acquire<E, R>)
       return full.filter((id) => chosen.has(id));
     };
     let main = selectMain();
-    const quoteIds = [...new Set(main.flatMap((id) => posts.get(id)?.post.quotedId ?? []))];
-    yield* context(quoteIds, "quotes");
-    for (const id of quoteIds)
-      if (!posts.has(id))
-        unprocessed.push({
-          kind: "quote",
-          url: postUrl(id),
-          fromKind: "post",
-          fromProviderId: main.find((mainId) => posts.get(mainId)?.post.quotedId === id)!,
-          reason: "quote_unavailable_or_context_limit",
-        });
-    const primary = posts.get(focus.primaryId)?.post;
-    const order = [
-      ...new Set(
-        [
-          normalized.anchorId,
-          anchor?.quotedId,
-          primary?.id,
-          primary?.quotedId,
-          ...main.flatMap((id) => [id, posts.get(id)?.post.quotedId]),
-        ].filter((id): id is string => Boolean(id)),
-      ),
-    ];
-    const articleCandidates = [
-      ...new Set(order.flatMap((id) => posts.get(id)?.post.articleId ?? [])),
-    ];
-    const selectedArticle = articleCandidates[0];
-    if (selectedArticle) yield* request("article", [{ targetId: selectedArticle, limit: 1 }]);
-    for (const id of articleCandidates.slice(1))
-      unprocessed.push({
-        kind: "article",
-        url: articleUrl(id),
-        fromKind: "post",
-        fromProviderId: order.find((postId) => posts.get(postId)?.post.articleId === id)!,
-        reason: "one_article_limit",
-      });
+    let quoteIds: string[] = [];
+    let order: string[] = [];
+    let selectedArticle: string | undefined;
+    // Revisit discoveries before spending another optional discussion allowance.
+    // An already dispatched Article consumes the single slot even if later rows
+    // reveal a higher-priority candidate; retain that gap instead of spending twice.
+    const expandMain = Effect.fn(function* () {
+      const current = posts.get(normalized.anchorId)?.post;
+      quoteIds = [...new Set(main.flatMap((id) => posts.get(id)?.post.quotedId ?? []))];
+      yield* context(quoteIds, "quotes");
+      const primary = posts.get(focus.primaryId)?.post;
+      order = [
+        ...new Set(
+          [
+            normalized.anchorId,
+            current?.quotedId,
+            primary?.id,
+            primary?.quotedId,
+            ...main.flatMap((id) => [id, posts.get(id)?.post.quotedId]),
+          ].filter((id): id is string => Boolean(id)),
+        ),
+      ];
+      const preferred = order.flatMap((id) => posts.get(id)?.post.articleId ?? [])[0];
+      if (!selectedArticle && preferred) {
+        selectedArticle = preferred;
+        yield* request("article", [{ targetId: selectedArticle, limit: 1 }]);
+      } else if (preferred && preferred !== selectedArticle) {
+        warnings.add("article_priority_changed_after_acquisition");
+      }
+    });
+    yield* expandMain();
     const discussionIds = () => {
       const roots = new Set(main);
+      const fullMain = new Set(resolveFocus(normalized.anchorId, posts).main);
       return [...posts.keys()]
-        .filter((id) => !roots.has(id) && reaches(id, roots, posts))
+        .filter((id) => !fullMain.has(id) && reaches(id, roots, posts))
         .sort(sourceOrder);
     };
     if (anchor && main.length) {
@@ -187,6 +185,7 @@ export const prepareX = <E, R>(input: P.ProcessingInput, acquire: Acquire<E, R>)
       yield* repair(discussionCandidates(posts, anchor));
       focus = resolveFocus(normalized.anchorId, posts);
       main = selectMain();
+      yield* expandMain();
       // Different branches share the remaining allowance. One provider branch
       // cannot consume the nested reserve by appearing first or having more likes.
       const branches = discussionIds().filter((id) => main.includes(posts.get(id)!.post.parentId!));
@@ -196,16 +195,65 @@ export const prepareX = <E, R>(input: P.ProcessingInput, acquire: Acquire<E, R>)
     }
     focus = resolveFocus(normalized.anchorId, posts);
     main = selectMain();
+    anchor = posts.get(normalized.anchorId)?.post;
+    yield* expandMain();
+    const articleCandidates = [
+      ...new Set(order.flatMap((id) => posts.get(id)?.post.articleId ?? [])),
+    ];
+    for (const id of articleCandidates.filter((id) => id !== selectedArticle))
+      unprocessed.push({
+        kind: "article",
+        url: articleUrl(id),
+        fromKind: "post",
+        fromProviderId: order.find((postId) => posts.get(postId)?.post.articleId === id)!,
+        reason: "one_article_limit",
+      });
     const allDiscussion = discussionIds();
     const discussion = allDiscussion.slice(0, policy.discussion);
     if (allDiscussion.length >= policy.discussion) warnings.add("discussion_limit_reached");
     const roles = new Map<string, P.PreparedPost["role"]>(main.map((id) => [id, "main"]));
     for (const id of discussion) roles.set(id, "discussion");
-    // Known parent/root context supports selected replies without becoming focus.
-    for (const id of requestedContext)
-      if (posts.has(id) && !roles.has(id))
-        roles.set(id, quoteIds.includes(id) ? "quote" : "context");
-    for (const id of quoteIds) if (posts.has(id) && !roles.has(id)) roles.set(id, "quote");
+    // Repair fetches are evidence, not proof of membership. Only ancestry of
+    // admitted material and the declared conversation root qualify as context.
+    const fullMain = new Set(focus.main);
+    const relevantContext = new Set<string>();
+    for (const id of roles.keys()) {
+      const seen = new Set<string>();
+      let parentId = posts.get(id)?.post.parentId;
+      while (parentId && !seen.has(parentId)) {
+        seen.add(parentId);
+        const parent = posts.get(parentId);
+        if (!parent || parent.conflict || (anchor && !compatibleConversation(anchor, parent.post)))
+          break;
+        if (!fullMain.has(parentId)) relevantContext.add(parentId);
+        parentId = parent.post.parentId;
+      }
+    }
+    if (anchor?.conversationId) relevantContext.add(anchor.conversationId);
+    for (const id of relevantContext) {
+      const candidate = posts.get(id);
+      if (
+        candidate &&
+        !candidate.conflict &&
+        !fullMain.has(id) &&
+        !roles.has(id) &&
+        anchor &&
+        compatibleConversation(anchor, candidate.post)
+      )
+        roles.set(id, "context");
+    }
+    for (const id of quoteIds) {
+      if (posts.has(id) && (!roles.has(id) || roles.get(id) === "context") && !fullMain.has(id))
+        roles.set(id, "quote");
+      if (!posts.has(id))
+        unprocessed.push({
+          kind: "quote",
+          url: postUrl(id),
+          fromKind: "post",
+          fromProviderId: main.find((mainId) => posts.get(mainId)?.post.quotedId === id)!,
+          reason: "quote_unavailable_or_context_limit",
+        });
+    }
     const unresolved = anchor
       ? discussionCandidates(posts, anchor).filter(
           (id) => !roles.has(id) && missingParents([id], posts).length,

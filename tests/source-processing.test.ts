@@ -390,3 +390,110 @@ test("duplicate text observations retain provenance and prefer complete long tex
   expect(record.origins).toHaveLength(2);
   expect(record.origins.every((o) => o.raw.assetId && o.raw.sha256 && o.requestKey)).toBe(true);
 });
+
+test("enriched focus text and quote drive readiness and Article priority", async () => {
+  const driver = fixtureDriver((request) => {
+    if (request.mode === "anchor") return { posts: [post("101", { parentId: "100", text: "" })] };
+    if (request.mode === "parents") return { posts: [post("100", { articleId: "800" })] };
+    if (request.mode === "author")
+      return {
+        posts: [
+          post("101", {
+            parentId: "100",
+            text: "",
+            longText: "Full selected argument.",
+            quotedId: "700",
+          }),
+        ],
+      };
+    if (request.mode === "quotes")
+      return { posts: [post("700", { conversationId: "700", articleId: "801" })] };
+    if (request.mode === "article")
+      return { articles: request.allocations.map((a) => article(a.targetId)) };
+    return {};
+  });
+  const result = await runFixture(input("101"), driver);
+  expect(result.outcome).toBe("ready");
+  expect(result.materials[0]?.originalText).toContain("Full selected argument.");
+  expect(result.materials[1]?.source.primaryId).toBe("801");
+  expect(
+    driver.calls.filter((c) => c.mode === "article").map((c) => c.allocations[0]?.targetId),
+  ).toEqual(["801"]);
+});
+
+test("known main overflow never borrows discussion or context allowance", async () => {
+  const chain = Array.from({ length: 51 }, (_, i) =>
+    post(String(100 + i), { parentId: i ? String(99 + i) : null }),
+  );
+  const result = await runFixture(input(), poolDriver(chain));
+  expect(result.counts.main).toBe(50);
+  expect(result.counts.discussion).toBe(0);
+  expect(result.materials[0]?.posts.some((p) => p.post.id === "150")).toBe(false);
+  expect(result.coverage.main).toBe("limited");
+});
+
+test("repaired parents of unrelated candidates never become prepared context", async () => {
+  const pool = [
+    post("100"),
+    post("200", { authorId: "20", parentId: "100" }),
+    post("300", { parentId: "200", authorId: "30" }),
+    post("400", { authorId: "40", parentId: "100" }),
+    post("500", { authorId: "10", parentId: "400" }),
+  ];
+  const result = await runFixture(
+    input("200"),
+    poolDriver(
+      pool,
+      [],
+      pool.filter((p) => p.id !== "400"),
+    ),
+  );
+  expect(result.materials[0]?.posts.map((p) => p.post.id).sort()).toEqual(["100", "200", "300"]);
+  expect(
+    result.acquisitions.some(
+      (a) =>
+        a.request.mode === "parents" && a.request.allocations.some((v) => v.targetId === "400"),
+    ),
+  ).toBe(true);
+});
+
+test("newly discovered main and its quote can use the still-unused Article slot", async () => {
+  const driver = fixtureDriver((request) => {
+    if (request.mode === "anchor") return { posts: [post("100")] };
+    if (request.mode === "direct")
+      return {
+        posts: [
+          post("101", { parentId: "100", quotedId: "700" }),
+          post("200", { parentId: "100", authorId: "20" }),
+        ],
+      };
+    if (request.mode === "quotes")
+      return { posts: [post("700", { conversationId: "700", articleId: "800" })] };
+    if (request.mode === "article") return { articles: [article("800")] };
+    return {};
+  });
+  const result = await runFixture(input(), driver);
+  expect(result.materials[1]?.source.primaryId).toBe("800");
+  expect(result.materials[0]?.posts.find((p) => p.post.id === "700")?.role).toBe("quote");
+  expect(driver.calls.findIndex((c) => c.mode === "article")).toBeLessThan(
+    driver.calls.findIndex((c) => c.mode === "nested"),
+  );
+});
+
+for (const rows of [
+  [article("999"), article("800")],
+  [article("800", { bodyStatus: "preview", body: "Excerpt" }), article("800")],
+])
+  test("Article admission filters identities before limits and enriches previews", async () => {
+    const driver = fixtureDriver((request) =>
+      request.mode === "anchor"
+        ? { posts: [post("100", { articleId: "800" })] }
+        : request.mode === "article"
+          ? { posts: [post("999")], articles: rows }
+          : {},
+    );
+    const result = await runFixture(input(), driver);
+    expect(result.materials[1]?.article?.article.bodyStatus).toBe("acquired");
+    expect(result.materials[1]?.originalText).toContain("An important qualification.");
+    expect(result.materials[1]?.article?.origins).toHaveLength(rows[0]?.id === "800" ? 2 : 1);
+  });

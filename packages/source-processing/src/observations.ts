@@ -66,6 +66,10 @@ export function createObservations() {
           warnings.add("malformed_post_row");
           continue;
         }
+        if (mode === "article") {
+          warnings.add("article:unrelated_row");
+          continue;
+        }
         const post = parsed.success;
         if ((post.parentStatus === "reply") !== (post.parentId !== null)) {
           malformedRows++;
@@ -175,18 +179,42 @@ export function createObservations() {
           warnings.add("malformed_article_row");
           continue;
         }
-        if (
-          seen++ >= limit ||
-          mode !== "article" ||
-          !allocations.some((a) => a.targetId === parsed.success.id)
-        )
+        if (mode !== "article" || !allocations.some((a) => a.targetId === parsed.success.id))
           continue;
         const article = parsed.success;
+        if (!acceptedIds.has(article.id)) {
+          if (seen >= limit) continue;
+          seen++;
+          acceptedIds.add(article.id);
+        }
         const origin: P.AcquisitionOrigin = { requestKey: plan.key, mode, raw: page.raw, row };
         const previous = articles.get(article.id);
-        if (previous)
-          articles.set(article.id, { ...previous, origins: [...previous.origins, origin] });
-        else
+        if (previous) {
+          duplicateRows++;
+          const quality = (value: P.XArticle) =>
+            value.body?.trim()
+              ? { acquired: 3, partial: 2, preview: 1, unavailable: 0 }[value.bodyStatus]
+              : 0;
+          const preferred =
+            quality(article) > quality(previous.article) ? article : previous.article;
+          if (article.body !== previous.article.body)
+            warnings.add(`article_text_variants:${article.id}`);
+          articles.set(article.id, {
+            ...previous,
+            article: {
+              ...preferred,
+              references: [
+                ...new Map(
+                  [...previous.article.references, ...article.references].map((ref) => [
+                    `${ref.kind}:${ref.url}`,
+                    ref,
+                  ]),
+                ).values(),
+              ],
+            },
+            origins: [...previous.origins, origin],
+          });
+        } else
           articles.set(article.id, {
             article,
             canonicalUrl: articleUrl(article.id),
