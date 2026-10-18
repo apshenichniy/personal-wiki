@@ -29,7 +29,40 @@ export const ProviderInspection = Schema.Struct({
   operations: Schema.Array(P.Operation),
 });
 export const ProviderPermit = Schema.Struct({ operation: P.Operation, profile: P.Profile });
+export const ProviderRawUpload = Schema.Struct({
+  operationId: Id,
+  kind: Schema.Literals(["run", "dataset", "report"]),
+  offset: P.Nanos,
+  total: P.Nanos,
+  sha256: P.Hash,
+  base64: Schema.String.check(Schema.isMaxLength(22_369_624)),
+});
+export const ProviderRawRead = Schema.Struct({ operationId: Id, pageKey: P.Name });
+export const ProviderRawBytes = Schema.Struct({
+  page: P.Page,
+  base64: ProviderRawUpload.fields.base64,
+});
 export class ProviderApi extends HttpApiGroup.make("providers").add(
+  HttpApiEndpoint.post("retain", "/internal/v1/providers/retain", {
+    payload: ProviderRawUpload,
+    success: P.Page,
+    error: errors,
+  }),
+  HttpApiEndpoint.post("pages", "/internal/v1/providers/pages", {
+    payload: ProviderOperationId,
+    success: Schema.Array(P.Page),
+    error: errors,
+  }),
+  HttpApiEndpoint.post("raw", "/internal/v1/providers/raw", {
+    payload: ProviderRawRead,
+    success: ProviderRawBytes,
+    error: errors,
+  }),
+  HttpApiEndpoint.post("archive", "/internal/v1/providers/archive", {
+    payload: ProviderOperationId,
+    success: P.Operation,
+    error: errors,
+  }),
   HttpApiEndpoint.get("profile", "/internal/v1/providers/profile", {
     success: P.Profile,
     error: errors,

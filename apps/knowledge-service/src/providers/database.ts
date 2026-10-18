@@ -41,6 +41,7 @@ export class ProviderDatabase extends Context.Service<ProviderDatabase, SqlClien
                 yield* sql`CREATE TABLE IF NOT EXISTS provider_jobs (job_id TEXT PRIMARY KEY, record TEXT NOT NULL, stopped INTEGER NOT NULL DEFAULT 0)`;
                 yield* sql`CREATE TABLE IF NOT EXISTS provider_operations (operation_id TEXT PRIMARY KEY, job_id TEXT NOT NULL REFERENCES provider_jobs(job_id), plan_key TEXT NOT NULL, run_id TEXT UNIQUE, record TEXT NOT NULL, UNIQUE(job_id,plan_key))`;
                 yield* sql`CREATE TABLE IF NOT EXISTS provider_pages (operation_id TEXT NOT NULL REFERENCES provider_operations(operation_id), page_key TEXT NOT NULL, asset_id TEXT UNIQUE NOT NULL, record TEXT NOT NULL, PRIMARY KEY(operation_id,page_key))`;
+                yield* sql`CREATE TABLE IF NOT EXISTS provider_page_intents (operation_id TEXT NOT NULL REFERENCES provider_operations(operation_id), page_key TEXT NOT NULL, asset_id TEXT UNIQUE NOT NULL, record TEXT NOT NULL, PRIMARY KEY(operation_id,page_key))`;
               }),
             );
             return sql;

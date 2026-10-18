@@ -10,15 +10,18 @@ import { Jobs } from "../../apps/knowledge-service/src/jobs/service.ts";
 import { JobLifecycle } from "../../apps/knowledge-service/src/jobs/lifecycle.ts";
 import { JobProviders, makeJobProviders } from "../../apps/knowledge-service/src/providers/jobs.ts";
 import { ProviderLedger } from "../../apps/knowledge-service/src/providers/ledger.ts";
+import { ProviderArchive } from "../../apps/knowledge-service/src/providers/archive.ts";
+import { RawArchive } from "../../apps/knowledge-service/src/storage/raw-archive.ts";
 import type * as P from "@personal-wiki/contracts/provider";
 
 const root = process.env.WIKI_DATA_DIR;
 if (!root) throw new Error("Synthetic data directory is required");
 const storage = JobStore.layer.pipe(Layer.provideMerge(Library.layer(root)));
 const scheduled = JobScheduler.layer(root).pipe(Layer.provideMerge(storage));
+const accounting = ProviderLedger.layer(join(root, "provider-accounting.sqlite"));
 const base = Layer.mergeAll(
   Jobs.layer(root).pipe(Layer.provideMerge(scheduled)),
-  ProviderLedger.layer(join(root, "provider-accounting.sqlite")),
+  ProviderArchive.layer.pipe(Layer.provideMerge(Layer.mergeAll(accounting, RawArchive.disabled))),
 );
 const runtime = Layer.mergeAll(JobProviders.layer("staging"), JobLifecycle.layer).pipe(
   Layer.provideMerge(base),

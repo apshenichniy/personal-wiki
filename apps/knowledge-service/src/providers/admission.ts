@@ -1,7 +1,7 @@
 import { Schema } from "effect";
 import { ProviderId } from "@personal-wiki/contracts/knowledge";
 
-const Targets = Schema.Array(ProviderId).check(Schema.isMinLength(1), Schema.isMaxLength(30));
+const Targets = Schema.Array(ProviderId).check(Schema.isMinLength(1), Schema.isMaxLength(1000));
 /** The tested profile is deliberately narrower than the Actor's complete input
  * schema: no arbitrary search, URL, transform, proxy, field omission or mode. */
 export const ActorInput = Schema.Struct({

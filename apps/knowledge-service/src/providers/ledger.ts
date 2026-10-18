@@ -390,7 +390,9 @@ export const makeProviderLedger = Effect.gen(function* () {
         return next;
       }),
     );
-  const retainPage = (value: P.Page) =>
+  // Reserve immutable identity and capacity before any remote upload. An uncertain
+  // write keeps its reservation; neither a restart nor a negative GET releases it.
+  const reservePage = (value: P.Page) =>
     sql.withTransaction(
       Effect.gen(function* () {
         const page = yield* Schema.decodeUnknownEffect(P.Page)(value);
@@ -399,7 +401,7 @@ export const makeProviderLedger = Effect.gen(function* () {
           return yield* fail("invalid_transition", "Page retention needs an exact known run.");
         const old = (yield* sql<{
           record: string;
-        }>`SELECT record FROM provider_pages WHERE operation_id=${page.operationId} AND page_key=${page.pageKey}`)[0];
+        }>`SELECT record FROM provider_page_intents WHERE operation_id=${page.operationId} AND page_key=${page.pageKey} UNION ALL SELECT record FROM provider_pages WHERE operation_id=${page.operationId} AND page_key=${page.pageKey}`)[0];
         if (old) {
           if (old.record !== stable(page))
             return yield* fail("conflict", "Retained page identity changed.");
@@ -409,15 +411,53 @@ export const makeProviderLedger = Effect.gen(function* () {
           return yield* fail("invalid_transition", "Archived page manifests are immutable.");
         const rows = yield* sql<{
           record: string;
-        }>`SELECT p.record FROM provider_pages p JOIN provider_operations o ON o.operation_id=p.operation_id WHERE o.job_id=${op.job.jobId}`;
+        }>`SELECT p.record FROM provider_page_intents p JOIN provider_operations o ON o.operation_id=p.operation_id WHERE o.job_id=${op.job.jobId} UNION SELECT p.record FROM provider_pages p JOIN provider_operations o ON o.operation_id=p.operation_id WHERE o.job_id=${op.job.jobId}`;
         let bytes = 0;
-        for (const row of rows) bytes += (yield* decode(P.Page, row.record)).byteLength;
+        for (const row of rows) {
+          const prior = yield* decode(P.Page, row.record);
+          bytes += prior.byteLength;
+          // Keep pagination consistency inside the reservation transaction; two
+          // concurrent uploads cannot both admit overlapping page manifests.
+          if (
+            prior.operationId === page.operationId &&
+            /^dataset:\d+:\d+$/.test(page.pageKey) &&
+            /^dataset:\d+:\d+$/.test(prior.pageKey)
+          ) {
+            if (
+              prior.pageKey.split(":")[2] !== page.pageKey.split(":")[2] ||
+              (page.offset < prior.offset + prior.itemCount &&
+                prior.offset < page.offset + page.itemCount)
+            )
+              return yield* fail(
+                "conflict",
+                "Dataset page manifest changed or overlaps retained evidence.",
+              );
+          }
+        }
         if (bytes + page.byteLength > 67_108_864)
           return yield* fail("invalid_request", "Raw job capacity exceeded.");
-        yield* sql`INSERT INTO provider_pages VALUES(${page.operationId},${page.pageKey},${page.assetId},${stable(page)})`;
+        yield* sql`INSERT INTO provider_page_intents VALUES(${page.operationId},${page.pageKey},${page.assetId},${stable(page)})`;
         return page;
       }),
     );
+  // Trusted archive code calls this only after readback. Never expose this method
+  // as a Runner-provided assertion that bytes exist remotely.
+  const retainPage = (value: P.Page) =>
+    sql.withTransaction(
+      Effect.gen(function* () {
+        const page = yield* reservePage(value);
+        yield* sql`INSERT INTO provider_pages VALUES(${page.operationId},${page.pageKey},${page.assetId},${stable(page)}) ON CONFLICT(operation_id,page_key) DO NOTHING`;
+        return page;
+      }),
+    );
+  const pageIntents = Effect.fn("Provider.pageIntents")(function* (id: string) {
+    return yield* Effect.forEach(
+      yield* sql<{
+        record: string;
+      }>`SELECT record FROM provider_page_intents WHERE operation_id=${id} ORDER BY rowid`,
+      (row) => decode(P.Page, row.record),
+    );
+  });
   const pages = Effect.fn("Provider.pages")(function* (id: string) {
     return yield* Effect.forEach(
       yield* sql<{
@@ -430,7 +470,13 @@ export const makeProviderLedger = Effect.gen(function* () {
     sql.withTransaction(
       Effect.gen(function* () {
         const op = yield* get(id);
-        if (!P.terminal(op.status) || !(yield* pages(id)).length)
+        const retained = yield* pages(id);
+        const intents = yield* pageIntents(id);
+        if (
+          !P.terminal(op.status) ||
+          !retained.length ||
+          intents.some((intent) => !retained.some((page) => page.pageKey === intent.pageKey))
+        )
           return yield* fail(
             "invalid_transition",
             "Terminal raw evidence must be retained before archive completion.",
@@ -455,6 +501,8 @@ export const makeProviderLedger = Effect.gen(function* () {
     requestStop,
     resolveAbsent,
     retainPage,
+    reservePage,
+    pageIntents,
     pages,
     archived,
     get,

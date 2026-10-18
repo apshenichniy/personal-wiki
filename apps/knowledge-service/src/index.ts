@@ -5,6 +5,7 @@ import { Routes, StorageWrites } from "./http.ts";
 import { Authentication, WorkflowRoutes } from "./jobs/http.ts";
 import { JobError } from "./jobs/policy.ts";
 import { jobRuntime } from "./jobs/runtime.ts";
+import { loadR2Archive } from "./storage/raw-archive.ts";
 import { Server, Ready, BunRuntime } from "./server.ts";
 const Runtime = Layer.unwrap(
   Effect.gen(function* () {
@@ -22,7 +23,9 @@ const Runtime = Layer.unwrap(
       return yield* Effect.die(
         "Shared provider accounting must live outside the namespace library",
       );
-    return jobRuntime(root, { path: providerPath.value, namespace });
+    const archivePath = yield* Config.String("WIKI_R2_CREDENTIALS_FILE");
+    const archive = yield* loadR2Archive(archivePath);
+    return jobRuntime(root, { path: providerPath.value, namespace, archive });
   }),
 );
 const Serving = HttpRouter.serve(

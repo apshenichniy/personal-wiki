@@ -4229,6 +4229,2077 @@
         }
       }
     },
+    "/internal/v1/providers/retain": {
+      "post": {
+        "tags": [
+          "providers"
+        ],
+        "operationId": "providers.retain",
+        "parameters": [],
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "operationId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    },
+                    "pageKey": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512
+                    },
+                    "assetId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    },
+                    "sha256": {
+                      "type": "string"
+                    },
+                    "byteLength": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 16777216
+                    },
+                    "offset": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "itemCount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "operationId",
+                    "pageKey",
+                    "assetId",
+                    "sha256",
+                    "byteLength",
+                    "offset",
+                    "itemCount"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "operationId": {
+                    "type": "string",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                    "format": "uuid"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "run",
+                      "dataset",
+                      "report"
+                    ]
+                  },
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "total": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "sha256": {
+                    "type": "string"
+                  },
+                  "base64": {
+                    "type": "string",
+                    "maxLength": 22369624
+                  }
+                },
+                "required": [
+                  "operationId",
+                  "kind",
+                  "offset",
+                  "total",
+                  "sha256",
+                  "base64"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": true
+        }
+      }
+    },
+    "/internal/v1/providers/pages": {
+      "post": {
+        "tags": [
+          "providers"
+        ],
+        "operationId": "providers.pages",
+        "parameters": [],
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "operationId": {
+                        "type": "string",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                        "format": "uuid"
+                      },
+                      "pageKey": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 512
+                      },
+                      "assetId": {
+                        "type": "string",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                        "format": "uuid"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "byteLength": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 16777216
+                      },
+                      "offset": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "itemCount": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "operationId",
+                      "pageKey",
+                      "assetId",
+                      "sha256",
+                      "byteLength",
+                      "offset",
+                      "itemCount"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "operationId": {
+                    "type": "string",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                    "format": "uuid"
+                  }
+                },
+                "required": [
+                  "operationId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": true
+        }
+      }
+    },
+    "/internal/v1/providers/raw": {
+      "post": {
+        "tags": [
+          "providers"
+        ],
+        "operationId": "providers.raw",
+        "parameters": [],
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "page": {
+                      "type": "object",
+                      "properties": {
+                        "operationId": {
+                          "type": "string",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                          "format": "uuid"
+                        },
+                        "pageKey": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 512
+                        },
+                        "assetId": {
+                          "type": "string",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                          "format": "uuid"
+                        },
+                        "sha256": {
+                          "type": "string"
+                        },
+                        "byteLength": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 16777216
+                        },
+                        "offset": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "itemCount": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "operationId",
+                        "pageKey",
+                        "assetId",
+                        "sha256",
+                        "byteLength",
+                        "offset",
+                        "itemCount"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "base64": {
+                      "type": "string",
+                      "maxLength": 22369624
+                    }
+                  },
+                  "required": [
+                    "page",
+                    "base64"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "operationId": {
+                    "type": "string",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                    "format": "uuid"
+                  },
+                  "pageKey": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 512
+                  }
+                },
+                "required": [
+                  "operationId",
+                  "pageKey"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": true
+        }
+      }
+    },
+    "/internal/v1/providers/archive": {
+      "post": {
+        "tags": [
+          "providers"
+        ],
+        "operationId": "providers.archive",
+        "parameters": [],
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "operationId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    },
+                    "job": {
+                      "type": "object",
+                      "properties": {
+                        "jobId": {
+                          "type": "string",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                          "format": "uuid"
+                        },
+                        "namespace": {
+                          "type": "string",
+                          "enum": [
+                            "staging",
+                            "production"
+                          ]
+                        },
+                        "startedAt": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "deadline": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "jobId",
+                        "namespace",
+                        "startedAt",
+                        "deadline"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "planKey": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512
+                    },
+                    "digest": {
+                      "type": "string"
+                    },
+                    "inputJson": {
+                      "type": "string"
+                    },
+                    "chargeNanos": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "platformNanos": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "retrievalNanos": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "replacementOf": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                          "format": "uuid"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "phase": {
+                      "type": "string",
+                      "enum": [
+                        "reserved",
+                        "dispatching",
+                        "unknown",
+                        "known",
+                        "closed"
+                      ]
+                    },
+                    "month": {
+                      "type": "string"
+                    },
+                    "campaignId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512
+                    },
+                    "reservedAt": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "dispatchedAt": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "dispatchNonce": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                          "format": "uuid"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "run": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "runId": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 512
+                            },
+                            "datasetId": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 512
+                            },
+                            "keyValueStoreId": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 512
+                            },
+                            "buildId": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 512
+                            },
+                            "startedAt": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": [
+                            "runId",
+                            "datasetId",
+                            "keyValueStoreId",
+                            "buildId",
+                            "startedAt"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "status": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "READY",
+                            "RUNNING",
+                            "SUCCEEDED",
+                            "FAILED",
+                            "TIMING-OUT",
+                            "TIMED-OUT",
+                            "ABORTING",
+                            "ABORTED"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "finishedAt": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "observedCost": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "costSample": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "costSampleAt": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "costStable": {
+                      "type": "boolean"
+                    },
+                    "stopRequested": {
+                      "type": "boolean"
+                    },
+                    "archived": {
+                      "type": "boolean"
+                    },
+                    "transientFailure": {
+                      "type": "boolean"
+                    },
+                    "resolutionEvidence": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "operationId",
+                    "job",
+                    "planKey",
+                    "digest",
+                    "inputJson",
+                    "chargeNanos",
+                    "platformNanos",
+                    "retrievalNanos",
+                    "replacementOf",
+                    "phase",
+                    "month",
+                    "campaignId",
+                    "reservedAt",
+                    "dispatchedAt",
+                    "dispatchNonce",
+                    "run",
+                    "status",
+                    "finishedAt",
+                    "observedCost",
+                    "costSample",
+                    "costSampleAt",
+                    "costStable",
+                    "stopRequested",
+                    "archived",
+                    "transientFailure",
+                    "resolutionEvidence"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "operationId": {
+                    "type": "string",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                    "format": "uuid"
+                  }
+                },
+                "required": [
+                  "operationId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": true
+        }
+      }
+    },
     "/internal/v1/providers/profile": {
       "get": {
         "tags": [

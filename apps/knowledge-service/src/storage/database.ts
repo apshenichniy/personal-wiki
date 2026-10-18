@@ -5,6 +5,10 @@ import { join } from "node:path";
 import { io, prepareDirectory, LibraryError } from "./io.ts";
 
 const migrations = {
+  "0004_raw_assets": Effect.gen(function* () {
+    const sql = yield* SqlClient.SqlClient;
+    yield* sql`CREATE TABLE job_assets (job_id TEXT NOT NULL REFERENCES ingestion_jobs(job_id), asset_id TEXT NOT NULL REFERENCES assets(asset_id), PRIMARY KEY(job_id,asset_id))`;
+  }),
   "0003_jobs": Effect.gen(function* () {
     const sql = yield* SqlClient.SqlClient;
     yield* sql`CREATE TABLE ingestion_jobs (job_id TEXT PRIMARY KEY, source_key TEXT NOT NULL, stage TEXT NOT NULL, generation INTEGER NOT NULL, ready INTEGER NOT NULL, version INTEGER NOT NULL, record TEXT NOT NULL)`;

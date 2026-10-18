@@ -1,6 +1,6 @@
 # Apify boundary (P6 in progress)
 
-The transport, local dispatch journal and authenticated Service adapter are implemented and exercised together against a built Service and a synthetic provider. They are not yet a production ingestion loop. Live execution remains disabled until private R2 retention and P5 processing are composed and verified.
+The transport, local dispatch journal, authenticated Service adapter, raw retention and pinned X normalization are implemented and tested. They are not yet a production ingestion loop. Live execution remains disabled until P5 processing and job preparation are composed and verified.
 
 `http.ts` uses a single asynchronous Actor POST with an explicit build number, 256 MiB memory, a positive timeout inside the acquisition window, `restartOnError=false`, and an event charge ceiling. It has no automatic retry, redirect, last-run, reboot or resurrect path. The event charge limit does not replace the platform/retrieval reservation in the Service ledger. A failed or malformed start response is uncertain, not evidence of absence. Tokens are redacted at the configuration boundary and sent only in the Authorization header. Failure objects exclude request URLs, source content, credentials and provider response text.
 
@@ -12,4 +12,10 @@ The journal accepts callbacks for permit, receipt acknowledgment and uncertain-s
 
 Checks: `mise exec -- bun test tests/apify-http.test.ts tests/apify-dispatch.test.ts`. These tests use an actual loopback HTTP server and synthetic data, including gzip expansion, pagination inconsistencies, lost start/abort responses, acknowledgment recovery and SIGKILL of real child processes after durable intent and receipt checkpoints. They make no paid provider calls.
 
-Provider contracts: [start](https://docs.apify.com/api/v2/actors-runs-post), [dataset pagination](https://docs.apify.com/api/v2/dataset-items-get), [abort](https://docs.apify.com/api/v2/actor-run-abort-post). The pinned Actor's concrete input/normalization profile and live cost/privacy checks are still outstanding.
+`retention.ts` fsyncs the exact terminal response/page before a Service upload. The same operation and page offset reuse those bytes after a failed upload; verified pages resume from the Service manifest. Each page is independently bounded, and all operations share the job byte allowance. Neither cancellation nor an expired acquisition window deletes an existing retention obligation. Retention invokes no Actor start.
+
+`xquik.ts` maps raw/nested rows without flattening quote previews or discarding diagnostic-row positions. It preserves original long text, explicit parent metadata and article previews as distinct from actual bodies. Processor Article IDs are mapped through retained containing-post evidence to the Actor's `articleTweetIds` option. The caller must reconstruct this map from retained pages when replaying a plan. External/media references are inert metadata, not additional fetch targets.
+
+Additional checks: `mise exec -- bun test tests/apify-retention.test.ts tests/xquik.test.ts`. Live cost/privacy checks and full acquisition-to-prepared-job composition are still outstanding.
+
+Provider contracts: [start](https://docs.apify.com/api/v2/actors-runs-post), [dataset pagination](https://docs.apify.com/api/v2/dataset-items-get), [abort](https://docs.apify.com/api/v2/actor-run-abort-post).

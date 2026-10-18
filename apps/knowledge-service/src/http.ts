@@ -2,6 +2,7 @@ import { JobError } from "./jobs/policy.ts";
 import { ProviderError } from "@personal-wiki/contracts/provider";
 import { Library } from "./storage/library.ts";
 import { LibraryError } from "./storage/io.ts";
+import { ArchiveError } from "./storage/raw-archive.ts";
 import { Cause, Context, Effect, Layer, Schema } from "effect";
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
 import { HttpApiBuilder, HttpApiError } from "effect/http-api";
@@ -71,7 +72,8 @@ const Boundary = HttpRouter.middleware(
           const domain =
             error instanceof LibraryError ||
             error instanceof JobError ||
-            error instanceof ProviderError
+            error instanceof ProviderError ||
+            error instanceof ArchiveError
               ? error
               : undefined;
           const status = domain

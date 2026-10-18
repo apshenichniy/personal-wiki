@@ -7,6 +7,9 @@ import { isTerminal } from "../jobs/model.ts";
 import { ProviderLedger } from "./ledger.ts";
 import * as P from "@personal-wiki/contracts/provider";
 import { admitActorInput } from "./admission.ts";
+import { ProviderArchive, rawObject } from "./archive.ts";
+import { Library } from "../storage/library.ts";
+import type { ProviderRawUpload } from "@personal-wiki/contracts/provider-api";
 
 const invalid = (message: string) => new JobError({ code: "invalid_transition", message });
 const providerCleanup = (reason: string | null) =>
@@ -17,6 +20,8 @@ export const makeJobProviders = (namespace: typeof P.Namespace.Type, enabled = t
     const jobs = yield* Jobs;
     const store = yield* JobStore;
     const ledger = yield* ProviderLedger;
+    const archive = yield* ProviderArchive;
+    const library = yield* Library;
     const member = Effect.fn("Provider.jobMembership")(function* (
       identityId: string,
       operationId: string,
@@ -269,7 +274,61 @@ export const makeJobProviders = (namespace: typeof P.Namespace.Type, enabled = t
           return (yield* ledger.configuration()).profile;
         }),
       );
-    return { reserve, begin, unknown, attach, observe, inspect, pending, profile };
+    const retain = Effect.fn("Provider.retainAuthorized")(function* (
+      identityId: string,
+      input: typeof ProviderRawUpload.Type,
+    ) {
+      const { operation } = yield* member(identityId, input.operationId);
+      const page = yield* archive.retain(input);
+      // Replaying a lost acknowledgment repairs either database boundary without
+      // another R2 object or a fresh acquisition, including after cancellation.
+      yield* member(identityId, input.operationId);
+      yield* library.registerRaw(operation.job.jobId, {
+        schemaVersion: 1,
+        assetId: page.assetId,
+        objectKey: rawObject(namespace, page).key,
+        mediaType: "application/json",
+        byteLength: page.byteLength,
+        sha256: page.sha256,
+      });
+      return page;
+    });
+    const raw = Effect.fn("Provider.readAuthorized")(function* (
+      identityId: string,
+      operationId: string,
+      pageKey: string,
+    ) {
+      yield* member(identityId, operationId);
+      return yield* archive.read(operationId, pageKey);
+    });
+    const pages = Effect.fn("Provider.pagesAuthorized")(function* (
+      identityId: string,
+      operationId: string,
+    ) {
+      yield* member(identityId, operationId);
+      return yield* ledger.pages(operationId);
+    });
+    const completeArchive = Effect.fn("Provider.archiveAuthorized")(function* (
+      identityId: string,
+      operationId: string,
+    ) {
+      yield* member(identityId, operationId);
+      return yield* archive.complete(operationId);
+    });
+    return {
+      reserve,
+      begin,
+      unknown,
+      attach,
+      observe,
+      inspect,
+      pending,
+      profile,
+      retain,
+      raw,
+      pages,
+      completeArchive,
+    };
   });
 export class JobProviders extends Context.Service<
   JobProviders,

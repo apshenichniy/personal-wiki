@@ -73,6 +73,12 @@ const ProviderHandlers = HttpApiBuilder.group(
     const credentials = yield* MachineCredentials;
     const providers = yield* JobProviders;
     return handlers.handleAll({
+      retain: ({ payload }) => actor(credentials, (id) => providers.retain(id, payload)),
+      pages: ({ payload }) => actor(credentials, (id) => providers.pages(id, payload.operationId)),
+      raw: ({ payload }) =>
+        actor(credentials, (id) => providers.raw(id, payload.operationId, payload.pageKey)),
+      archive: ({ payload }) =>
+        actor(credentials, (id) => providers.completeArchive(id, payload.operationId)),
       pending: () => actor(credentials, (id) => providers.pending(id)),
       profile: () => actor(credentials, (id) => providers.profile(id)),
       reserve: ({ payload }) =>

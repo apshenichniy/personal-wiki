@@ -14,6 +14,18 @@ test("built provider HTTP enforces roles and one-use permits while allowing canc
   const root = await mkdtemp(join(tmpdir(), "wiki-provider-http-"));
   const credentials = join(root, "credentials.json");
   const ledgerFile = join(root, "accounting.sqlite");
+  const r2File = join(root, "r2.json");
+  await writeFile(
+    r2File,
+    JSON.stringify({
+      endpoint: "https://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.r2.cloudflarestorage.com",
+      bucket: "synthetic",
+      region: "auto",
+      accessKeyId: "synthetic",
+      secretAccessKey: "synthetic",
+    }),
+    { mode: 0o600 },
+  );
   const operator = `wk_${randomBytes(32).toString("base64url")}`;
   const runner = `wk_${randomBytes(32).toString("base64url")}`;
   await writeFile(
@@ -52,6 +64,7 @@ test("built provider HTTP enforces roles and one-use permits while allowing canc
       WIKI_MACHINE_CREDENTIALS_FILE: credentials,
       WIKI_PROVIDER_LEDGER_FILE: ledgerFile,
       WIKI_NAMESPACE: "staging",
+      WIKI_R2_CREDENTIALS_FILE: r2File,
     },
     true,
   );

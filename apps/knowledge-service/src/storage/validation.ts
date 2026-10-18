@@ -11,6 +11,7 @@ export function validateBatch(
   draft: Draft,
   current: Snapshot,
   readyAssets: ReadonlyArray<Asset>,
+  jobAssetIds: ReadonlyArray<string> = [],
 ): Snapshot {
   if (Buffer.byteLength(JSON.stringify(proposal)) > 1_048_576)
     throw invalid("Proposal exceeds the 1 MiB limit.");
@@ -51,7 +52,8 @@ export function validateBatch(
     for (const assetId of capture.assetIds)
       if (
         !draft.slots.some((s) => s.assetId === assetId) &&
-        !current.assets.some((a) => a.assetId === assetId)
+        !current.assets.some((a) => a.assetId === assetId) &&
+        !jobAssetIds.includes(assetId)
       )
         throw invalid("Asset is outside the reserved or published scope.");
     if (!capture.assetIds.includes(slot.assetId)) throw invalid("A retained asset is required.");

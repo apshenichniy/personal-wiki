@@ -21,6 +21,7 @@ import {
   syncDirectory,
 } from "./io.ts";
 import { canonicalUrl, queryTerms, validateBatch } from "./validation.ts";
+import type { RawArchive } from "./raw-archive.ts";
 
 const decode = <A>(schema: Schema.ConstraintDecoder<A, never>, json: string): A =>
   Schema.decodeUnknownSync(schema)(JSON.parse(json));
@@ -28,7 +29,10 @@ const empty: K.Snapshot = { schemaVersion: 1, sources: [], captures: [], assets:
 const fail = (code: LibraryError["code"], message: string) =>
   Effect.fail(new LibraryError({ code, message }));
 
-export const makeLibrary = Effect.fn("Knowledge.makeLibrary")(function* (root: string) {
+export const makeLibrary = Effect.fn("Knowledge.makeLibrary")(function* (
+  root: string,
+  archive?: typeof RawArchive.Service,
+) {
   const sql = yield* SqlClient.SqlClient;
   const lane = yield* Semaphore.make(1);
   const epoch = yield* sql.withTransaction(
@@ -219,6 +223,7 @@ export const makeLibrary = Effect.fn("Knowledge.makeLibrary")(function* (root: s
   });
   const verifiedAssets = Effect.fn("Knowledge.verifyAssets")(function* (
     ids: ReadonlyArray<string>,
+    readRaw = true,
   ) {
     const assets: K.Asset[] = [];
     for (const id of new Set(ids)) {
@@ -227,6 +232,17 @@ export const makeLibrary = Effect.fn("Knowledge.makeLibrary")(function* (root: s
       }>`SELECT payload FROM assets WHERE asset_id=${id}`)[0];
       if (!row) return yield* fail("invalid_request", "Referenced asset has not been verified.");
       const asset = decode(K.Asset, row.payload);
+      if (asset.objectKey.startsWith("providers/")) {
+        if (!archive) return yield* fail("unavailable", "Private archive is not configured.");
+        if (readRaw)
+          yield* archive.read({
+            key: asset.objectKey,
+            sha256: asset.sha256,
+            byteLength: asset.byteLength,
+          });
+        assets.push(asset);
+        continue;
+      }
       yield* io(async () => {
         const bytes = await readFile(join(root, "objects", id));
         if (bytes.length !== asset.byteLength || digest(bytes) !== asset.sha256)
@@ -236,6 +252,25 @@ export const makeLibrary = Effect.fn("Knowledge.makeLibrary")(function* (root: s
     }
     return assets;
   });
+  // Trusted Service archive code supplies readback-confirmed manifests. This is
+  // never exposed as a Runner assertion or arbitrary object-key registration.
+  const registerRaw = (jobId: string, asset: K.Asset) =>
+    sql.withTransaction(
+      Effect.gen(function* () {
+        const old = (yield* sql<{
+          payload: string;
+        }>`SELECT payload FROM assets WHERE asset_id=${asset.assetId}`)[0];
+        if (old && old.payload !== stable(asset))
+          return yield* fail("idempotency_conflict", "Raw asset metadata changed.");
+        yield* sql`INSERT INTO assets VALUES(${asset.assetId},${stable(asset)}) ON CONFLICT(asset_id) DO NOTHING`;
+        yield* sql`INSERT INTO job_assets VALUES(${jobId},${asset.assetId}) ON CONFLICT(job_id,asset_id) DO NOTHING`;
+      }),
+    );
+  const jobAssets = Effect.fn("Knowledge.jobAssets")(function* (jobId: string) {
+    return (yield* sql<{
+      asset_id: string;
+    }>`SELECT asset_id FROM job_assets WHERE job_id=${jobId}`).map((row) => row.asset_id);
+  });
   const checkCapture = Effect.fn("Knowledge.checkCapture")(function* (
     jobId: string,
     captures: ReadonlyArray<K.Capture>,
@@ -244,7 +279,9 @@ export const makeLibrary = Effect.fn("Knowledge.makeLibrary")(function* (root: s
     const base = yield* read();
     const assets = yield* verifiedAssets(
       [...base.snapshot.captures, ...captures].flatMap((capture) => capture.assetIds),
+      false,
     );
+    const scopeAssets = yield* jobAssets(jobId);
     yield* Effect.try({
       try: () =>
         validateBatch(
@@ -262,6 +299,7 @@ export const makeLibrary = Effect.fn("Knowledge.makeLibrary")(function* (root: s
           draft,
           base.snapshot,
           assets,
+          scopeAssets,
         ),
       catch: (error) =>
         error instanceof LibraryError ? error : invalid("Invalid retained capture."),
@@ -362,8 +400,9 @@ export const makeLibrary = Effect.fn("Knowledge.makeLibrary")(function* (root: s
       const assets = yield* verifiedAssets(
         [...base.snapshot.captures, ...proposal.captures].flatMap((c) => c.assetIds),
       );
+      const scopeAssets = yield* jobAssets(proposal.jobId);
       snapshot = yield* Effect.try({
-        try: () => validateBatch(proposal, draft, base.snapshot, assets),
+        try: () => validateBatch(proposal, draft, base.snapshot, assets, scopeAssets),
         catch: (error) =>
           error instanceof LibraryError ? error : invalid("Invalid proposed metadata."),
       });
@@ -712,6 +751,7 @@ export const makeLibrary = Effect.fn("Knowledge.makeLibrary")(function* (root: s
   return {
     reserve,
     upload,
+    registerRaw,
     publish,
     list,
     note,
@@ -729,8 +769,8 @@ export class Library extends Context.Service<
   Library,
   Effect.Success<ReturnType<typeof makeLibrary>>
 >()("personal-wiki/Library") {
-  static layer = (root: string) =>
-    Layer.effect(Library, makeLibrary(root)).pipe(
+  static layer = (root: string, archive?: typeof RawArchive.Service) =>
+    Layer.effect(Library, makeLibrary(root, archive)).pipe(
       Layer.provideMerge(databaseLayer(root)),
       Layer.provide(ownershipLayer()),
     );
