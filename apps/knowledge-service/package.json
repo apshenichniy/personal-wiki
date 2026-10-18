@@ -1,0 +1,14 @@
+{
+  "name": "@personal-wiki/knowledge-service",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@effect/platform-bun": "4.0.5",
+    "@effect/sql-sqlite-bun": "4.0.5",
+    "@personal-wiki/contracts": "workspace:*",
+    "effect": "4.0.5"
+  }
+}

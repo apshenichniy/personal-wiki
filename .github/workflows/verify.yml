@@ -1,0 +1,33 @@
+name: Verify application
+
+on:
+  push:
+    branches: [main, "feat/**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3
+        with:
+          version: 2026.9.1
+          cache: false
+      - name: Frozen install
+        run: mise exec -- bun install --frozen-lockfile
+      - name: Deterministic verification including Linux process probes
+        run: mise exec -- bun run verify
+      - name: Require unchanged generated files and lockfile
+        run: git diff --exit-code

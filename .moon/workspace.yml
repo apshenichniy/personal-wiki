@@ -1,0 +1,9 @@
+projects:
+  workspace: .
+  contracts: packages/contracts
+  client: packages/client
+  knowledge-service: apps/knowledge-service
+  runner: apps/runner
+vcs:
+  client: git
+  defaultBranch: main

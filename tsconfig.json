@@ -1,0 +1,37 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "Preserve",
+    "moduleResolution": "Bundler",
+    "types": ["bun"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "plugins": [
+      {
+        "name": "@effect/language-service",
+        "diagnosticSeverity": {
+          "floatingEffect": "error",
+          "missingEffectError": "error",
+          "missingEffectContext": "error",
+          "missingLayerContext": "error",
+          "unsafeEffectTypeAssertion": "error"
+        },
+        "overrides": [
+          {
+            "include": ["apps/**/*.ts", "packages/**/*.ts", "tools/**/*.ts", "tests/**/*.ts"],
+            "options": {
+              "diagnosticSeverity": {
+                "unstableApiUsage": "message"
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "allowImportingTsExtensions": true
+  },
+  "include": ["apps/**/*.ts", "packages/**/*.ts", "tools/**/*.ts", "tests/**/*.ts"]
+}
