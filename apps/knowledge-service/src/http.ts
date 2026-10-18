@@ -1,4 +1,5 @@
 import { JobError } from "./jobs/policy.ts";
+import { ProviderError } from "@personal-wiki/contracts/provider";
 import { Library } from "./storage/library.ts";
 import { LibraryError } from "./storage/io.ts";
 import { Cause, Context, Effect, Layer, Schema } from "effect";
@@ -68,7 +69,11 @@ const Boundary = HttpRouter.middleware(
             error.kind !== "Body" &&
             error.kind !== "ResponseHeaders";
           const domain =
-            error instanceof LibraryError || error instanceof JobError ? error : undefined;
+            error instanceof LibraryError ||
+            error instanceof JobError ||
+            error instanceof ProviderError
+              ? error
+              : undefined;
           const status = domain
             ? {
                 invalid_request: 400,
@@ -85,6 +90,11 @@ const Boundary = HttpRouter.middleware(
                 stale_owner: 409,
                 unauthenticated: 401,
                 forbidden: 403,
+                conflict: 409,
+                disabled: 503,
+                budget: 409,
+                deadline: 409,
+                remote_pending: 409,
               }[domain.code]
             : invalid
               ? 400

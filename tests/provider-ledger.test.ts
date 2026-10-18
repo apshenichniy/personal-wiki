@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { Effect, Layer } from "effect";
 import { TestClock } from "effect/testing";
 import { ProviderLedger } from "../apps/knowledge-service/src/providers/ledger.ts";
-import * as P from "../apps/knowledge-service/src/providers/model.ts";
+import * as P from "@personal-wiki/contracts/provider";
 
 const now = Date.parse("2026-10-19T12:00:00Z");
 const hash = "a".repeat(64);
@@ -18,6 +18,9 @@ const profile: P.Profile = {
   pricingEvidence: hash,
   inputSchemaDigest: hash,
   campaignId: "synthetic-acceptance",
+  eventNanos: 150_000,
+  platformNanos: 20_000_000,
+  retrievalNanos: 20_000_000,
 };
 const input = (patch: Partial<P.ReserveOperation> = {}): P.ReserveOperation => ({
   job: {

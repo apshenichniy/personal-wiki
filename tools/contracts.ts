@@ -1,4 +1,6 @@
 import * as Processing from "@personal-wiki/contracts/processing";
+import * as Provider from "@personal-wiki/contracts/provider";
+import * as ProviderApi from "@personal-wiki/contracts/provider-api";
 import { WorkflowApi } from "@personal-wiki/contracts/jobs-api";
 import * as Jobs from "@personal-wiki/contracts/jobs";
 import * as Knowledge from "@personal-wiki/contracts/knowledge";
@@ -18,7 +20,14 @@ for (const [name, schema] of Object.entries({
   ...Knowledge,
   ...Jobs,
   ...Processing,
+  ...Object.fromEntries(
+    Object.entries(Provider)
+      .filter(([, value]) => Schema.isSchema(value))
+      .map(([key, value]) => [`Provider${key}`, value]),
+  ),
+  ...Object.fromEntries(Object.entries(ProviderApi).filter(([, value]) => Schema.isSchema(value))),
 })) {
+  if (!Schema.isSchema(schema)) continue;
   const document = Schema.toJsonSchemaDocument(schema);
   documents.set(`${name}.json`, {
     $schema: "https://json-schema.org/draft/2020-12/schema",

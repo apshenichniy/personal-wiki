@@ -2,7 +2,7 @@ import { Clock, Context, Effect, Layer, Schema } from "effect";
 import { randomUUID } from "node:crypto";
 import { stable, digest } from "../storage/io.ts";
 import { ProviderDatabase } from "./database.ts";
-import * as P from "./model.ts";
+import * as P from "@personal-wiki/contracts/provider";
 
 const fail = (code: P.ProviderError["code"], message: string) =>
   Effect.fail(new P.ProviderError({ code, message }));

@@ -3,6 +3,7 @@ import { HttpApi, HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from "effect/ht
 import * as J from "./jobs.ts";
 import * as K from "./knowledge.ts";
 import { ErrorEnvelope } from "./index.ts";
+import { ProviderApi } from "./provider-api.ts";
 const errors = [400, 401, 403, 404, 409, 500, 503].map((status) =>
   ErrorEnvelope.pipe(HttpApiSchema.status(status)),
 );
@@ -92,4 +93,5 @@ export class OwnerJobsApi extends HttpApiGroup.make("jobs").add(
 ) {}
 export class WorkflowApi extends HttpApi.make("personal-wiki-workflow")
   .add(WorkerApi)
+  .add(ProviderApi)
   .add(OwnerJobsApi) {}

@@ -267,7 +267,16 @@ export const makeLifecycle = Effect.gen(function* () {
             const revoked = { ...job, lease: null, ready: false, epoch: job.epoch + 1 };
             if (job.cleanupPending)
               yield* store.put(
-                { ...revoked, stage: "blocked", reason: "process_ownership_unknown" },
+                {
+                  ...revoked,
+                  stage: "blocked",
+                  reason:
+                    !job.activeAttemptId &&
+                    (job.reason === "provider_start_unknown" ||
+                      job.reason === "provider_execution_pending")
+                      ? job.reason
+                      : "process_ownership_unknown",
+                },
                 saved.version,
               );
             else yield* requeue({ record: revoked, version: saved.version });

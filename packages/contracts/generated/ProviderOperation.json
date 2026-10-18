@@ -1,0 +1,288 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "operationId": {
+      "type": "string",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+      "format": "uuid"
+    },
+    "job": {
+      "type": "object",
+      "properties": {
+        "jobId": {
+          "type": "string",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+          "format": "uuid"
+        },
+        "namespace": {
+          "type": "string",
+          "enum": [
+            "staging",
+            "production"
+          ]
+        },
+        "startedAt": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "deadline": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "jobId",
+        "namespace",
+        "startedAt",
+        "deadline"
+      ],
+      "additionalProperties": true
+    },
+    "planKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "digest": {
+      "type": "string"
+    },
+    "inputJson": {
+      "type": "string"
+    },
+    "chargeNanos": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "platformNanos": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "retrievalNanos": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "replacementOf": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "phase": {
+      "type": "string",
+      "enum": [
+        "reserved",
+        "dispatching",
+        "unknown",
+        "known",
+        "closed"
+      ]
+    },
+    "month": {
+      "type": "string"
+    },
+    "campaignId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "reservedAt": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "dispatchedAt": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "dispatchNonce": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "run": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "runId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "datasetId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "keyValueStoreId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "buildId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "startedAt": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "runId",
+            "datasetId",
+            "keyValueStoreId",
+            "buildId",
+            "startedAt"
+          ],
+          "additionalProperties": true
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "status": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "READY",
+            "RUNNING",
+            "SUCCEEDED",
+            "FAILED",
+            "TIMING-OUT",
+            "TIMED-OUT",
+            "ABORTING",
+            "ABORTED"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "finishedAt": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "observedCost": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "costSample": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "costSampleAt": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "costStable": {
+      "type": "boolean"
+    },
+    "stopRequested": {
+      "type": "boolean"
+    },
+    "archived": {
+      "type": "boolean"
+    },
+    "transientFailure": {
+      "type": "boolean"
+    },
+    "resolutionEvidence": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "operationId",
+    "job",
+    "planKey",
+    "digest",
+    "inputJson",
+    "chargeNanos",
+    "platformNanos",
+    "retrievalNanos",
+    "replacementOf",
+    "phase",
+    "month",
+    "campaignId",
+    "reservedAt",
+    "dispatchedAt",
+    "dispatchNonce",
+    "run",
+    "status",
+    "finishedAt",
+    "observedCost",
+    "costSample",
+    "costSampleAt",
+    "costStable",
+    "stopRequested",
+    "archived",
+    "transientFailure",
+    "resolutionEvidence"
+  ],
+  "additionalProperties": true,
+  "$defs": {}
+}

@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "operationId": {
+      "type": "string",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+      "format": "uuid"
+    },
+    "run": {
+      "type": "object",
+      "properties": {
+        "runId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "datasetId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "keyValueStoreId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "buildId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "startedAt": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "runId",
+        "datasetId",
+        "keyValueStoreId",
+        "buildId",
+        "startedAt"
+      ],
+      "additionalProperties": true
+    },
+    "evidence": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "operationId",
+    "run",
+    "evidence"
+  ],
+  "additionalProperties": true,
+  "$defs": {}
+}

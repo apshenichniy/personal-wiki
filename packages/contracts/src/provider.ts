@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import { Id } from "@personal-wiki/contracts/knowledge";
+import { Id } from "./knowledge.ts";
 
 export class ProviderError extends Schema.TaggedError<ProviderError>()("ProviderError", {
   code: Schema.Literals([
@@ -32,6 +32,9 @@ export const Profile = Schema.Struct({
   pricingEvidence: Hash,
   inputSchemaDigest: Hash,
   campaignId: Name,
+  eventNanos: Nanos.check(Schema.isGreaterThan(0)),
+  platformNanos: Nanos.check(Schema.isGreaterThan(0)),
+  retrievalNanos: Nanos.check(Schema.isGreaterThan(0)),
 });
 export type Profile = typeof Profile.Type;
 export const AcquisitionJob = Schema.Struct({
