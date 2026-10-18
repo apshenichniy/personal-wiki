@@ -324,3 +324,28 @@ test("citation metadata cannot point to unobserved content or omit its inline ev
   const current = await Effect.runPromise(client.knowledge.list({ query: {} }));
   expect(current.notes).toHaveLength(2);
 });
+
+test("oversized complete proposals are rejected before retaining an operation", async () => {
+  const item = await prepare([
+    postSource("8888888888888888888"),
+    postSource("9999999999999999999"),
+  ]);
+  const oversized = {
+    ...item.proposal,
+    notes: item.proposal.notes.map((note) => ({
+      ...note,
+      markdown: note.markdown + "x".repeat(600_000),
+    })),
+  };
+  expect((await request("/api/v1/worker/publications", oversized)).status).toBe(400);
+  const db = new Database(join(root, "library.sqlite"), { readonly: true });
+  try {
+    expect(
+      db
+        .query("SELECT operation_id FROM operations WHERE operation_id=?")
+        .all(item.proposal.operationId),
+    ).toHaveLength(0);
+  } finally {
+    db.close();
+  }
+});

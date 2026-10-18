@@ -436,7 +436,8 @@ export const makeLibrary = Effect.fn("Knowledge.makeLibrary")(function* (root: s
     return yield* lane.withPermit(
       Effect.gen(function* () {
         yield* assertEpoch();
-        const payloadDigest = digest(stable(input));
+        const payload = stable(input);
+        const payloadDigest = digest(payload);
         const old =
           (yield* sql<Operation>`SELECT * FROM operations WHERE operation_id=${input.operationId}`)[0];
         if (old) {
@@ -444,6 +445,11 @@ export const makeLibrary = Effect.fn("Knowledge.makeLibrary")(function* (root: s
             return yield* fail("idempotency_conflict", "Operation identity has different input.");
           return yield* executeOperation(old.operation_id);
         }
+        if (Buffer.byteLength(payload, "utf8") > 1_048_576)
+          return yield* fail(
+            "invalid_request",
+            "Publication input exceeds the retained byte limit.",
+          );
         const jobId = "jobId" in input ? input.jobId : randomUUID();
         if ((yield* sql`SELECT operation_id FROM receipts WHERE job_id=${jobId}`).length)
           return yield* fail("already_published", "This job already has a publication receipt.");
@@ -455,7 +461,7 @@ export const makeLibrary = Effect.fn("Knowledge.makeLibrary")(function* (root: s
         if (kind === "ingestion") yield* getDraft(jobId);
         const baseRevision = "baseRevision" in input ? input.baseRevision : input.expectedRevision;
         const target = "targetPublicationId" in input ? input.targetPublicationId : null;
-        yield* sql`INSERT INTO operations(operation_id,digest,publication_id,job_id,base_revision,payload,published_at,phase,publisher_epoch,kind,target_publication_id) VALUES (${input.operationId},${payloadDigest},${randomUUID()},${jobId},${baseRevision},${stable(input)},${new Date().toISOString()},'received',${epoch},${kind},${target})`;
+        yield* sql`INSERT INTO operations(operation_id,digest,publication_id,job_id,base_revision,payload,published_at,phase,publisher_epoch,kind,target_publication_id) VALUES (${input.operationId},${payloadDigest},${randomUUID()},${jobId},${baseRevision},${payload},${new Date().toISOString()},'received',${epoch},${kind},${target})`;
         yield* publicationFault(root, "received");
         return yield* executeOperation(input.operationId);
       }),
