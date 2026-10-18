@@ -2,7 +2,7 @@ name: Verify application
 
 on:
   push:
-    branches: [main, "feat/**"]
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
@@ -21,6 +21,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3
         with:
           version: 2026.9.1
