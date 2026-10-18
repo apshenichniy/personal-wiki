@@ -1,6 +1,6 @@
 # First slice: X to a private reading library
 
-**Status:** consolidated specification proposed for final owner approval, 2026-10-18. The linked behavior and delivery decisions are accepted. This document assembles their scope, acceptance and proposed implementation boundaries; application implementation has not started.
+**Status:** approved by the owner on 2026-10-18, including the task-breakdown approach. The linked behavior and delivery contracts are part of this approval. Application implementation has not started.
 
 Approval ticket: [Approve the first-slice specification for task breakdown](https://github.com/apshenichniy/personal-wiki/issues/22). Planning map: [Specify the X-to-wiki first vertical slice](https://github.com/apshenichniy/personal-wiki/issues/13). Product context: [knowledge-base brief](../knowledge-base-brief.md), [glossary](../../GLOSSARY.md), and [Personal Wiki product scope](https://github.com/apshenichniy/personal-wiki/issues/1).
 
@@ -96,11 +96,11 @@ A bag groups responsibility; it is not one implementation task or necessarily on
 | [Mac App](https://github.com/apshenichniy/personal-wiki/issues/10) | No native implementation; desktop acceptance uses the web reader. | SwiftUI reader, local replica and desktop distribution. |
 | [Browser Capture](https://github.com/apshenichniy/personal-wiki/issues/11) | Deferred, non-blocking. | Decide upstream Clipper export/uploader versus fork, then implement capture transport. |
 
-## 5. Proposed implementation task boundaries
+## 5. Approved implementation task boundaries
 
-These are **reviewable task candidates, not created implementation issues**. After approval, turn them into independently executable GitHub issues with native dependencies, exact acceptance evidence and bounded ownership. Local labels below are only references within this proposal. Split a candidate further if code inspection shows it cannot be completed and verified in one agent session; preserve the observable outcomes and scope.
+The owner approved these independently verifiable task boundaries and their dependency approach. GitHub implementation issues carry execution status, native dependencies, acceptance evidence and bounded ownership. Local P-labels below are specification references, not issue numbers. If code inspection requires a smaller task, preserve the approved observable outcome and scope and update its dependency/coverage links.
 
-| Ref / proposed title | Deliverable and decisive verification | Depends on |
+| Ref / title | Deliverable and decisive verification | Depends on |
 | --- | --- | --- |
 | P0 — Prepare unattended execution access | Refresh private access inventory; finish owner-dependent login/passkey steps; establish scoped provisioning access for remaining app clients/backup resources and the acceptance budget record. Distinguish access readiness from an implemented deployment. Verify required credentials are usable without exposing them. | None; before an unattended run. |
 | P1 — Establish a reproducible service-to-runner path | Pinned workspace and canonical repo commands; service/Runner processes communicate through versioned schemas/client; a synthetic round trip and generated-schema interop test run from a clean checkout. Linux CI uses no runtime credentials. | None. |
@@ -129,4 +129,4 @@ Before that run, complete P0 and agree the concrete issue scope. Repository chec
 
 Remaining engineering choices include concrete API serialization, minimal web composition, renderer/OIDC/backup library selection, packaging details and verification of actual Codex capabilities. Choose supported implementations consistent with the accepted contracts and record pins/evidence. These do not reopen the chosen architecture. If evidence shows a required invariant cannot be satisfied, create a focused decision issue rather than inventing a new product policy. Deferred component choices stay in their scope bags.
 
-Approval requested here covers the consolidated first-slice specification and the approach to task breakdown. It permits the next planning step: create executable implementation issues and a bounded autonomous-run handoff. Starting application implementation or an autonomous goal remains a subsequent explicit instruction.
+The owner's approval covers this consolidated specification and task breakdown, including creation of executable implementation issues and a bounded autonomous-run handoff. Starting application implementation or an autonomous goal remains a subsequent explicit instruction.

@@ -1,6 +1,6 @@
 # Personal Wiki: product and architecture brief
 
-**Date:** 2026-10-18. **Status:** input to planning; application implementation has not started.
+**Date:** 2026-10-18. **Status:** first-slice specification and task-breakdown approach approved; application implementation has not started.
 
 This document consolidates the owner's discussion and accepted choices, including the final stack decision and subsequent selections of GitHub Actions, GitHub Issues, and Pocket ID. It supersedes the earlier HTML concept where that concept still presents rejected or unresolved alternatives as current.
 
@@ -305,7 +305,7 @@ The owner supplies necessary accounts/access when an integration needs them and 
 
 ## 10. First end-to-end slice: agreed boundary and contracts
 
-The owner agreed the X-first source, bounded discussion capture, minimal web interface, CX33 completion boundary and linked behavior/delivery contracts during wayfinding on 2026-10-18. The [consolidated first-slice specification](specs/first-slice.md) assembles those contracts, maps scope bags and proposes independently verifiable task boundaries for final approval. Implementation-task creation follows that approval; implementation begins after planning and authorization.
+The owner approved the X-first source, bounded discussion capture, minimal web interface, CX33 completion boundary and linked behavior/delivery contracts during wayfinding on 2026-10-18. The approved [consolidated first-slice specification](specs/first-slice.md) assembles those contracts, maps scope bags and defines independently verifiable task boundaries. Creating the implementation backlog and autonomous-run handoff is authorized; starting implementation is a subsequent instruction.
 
 **Outcome:** submit an X post/thread URL; Apify captures the author material and bounded discussion; the original acquired material is retained; real Codex removes uninformative material from the derived reading result and proposes a Russian note with relevant wiki links; the service publishes the batch; the owner can search and read the note and inspect its captured source through a private minimal web interface on CX33.
 
@@ -340,7 +340,7 @@ Maintain a coarse product-wide inventory of scope bags and agree an implementati
 
 ### Current planning position
 
-The [first-slice planning map](https://github.com/apshenichniy/personal-wiki/issues/13) tracks the agreed identity, capture/curation, publication, execution, private-reader/access and delivery/verification contracts linked above. Their required verification is future implementation work, not evidence of completed behavior. The remaining decision is whether the consolidated first-slice specification covers the intended outcome sufficiently to authorize implementation-task breakdown.
+The [first-slice planning map](https://github.com/apshenichniy/personal-wiki/issues/13) records the accepted identity, capture/curation, publication, execution, private-reader/access and delivery/verification contracts. The owner approved the consolidated specification and task-breakdown approach. No material first-slice policy decision remains open; required implementation and verification are still future work.
 
 Use the map's actual issue dependencies and resolution comments rather than treating this brief as a separate task tracker.
 

@@ -5,7 +5,7 @@ A personal knowledge base maintained by agents, with a private Markdown library,
 **Status:** architecture and planning. The application has not been implemented. A separate compatibility spike informed the selected server stack.
 
 - [Knowledge base brief](docs/knowledge-base-brief.md) — the primary input to wayfinder: requirements, owner decisions, architecture proposals, and open questions.
-- [First-slice specification](docs/specs/first-slice.md) — consolidated scope, accepted contracts, delivery gates and proposed implementation task boundaries; awaiting final owner approval.
+- [First-slice specification](docs/specs/first-slice.md) — owner-approved scope, behavior contracts, delivery gates and implementation task boundaries.
 - [Stack spike findings](docs/research/2026-10-18-stack-spike.md) — what the chosen stack has and has not demonstrated.
 - [Agent instructions](AGENTS.md) — repository conventions and Matt Pocock skills configuration.
 - [GitHub Issues](https://github.com/apshenichniy/personal-wiki/issues) — specifications, decision maps, and subsequent implementation work.
