@@ -1,11 +1,12 @@
 import { publicationFault } from "./faults.ts";
 import { ownershipLayer } from "./ownership.ts";
-import { Context, Effect, Layer, Schema, Semaphore } from "effect";
+import { Clock, Context, Effect, Layer, Schema, Semaphore } from "effect";
 import { SqlClient } from "effect/sql";
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { readFile } from "node:fs/promises";
 import * as K from "@personal-wiki/contracts/knowledge";
+import { JobRecord } from "../jobs/model.ts";
 import { databaseLayer } from "./database.ts";
 import { canonicalRef, createCommit, readTree } from "./tree.ts";
 import {
@@ -103,11 +104,17 @@ export const makeLibrary = Effect.fn("Knowledge.makeLibrary")(function* (root: s
     );
   }
 
-  const reserve = Effect.fn("Knowledge.reserve")(function* (input: typeof K.ReserveRequest.Type) {
+  const reserve = Effect.fn("Knowledge.reserve")(function* <E = never>(
+    input: typeof K.ReserveRequest.Type,
+    binding?: { jobId: string; authorize: Effect.Effect<void, E> },
+  ) {
     return yield* lane.withPermit(
       sql.withTransaction(
         Effect.gen(function* () {
-          const payloadDigest = digest(stable(input));
+          if (binding) yield* binding.authorize;
+          const payloadDigest = digest(
+            stable(binding ? { ...input, jobId: binding.jobId } : input),
+          );
           const existing = (yield* sql<{
             digest: string;
             payload: string;
@@ -150,7 +157,7 @@ export const makeLibrary = Effect.fn("Knowledge.makeLibrary")(function* (root: s
               assetId: randomUUID(),
             });
           }
-          const draft: K.Draft = { schemaVersion: 1, jobId: randomUUID(), slots };
+          const draft: K.Draft = { schemaVersion: 1, jobId: binding?.jobId ?? randomUUID(), slots };
           yield* sql`INSERT INTO drafts VALUES (${input.requestId},${payloadDigest},${draft.jobId},${stable(draft)})`;
           return draft;
         }),
@@ -164,42 +171,50 @@ export const makeLibrary = Effect.fn("Knowledge.makeLibrary")(function* (root: s
     if (!row) return yield* fail("invalid_request", "Unknown reserved job.");
     return decode(K.Draft, row.payload);
   });
-  const upload = Effect.fn("Knowledge.upload")(function* (input: typeof K.AssetUpload.Type) {
+  const upload = Effect.fn("Knowledge.upload")(function* <E = never>(
+    input: typeof K.AssetUpload.Type,
+    authorize?: Effect.Effect<void, E>,
+    record?: (asset: K.Asset) => Effect.Effect<void, E>,
+  ) {
     return yield* lane.withPermit(
-      Effect.gen(function* () {
-        const draft = yield* getDraft(input.jobId);
-        if (!draft.slots.some((s) => s.assetId === input.assetId))
-          return yield* fail("invalid_request", "Asset is outside this job scope.");
-        const bytes = Buffer.from(input.base64, "base64");
-        if (
-          bytes.toString("base64") !== input.base64 ||
-          bytes.length > 1_048_576 ||
-          digest(bytes) !== input.sha256
-        )
-          return yield* fail("invalid_request", "Asset bytes or checksum are invalid.");
-        const asset: K.Asset = {
-          schemaVersion: 1,
-          assetId: input.assetId,
-          objectKey: `objects/${input.assetId}`,
-          mediaType: input.mediaType,
-          byteLength: bytes.length,
-          sha256: input.sha256,
-        };
-        const old = (yield* sql<{
-          payload: string;
-        }>`SELECT payload FROM assets WHERE asset_id=${input.assetId}`)[0];
-        if (old && old.payload !== stable(asset))
-          return yield* fail("idempotency_conflict", "Immutable asset metadata differs.");
-        yield* io(async () => {
-          await durableCreate(join(root, "objects", input.assetId), bytes);
-          await syncDirectory(join(root, "objects"));
-          const retained = await readFile(join(root, "objects", input.assetId));
-          if (retained.length !== bytes.length || digest(retained) !== asset.sha256)
-            throw invalid("Asset readback checksum differs.");
-        });
-        yield* sql`INSERT INTO assets VALUES (${asset.assetId},${stable(asset)}) ON CONFLICT(asset_id) DO NOTHING`;
-        return asset;
-      }),
+      sql.withTransaction(
+        Effect.gen(function* () {
+          if (authorize) yield* authorize;
+          const draft = yield* getDraft(input.jobId);
+          if (!draft.slots.some((s) => s.assetId === input.assetId))
+            return yield* fail("invalid_request", "Asset is outside this job scope.");
+          const bytes = Buffer.from(input.base64, "base64");
+          if (
+            bytes.toString("base64") !== input.base64 ||
+            bytes.length > 1_048_576 ||
+            digest(bytes) !== input.sha256
+          )
+            return yield* fail("invalid_request", "Asset bytes or checksum are invalid.");
+          const asset: K.Asset = {
+            schemaVersion: 1,
+            assetId: input.assetId,
+            objectKey: `objects/${input.assetId}`,
+            mediaType: input.mediaType,
+            byteLength: bytes.length,
+            sha256: input.sha256,
+          };
+          const old = (yield* sql<{
+            payload: string;
+          }>`SELECT payload FROM assets WHERE asset_id=${input.assetId}`)[0];
+          if (old && old.payload !== stable(asset))
+            return yield* fail("idempotency_conflict", "Immutable asset metadata differs.");
+          yield* io(async () => {
+            await durableCreate(join(root, "objects", input.assetId), bytes);
+            await syncDirectory(join(root, "objects"));
+            const retained = await readFile(join(root, "objects", input.assetId));
+            if (retained.length !== bytes.length || digest(retained) !== asset.sha256)
+              throw invalid("Asset readback checksum differs.");
+          });
+          yield* sql`INSERT INTO assets VALUES (${asset.assetId},${stable(asset)}) ON CONFLICT(asset_id) DO NOTHING`;
+          if (record) yield* record(asset);
+          return asset;
+        }),
+      ),
     );
   });
   const verifiedAssets = Effect.fn("Knowledge.verifyAssets")(function* (
@@ -220,6 +235,38 @@ export const makeLibrary = Effect.fn("Knowledge.makeLibrary")(function* (root: s
       assets.push(asset);
     }
     return assets;
+  });
+  const checkCapture = Effect.fn("Knowledge.checkCapture")(function* (
+    jobId: string,
+    captures: ReadonlyArray<K.Capture>,
+  ) {
+    const draft = yield* getDraft(jobId);
+    const base = yield* read();
+    const assets = yield* verifiedAssets(
+      [...base.snapshot.captures, ...captures].flatMap((capture) => capture.assetIds),
+    );
+    yield* Effect.try({
+      try: () =>
+        validateBatch(
+          {
+            schemaVersion: 1,
+            operationId: randomUUID(),
+            proposalId: randomUUID(),
+            jobId,
+            baseRevision: base.appliedRevision,
+            notes: [],
+            captures,
+            policyVersion: "capture-check-v1",
+            derivation: { agent: "none", model: "none", skillVersion: "none" },
+          },
+          draft,
+          base.snapshot,
+          assets,
+        ),
+      catch: (error) =>
+        error instanceof LibraryError ? error : invalid("Invalid retained capture."),
+    });
+    return draft;
   });
   type Operation = {
     operation_id: string;
@@ -380,13 +427,51 @@ export const makeLibrary = Effect.fn("Knowledge.makeLibrary")(function* (root: s
       if ((yield* git(root, ["rev-parse", canonicalRef])) !== op.base_revision)
         return yield* fail("unavailable", "Canonical revision changed before commit intent.");
       yield* verifiedAssets(committed.captures.flatMap((capture) => capture.assetIds));
-      yield* sql.withTransaction(
+      const permitted = yield* sql.withTransaction(
         Effect.gen(function* () {
           yield* assertEpoch();
+          const saved = (yield* sql<{
+            record: string;
+          }>`SELECT record FROM ingestion_jobs WHERE job_id=${op.job_id}`)[0];
+          if (saved && op.kind === "ingestion") {
+            const job = decode(JobRecord, saved.record);
+            const now = yield* Clock.currentTimeMillis;
+            const authorized =
+              job.lease &&
+              (yield* sql`SELECT identity_id FROM machine_credentials WHERE identity_id=${job.lease.identityId} AND role='runner' AND revoked=0`)
+                .length > 0;
+            if (!authorized || job.stopReason || (job.deadline !== null && now >= job.deadline)) {
+              const next = {
+                ...job,
+                stage: job.cleanupPending
+                  ? "stopping"
+                  : !authorized || job.stopReason === "cancelled"
+                    ? "cancelled"
+                    : "expired",
+                stopReason: job.stopReason ?? (!authorized ? "cancelled" : "deadline"),
+                reason: !authorized ? "credential_revoked" : (job.stopReason ?? "deadline"),
+                lease: null,
+                ready: false,
+                epoch: job.epoch + 1,
+              };
+              yield* sql`UPDATE operations SET phase='cancelled' WHERE operation_id=${id} AND phase='prepared'`;
+              yield* sql`UPDATE ingestion_jobs SET stage=${next.stage},ready=0,version=version+1,record=${stable(next)} WHERE job_id=${job.jobId}`;
+              return false;
+            }
+            if (
+              job.stage !== "publishing" ||
+              job.operationId !== id ||
+              job.resultDigest !== op.digest ||
+              job.cleanupPending
+            )
+              return yield* fail("unavailable", "Job publication checkpoint is inconsistent.");
+          }
           yield* read(op.base_revision);
           yield* transition(id, "prepared", "committing");
+          return true;
         }),
       );
+      if (!permitted) return yield* fail("cancelled", "Job stopped before publication intent.");
       yield* publicationFault(root, "committing");
       op = yield* operation(id);
     }
@@ -421,6 +506,24 @@ export const makeLibrary = Effect.fn("Knowledge.makeLibrary")(function* (root: s
         yield* publicationFault(root, "activating");
         yield* sql`UPDATE library_state SET applied_revision=${candidate},sequence=${receipt.sequence} WHERE singleton=1`;
         yield* sql`INSERT INTO receipts VALUES (${id},${op.job_id},${stable(receipt)})`;
+        const savedJob = (yield* sql<{
+          record: string;
+        }>`SELECT record FROM ingestion_jobs WHERE job_id=${op.job_id}`)[0];
+        if (savedJob && op.kind === "ingestion") {
+          const job = decode(JobRecord, savedJob.record);
+          if (job.operationId !== id || job.cleanupPending)
+            return yield* fail("unavailable", "Job publication result cannot be activated.");
+          const completed: JobRecord = {
+            ...job,
+            stage: "succeeded",
+            ready: false,
+            lease: null,
+            receiptOperationId: id,
+            reason: null,
+            stopReason: null,
+          };
+          yield* sql`UPDATE ingestion_jobs SET stage='succeeded',ready=0,version=version+1,record=${stable(completed)} WHERE job_id=${op.job_id}`;
+        }
         yield* sql`INSERT INTO outbox(event_id,operation_id,revision) VALUES (${op.publication_id},${id},${candidate})`;
         yield* transition(id, "committed", "applied");
         return receipt;
@@ -615,6 +718,7 @@ export const makeLibrary = Effect.fn("Knowledge.makeLibrary")(function* (root: s
     capture,
     search,
     rebuild,
+    checkCapture,
     cancelPublication,
     compensate,
     outbox,
@@ -627,7 +731,7 @@ export class Library extends Context.Service<
 >()("personal-wiki/Library") {
   static layer = (root: string) =>
     Layer.effect(Library, makeLibrary(root)).pipe(
-      Layer.provide(databaseLayer(root)),
+      Layer.provideMerge(databaseLayer(root)),
       Layer.provide(ownershipLayer()),
     );
 }

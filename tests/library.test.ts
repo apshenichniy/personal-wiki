@@ -37,7 +37,7 @@ beforeAll(async () => {
       "python3",
       "tools/runtime/locked-service.py",
       process.execPath,
-      "apps/knowledge-service/dist/index.js",
+      "tests/helpers/library-service.ts",
     ],
     {
       env: { PATH: process.env.PATH, PORT: "0", WIKI_DATA_DIR: root },

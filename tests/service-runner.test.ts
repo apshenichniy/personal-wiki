@@ -141,12 +141,10 @@ test("typed client rejects a successful status with an invalid response body", a
   }
 });
 
-test("served OpenAPI matches the committed contract", async () => {
+test("production API metadata requires authentication", async () => {
   const response = await fetch(`${baseUrl}/openapi.json`);
-  expect(response.status).toBe(200);
-  expect(await response.json()).toEqual(
-    await Bun.file("packages/contracts/generated/openapi.json").json(),
-  );
+  expect(response.status).toBe(401);
+  expect((await response.json()).code).toBe("unauthenticated");
 });
 
 test("typed client decodes a declared HTTP error envelope", async () => {
