@@ -5,7 +5,7 @@
 | Resource | Prepared and checked | Remaining application work |
 | --- | --- | --- |
 | Existing CX33 | Owner administration over Tailscale; existing Telegram MCP and Cloudflare Tunnel preserved. | Service packaging, resource limits, backups and restore tests. |
-| Apify | Dedicated Actor-scoped token stored privately on Mac and VPS; authenticated metadata/run listing works. Live capture evidence belongs to issue #16. | Durable external-run reconciliation, production capture policy and budgets. |
+| Apify | Dedicated Actor-scoped token stored privately on Mac and VPS; authenticated metadata/run listing works. Live capture evidence belongs to the capture pilot. | Durable external-run reconciliation and enforcement of the [accepted capture policy and budgets](../specs/x-capture-curation.md). |
 | Private R2 | EU bucket, bucket-scoped object read/write credential. Mac/VPS cross-read, checksum, list and cleanup smoke passed. Anonymous object access returns an authorization error. | Asset manifests, retention, backup policy and application permissions. |
 | HTTPS routes | Identity provider reachable through the existing tunnel; wiki endpoint returns a temporary 404. Existing Telegram endpoint remains protected. | Connect the validated application upstream after deployment. |
 | Pocket ID | Pinned 2.18.0 binary, loopback-only listener, hardened systemd service; one owner and one registered passkey verified. Initial setup closed. Encryption key backed up privately. | OIDC clients and callback/session contracts remain in the identity specification. |

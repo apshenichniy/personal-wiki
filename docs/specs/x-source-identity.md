@@ -88,4 +88,4 @@ An agent proposal names its base library revision. A publication receipt names t
 - An inline comment citation points to the comment, and its metadata resolves to the actual supporting capture after refresh, move and index rebuild.
 - Two concurrent submissions cannot publish duplicate source notes merely because they used different URL forms. The execution/publication specifications supply the enforcement mechanism.
 
-Numeric bounds, content selection, topic changes, API transport, authorization and crash recovery remain with their respective wayfinding decisions. This contract introduces no application code.
+The accepted [capture/curation contract](x-capture-curation.md) now defines numeric bounds, content selection, Article scope, partial outcomes and the first-slice write boundary. API transport, authorization, execution and crash recovery remain with their respective wayfinding decisions. This contract introduces no application code.

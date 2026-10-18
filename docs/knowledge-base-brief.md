@@ -53,11 +53,14 @@ These are input constraints for planning. Reopen one only when new evidence just
 | First-slice completion | Develop and verify locally first; complete the slice on CX33 with the computer off. |
 | First-slice interface | Minimal web interface for submitting a source, observing status, finding notes, and reading sources. Telegram and native clients follow. |
 | First source | An X post/thread and its replies through Apify. Reuse `xquik/x-tweet-scraper` behind an adapter with independent coverage checks, following the representative capture pilot. |
-| Discussion coverage | Bounded capture is acceptable, with an explicit incompleteness marker. Numeric budgets and acquisition policy remain to be specified. |
+| Capture limits | Configurable defaults: 50 main author posts, 200 discussion posts shared across modes, 30 additional parent/context lookups, and a five-minute acquisition window. Coverage limits remain visible. |
+| Apify budgets | USD 0.25 per save/refresh job including retries; USD 5 per calendar month across Personal Wiki jobs. The future runtime must enforce shared reservations and accounting. |
 | Note depth and citations | Retell essentially all substantive content of the main post, preserving its points, examples, qualifications, and attribution. Curate discussion separately. Place clickable links to the specific supporting X posts next to the corresponding statements. |
 | Submitted focus | A deliberately selected reply is its own material with parent/root context. A resolved author continuation belongs to its author material; preserve the exact submitted anchor. |
 | Save and refresh | Ordinary save returns the existing note or active job. Explicit refresh creates a new capture and may update the same stable note, retaining history; weaker captures do not silently erase knowledge. |
-| Post and article | A substantive post/discussion and its acquired linked article have separate source identities and separate connected notes. Supported article types remain a capture-policy choice. |
+| Post and article | Separate connected notes and source identities. First-slice expansion includes one level of quoted context and one associated X Article; other website/media references remain explicitly unprocessed. |
+| Partial outcomes | Publish useful, quality-checked main text with explicit gaps. Unavailable or unprocessable main material yields an actionable outcome without fabricated content or silent truncation. |
+| First-slice write scope | Current material note, acquired article note, their provenance, and relevant existing-note links. Backlinks are derived; topic-page rewriting and restructuring follow later. |
 | Research depth | No additional research outside the submitted conversation in the first slice. The agent can use relevant existing library material. |
 | Languages for development | English documentation, tickets, PRs, and code comments; Russian conversation with the owner. |
 
@@ -188,7 +191,7 @@ The spike demonstrated a scoped HTTP lease adapter, but a lease does not guarant
 
 Persist enough state to distinguish accepted input, a running attempt, validation, publication in progress, completion, retryable failure, terminal failure, and cancellation. These are lifecycle requirements, not final enum names. Define cancellation's commit boundary so the UI never claims a publication was cancelled after it became durable.
 
-Timeouts, retry budgets, repair attempts, model selection, and queue priority are still open. Account authentication or subscription limits should produce an explicit actionable state; an automatic paid API fallback is not part of the proposed design.
+The [capture/curation contract](specs/x-capture-curation.md) fixes the acquisition deadline and shared Apify budgets. CLI timeouts, repair/retry mechanics, model selection, capacity limits, and queue priority remain execution-design work. Account authentication or subscription limits should produce an explicit actionable state; an automatic paid API fallback is not part of the proposed design.
 
 ## 7. Reading, synchronization, search, and languages
 
@@ -293,7 +296,7 @@ The owner agreed the X-first source, bounded discussion capture, minimal web int
 
 Preserving the source archive and filtering the derived note are separate operations. Corrections, counterexamples, author clarifications, and meaningful disagreement must remain eligible for inclusion even when unpopular. Following review of the capture pilot, the owner accepted the overall direction and required a detailed Russian retelling of essentially all substantive main-post content, with selective discussion as a separate layer. Preserve the main post's individual points, examples, qualifications, and attributed claims; a short abstract can supplement this reading body but must not replace it. Do not impose a global summary word cap that silently drops substantive source details. This is a faithful paraphrase requirement, not a request to copy the source verbatim or an approval of automatic full translation of every linked article.
 
-Inline citations must sit next to the statements they support and open the particular X post being referenced. A reply's claim links to that reply, not only the conversation root; a passage combining several posts links to each relevant post. Use captured stable IDs and validated source URLs rather than model-invented links. Retain provenance metadata as well as visible Markdown links. Broader curation rules, multi-post author-chain treatment, topic-page updates, and the linked-article boundary remain to be specified.
+Inline citations must sit next to the statements they support and open the particular X post being referenced. A reply's claim links to that reply, not only the conversation root; a passage combining several posts links to each relevant post. Use captured stable IDs and validated source URLs rather than model-invented links. Retain provenance metadata as well as visible Markdown links. The accepted [capture/curation contract](specs/x-capture-curation.md) defines acquisition bounds, content selection, partial outcomes, Article scope, the two-note mutation boundary, and quality acceptance cases. General author-chain acquisition still needs its specified verification; a written policy is not implementation evidence.
 
 The [Apify capture investigation](research/2026-10-18-apify-x-capture.md) documents the configured Actor's modes and limits. The [live pilot and owner feedback](research/2026-10-18-apify-x-pilot.md) support bounded direct replies plus search and parent repair, with explicit article expansion and independent graph/coverage validation. A post lookup alone does not establish conversation capture. Direct replies, nested discussion, and the author's self-reply chain need explicit handling. Provider completion does not prove exhaustive coverage; the pilot's unresolved cases remain explicit verification work.
 
