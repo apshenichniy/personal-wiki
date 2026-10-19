@@ -7,6 +7,7 @@ import os
 import pathlib
 import sys
 
+sys.dont_write_bytecode = True
 spec = importlib.util.spec_from_file_location("guardian", pathlib.Path(__file__).with_name("agent-guard.py"))
 guardian = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(guardian)
@@ -25,11 +26,7 @@ def inspect():
     boot = guardian.boot_identity()
     if active.exists():
         record = guardian.private_json(active)
-        other_boot = record["boot"] != boot
-        certificate = pathlib.Path(record["attemptDirectory"], "exit.json")
-        complete = guardian.private_json(certificate) if certificate.exists() else None
-        safe = other_boot or (complete and complete.get("generation") == record["generation"] and complete.get("processStopped") is True and (complete.get("spawned") is False or (isinstance(record.get("group"), int) and not guardian.group_alive(record["group"]))))
-        if not safe:
+        if not guardian.cleared_process(record, boot):
             return "unknown"
         active.unlink()
         guardian.sync_directory(slot)

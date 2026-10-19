@@ -106,7 +106,7 @@ export async function savedResult(
   const outcome =
     manifest.reason === null && manifest.exitCode === 0 && output !== null
       ? "output"
-      : /(?:not logged in|authentication required|invalid authentication|refresh token.*expired|401 unauthorized)/i.test(
+      : /(?:not logged in|authentication required|invalid authentication|refresh token.*expired|401 unauthorized|unauthorized \(401\))/i.test(
             providerErrors,
           )
         ? "auth"

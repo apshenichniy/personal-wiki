@@ -113,7 +113,7 @@ test("lost renewal kills a TERM-resistant descendant before releasing the shared
   }
 }, 12000);
 
-test("guardian death leaves durable exclusion even after its flock is released", async () => {
+test("guardian death leaves both inherited exclusion and durable recovery evidence", async () => {
   const f = await fixture(
     "import signal, time\nsignal.signal(signal.SIGTERM, signal.SIG_IGN)\nwhile True: time.sleep(.1)\n",
   );
@@ -126,7 +126,7 @@ test("guardian death leaves durable exclusion even after its flock is released",
     // Orphan retains pipe handles, so close may wait until the orphan is stopped.
     await sleep(100);
     const second = run(f.path);
-    expect(await second.exited).toBe(74);
+    expect(await second.exited).toBe(73);
     expect(alive(childPid)).toBe(true);
     process.kill(-childPid, "SIGKILL");
     await first.exited;
@@ -318,5 +318,26 @@ test("deadline and workspace overflow stop the child without an output checkpoin
     } finally {
       await rm(f.root, { recursive: true, force: true });
     }
+  }
+}, 10000);
+
+test("an escaped descendant retains exclusion and prevents a false death certificate", async () => {
+  const f = await fixture(
+    'import os,time,pathlib\npid=os.fork()\nif pid==0:\n os.setsid()\n os.close(1);os.close(2)\n pathlib.Path("escaped").write_text(str(os.getpid()))\n time.sleep(30)\nelse:\n time.sleep(.1)\n pathlib.Path("output.json").write_text("{}")\n',
+  );
+  let escaped = 0;
+  try {
+    const first = run(f.path);
+    const timer = heartbeat(first.child);
+    expect(await first.exited).toBe(76);
+    clearInterval(timer);
+    escaped = Number(await readFile(join(f.workspace, "escaped"), "utf8"));
+    expect(alive(escaped)).toBe(true);
+    expect(await run(f.path).exited).toBe(73);
+    await expect(access(join(f.attempt, "exit.json"))).rejects.toThrow();
+    expect(await readFile(join(f.slot, "active.json"), "utf8")).toContain(f.config.attemptId);
+  } finally {
+    if (escaped && alive(escaped)) process.kill(escaped, "SIGKILL");
+    await rm(f.root, { recursive: true, force: true });
   }
 }, 10000);

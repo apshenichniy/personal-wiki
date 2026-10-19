@@ -89,6 +89,20 @@ def tree_bytes(root):
     return total
 
 
+def cleared_process(record, boot):
+    if record["boot"] != boot:
+        return True
+    complete = pathlib.Path(record["attemptDirectory"], "exit.json")
+    if not complete.is_file() or complete.is_symlink():
+        return False
+    certificate = private_json(complete)
+    return (certificate.get("generation") == record["generation"]
+            and certificate.get("processStopped") is True
+            and (certificate.get("spawned") is False
+                 or (isinstance(record.get("group"), int)
+                     and not group_alive(record["group"]))))
+
+
 def main():
     config = private_json(sys.argv[1])
     slot = pathlib.Path(config["slotDirectory"])
@@ -111,14 +125,8 @@ def main():
     boot = boot_identity()
     if active.exists():
         prior = private_json(active)
-        # A new boot proves the old local process tree cannot survive. On the
-        # same boot only a completed guardian certificate permits auto-recovery.
-        complete = pathlib.Path(prior["attemptDirectory"], "exit.json")
-        safe = prior["boot"] != boot
-        if complete.is_file() and not complete.is_symlink():
-            certificate = private_json(complete)
-            safe = safe or (certificate.get("generation") == prior["generation"] and certificate.get("processStopped") is True and (certificate.get("spawned") is False or (isinstance(prior.get("group"), int) and not group_alive(prior["group"]))))
-        if not safe:
+        # A new boot or a matching death certificate proves physical safety.
+        if not cleared_process(prior, boot):
             print('{"status":"blocked","reason":"unreconciled_process"}', flush=True)
             return 74
         active.unlink()
@@ -191,7 +199,7 @@ def main():
     output_identity = os.fstat(output_fd).st_ino
     output_bytes = bytearray()
     with prompt.open("rb") as input_file:
-        child = subprocess.Popen(argv, stdin=input_file, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=workspace, env=config["env"], start_new_session=True, preexec_fn=child_limits)
+        child = subprocess.Popen(argv, stdin=input_file, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=workspace, env=config["env"], start_new_session=True, preexec_fn=child_limits, pass_fds=(lock,))
     record.update(group=child.pid, child=identity(child.pid))
     durable(active, record)
     durable(attempt / "process.json", record)
@@ -322,6 +330,15 @@ def main():
         output_bytes.extend(chunk)
     os.close(output_fd)
     selector.close()
+    # Forked children inherit the same locked open-file description. Even if a
+    # child leaves the original group, it must not silently free the host slot.
+    # Reopening after closing only our copy detects surviving lock holders.
+    os.close(lock)
+    lock = os.open(slot / "execution.lock", os.O_RDWR | os.O_NOFOLLOW)
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        gone = False
     if not gone:
         print('{"status":"blocked","reason":"process_cleanup_unconfirmed"}', flush=True)
         return 76
