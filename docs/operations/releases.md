@@ -104,3 +104,21 @@ GitHub login to verify the public repository's bundled attestation.
 
 Ordinary PR CI also builds and smokes a disposable Linux package without
 provider credentials. Only `release.yml` on trusted main attests/promotes bytes.
+
+## Provisioning evidence (2026-10-19)
+
+The controller and pinned GitHub CLI were installed on the existing CX33 after
+independent review and deterministic recovery tests. The former P9 synthetic
+namespace was checkpointed privately, its old unit stopped, and ownership
+transferred without changing publisher or host-slot lock inodes. Dispatch remains
+disabled until the authoritative campaign ledger is transferred and reconciled.
+
+Host-negative checks denied an arbitrary target, runtime/backup credential reads
+and sudo for `wiki-deploy`, and control-socket access for Runner. A malformed
+attestation failed before activation. At this point Pocket ID, Telegram MCP and
+Cloudflare Tunnel remained active. Baseline: 60 GiB disk available, 6,811 MiB
+memory available, no swap use; controller cgroup memory approximately 12 MiB.
+These are bootstrap observations, not representative ingestion capacity results.
+
+The first trusted artifact deployment and rollback evidence is tracked in #35.
+Production remains gated by P12/P13.

@@ -1,6 +1,6 @@
 # Production CI access
 
-This is infrastructure preparation, not an application deployment pipeline.
+The original access-smoke workflow verifies infrastructure access. The separate verified-release workflow now adds narrowly scoped application deployment; see [the release runbook](releases.md).
 
 GitHub Actions joins the existing tailnet through Tailscale workload identity federation. No permanent Tailscale API secret or SSH private key is stored in GitHub.
 
@@ -12,7 +12,7 @@ GitHub Actions joins the existing tailnet through Tailscale workload identity fe
 - GitHub environment: `production`, with only the `main` branch allowed.
 - OIDC scopes: writable `auth_keys` and `devices:core`, limited to `tag:personal-wiki-ci`.
 - Ephemeral CI nodes receive only `tag:personal-wiki-ci`. Their network grant permits TCP 22 to `tag:dock-cx33`; their Tailscale SSH rule accepts only `wiki-deploy`.
-- `wiki-deploy` has no sudo, Docker-group membership, or access to runtime credentials. Application installation/restart privileges are not configured yet.
+- `wiki-deploy` has no sudo, Docker-group membership, or access to runtime credentials. Application install/status/resume/rollback operations use the root-owned, fixed-target Unix-socket controller; there is no general privileged command interface.
 
 Environment variables: `TS_OIDC_CLIENT_ID`, `TS_OIDC_AUDIENCE`, `CI_VPS_HOST`, and `CI_DENIED_PEER`. These are connection metadata, not bearer credentials. The last variable identifies an owner device used for one negative reachability probe.
 
@@ -28,7 +28,7 @@ gh workflow run access-smoke.yml --ref main
 
 The workflow checks the remote UID/groups, denies sudo and runtime-secret reads, requires an explicit root SSH denial, and checks that selected disallowed network endpoints are unreachable. Reachability failures alone are not proof of ACL enforcement: the Tailscale policy additionally contains accept/deny tests for these targets. The action logs out and removes its ephemeral node during cleanup; verify removal in the tailnet after the first run or after an interrupted run.
 
-It does not check out project code, deploy an artifact, alter services, invoke Codex, or run Apify. The action is pinned by commit and the Tailscale client by version. A future deployment workflow must keep this authentication boundary and introduce separately scoped artifact installation, migration, restart, and rollback operations.
+It does not check out project code, deploy an artifact, alter services, invoke Codex, or run Apify. The action is pinned by commit and the Tailscale client by version. The separate `release.yml` workflow preserves this authentication boundary and invokes the scoped controller for verified artifact installation. This smoke workflow remains independent of application deployment.
 
 Reference: [official Tailscale GitHub Action](https://github.com/tailscale/github-action).
 
