@@ -1,3 +1,4 @@
+import { citationTitle } from "@personal-wiki/contracts/citation";
 import { Snapshot, Proposal, Draft, Note, Asset } from "@personal-wiki/contracts/knowledge";
 import { invalid } from "./io.ts";
 
@@ -108,7 +109,7 @@ export function validateBatch(
         !(
           note.markdown.includes(`](${citation.canonicalUrl})`) ||
           note.markdown.includes(
-            `](${citation.canonicalUrl} "wiki-citation:${citation.citationId}")`,
+            `](${citation.canonicalUrl} "${citationTitle(citation.citationId)}")`,
           )
         )
       )

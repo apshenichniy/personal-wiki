@@ -1,3 +1,4 @@
+import { citationFromTitle } from "@personal-wiki/contracts/citation";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { ReactNode } from "react";
@@ -41,12 +42,14 @@ export function SafeMarkdown({
         components={{
           a: ({ href, title, children }) => {
             const matches = citations.filter((c) => c.canonicalUrl === href);
-            const pinned = title?.startsWith("wiki-citation:")
-              ? matches.filter((c) => c.citationId === title.slice("wiki-citation:".length))
-              : matches;
+            const citationId = citationFromTitle(title);
+            const pinned =
+              citationId !== undefined
+                ? matches.filter((c) => c.citationId === citationId)
+                : matches;
             // Legacy Markdown may not identify one of multiple captures. Show
             // every candidate explicitly rather than silently choosing latest.
-            const ambiguous = !title?.startsWith("wiki-citation:") && pinned.length > 1;
+            const ambiguous = citationId === undefined && pinned.length > 1;
             return (
               <>
                 <External href={href}>{children}</External>
