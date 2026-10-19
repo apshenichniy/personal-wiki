@@ -219,6 +219,13 @@ export const makeLifecycle = Effect.gen(function* () {
           nextReason: "initial",
         };
         yield* store.insert(next);
+        // Transfer only archive grants used by the retained captures. Draft
+        // assets keep their existing slot authority; unrelated job assets do not
+        // become available to this new curation job.
+        for (const assetId of new Set(old.capture.captures.flatMap((c) => c.assetIds)))
+          yield* sql`INSERT INTO job_assets (job_id,asset_id)
+            SELECT ${jobId},asset_id FROM job_assets
+            WHERE job_id=${old.jobId} AND asset_id=${assetId}`;
         // This is a new authorized curation job over immutable retained evidence.
         yield* sql`INSERT INTO drafts VALUES(${randomUUID()},'retained-retry',${jobId},${stable(draft)})`;
         yield* store.schedule(next);
