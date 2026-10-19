@@ -691,6 +691,37 @@ export const makeLibrary = Effect.fn("Knowledge.makeLibrary")(function* (
         return { appliedRevision: state.appliedRevision, capture, source };
       }),
     );
+  const asset = (assetId: string) =>
+    Effect.gen(function* () {
+      if (!Schema.is(K.Id)(assetId)) return yield* fail("not_found", "Asset not found.");
+      const manifest = yield* sql.withTransaction(
+        Effect.gen(function* () {
+          const state = yield* read();
+          const retained = state.snapshot.captures.some((capture) =>
+            capture.assetIds.includes(assetId),
+          );
+          const job = yield* sql`SELECT asset_id FROM job_assets WHERE asset_id=${assetId} LIMIT 1`;
+          if (!retained && !job.length) return yield* fail("not_found", "Asset not found.");
+          const row = (yield* sql<{
+            payload: string;
+          }>`SELECT payload FROM assets WHERE asset_id=${assetId}`)[0];
+          if (!row) return yield* fail("not_found", "Asset not found.");
+          return decode(K.Asset, row.payload);
+        }),
+      );
+      const bytes = manifest.objectKey.startsWith("providers/")
+        ? archive
+          ? yield* archive.read({
+              key: manifest.objectKey,
+              sha256: manifest.sha256,
+              byteLength: manifest.byteLength,
+            })
+          : yield* fail("unavailable", "Private archive is unavailable.")
+        : yield* io(() => readFile(join(root, "objects", assetId)));
+      if (bytes.length !== manifest.byteLength || digest(bytes) !== manifest.sha256)
+        return yield* fail("unavailable", "Retained asset verification failed.");
+      return bytes;
+    });
   const search = (query: string, revision?: string) =>
     sql.withTransaction(
       Effect.gen(function* () {
@@ -756,6 +787,7 @@ export const makeLibrary = Effect.fn("Knowledge.makeLibrary")(function* (
     list,
     note,
     capture,
+    asset,
     search,
     rebuild,
     checkCapture,

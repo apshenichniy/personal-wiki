@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "number",
+      "enum": [
+        1
+      ]
+    },
+    "expiresAt": {
+      "type": "string"
+    },
+    "csrfToken": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "expiresAt",
+    "csrfToken"
+  ],
+  "additionalProperties": true,
+  "$defs": {}
+}
