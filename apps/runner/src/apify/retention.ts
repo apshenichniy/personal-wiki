@@ -244,8 +244,8 @@ export function makeRetention(options: {
             .page(operation.run.datasetId, offset, 100, 67_108_864 - bytes, deadline)
             .pipe(
               Effect.retry({
-                times: 3,
-                schedule: Schedule.exponential("250 millis"),
+                times: 5,
+                schedule: Schedule.exponential("500 millis"),
                 while: (error) => error.code === "protocol" && Date.now() < deadline,
               }),
             );
