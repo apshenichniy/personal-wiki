@@ -10,6 +10,7 @@ export class ProviderError extends Schema.TaggedError<ProviderError>()("Provider
     "budget",
     "deadline",
     "remote_pending",
+    "capacity",
     "invalid_transition",
   ]),
   message: Schema.String,

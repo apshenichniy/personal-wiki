@@ -253,6 +253,30 @@ test("operation identity reuse with another input cannot adopt an earlier receip
     expect(h.posts()).toBe(1);
   }));
 
+test("a proven unissued permit can consume an existing intent exactly once", async () =>
+  harness(async (h) => {
+    await writeFile(
+      join(h.root, `${h.identity.operationId}.intent.json`),
+      JSON.stringify(h.identity),
+      { mode: 0o600 },
+    );
+    let permits = 0;
+    const options = {
+      ...h,
+      resumeUnissuedPermit: true,
+      permit: Effect.sync(() => {
+        if (permits++) throw new Error("Permit already issued");
+        return input();
+      }),
+      accept: () => Effect.void,
+      uncertain: Effect.void,
+    };
+    await Effect.runPromise(dispatchOnce(options));
+    await Effect.runPromise(dispatchOnce(options));
+    expect(permits).toBe(1);
+    expect(h.posts()).toBe(1);
+  }));
+
 test("world-readable spools and symlink intents fail before permission", async () =>
   harness(async (h) => {
     let permits = 0;

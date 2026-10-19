@@ -66,7 +66,8 @@ export function makeXAcquisition(options: {
     let abortRequested = false;
     while (!P.terminal(operation.status)) {
       const inspection = yield* api.inspect({ payload: { jobId: options.scope.jobId } });
-      const stopped = inspection.shouldStop || Date.now() >= operation.job.deadline;
+      const stopped =
+        inspection.shouldStop || operation.stopRequested || Date.now() >= operation.job.deadline;
       operation = (yield* stopped && !abortRequested
         ? service.stop(operation, Date.now() + 15_000)
         : service.refresh(operation, Date.now() + 15_000)).operation;

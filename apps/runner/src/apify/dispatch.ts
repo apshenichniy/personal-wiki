@@ -106,7 +106,7 @@ export const retainedDispatch = (root: string, identity: DispatchIdentity) =>
   });
 
 /** Local intent precedes the Service's one-use permit. A surviving intent without
- * a complete receipt is an unresolved start, even if its previous process died.
+ * a receipt is unresolved unless the Service proves its permit is still unissued.
  * A receipt is fsynced before Service acknowledgment and can be adopted without
  * another permit or POST. The Service still owns fencing, budgets and run IDs. */
 export const dispatchOnce = <E, R>(options: {
@@ -116,6 +116,7 @@ export const dispatchOnce = <E, R>(options: {
   permit: Effect.Effect<StartRequest, E, R>;
   accept: (receipt: StartReceipt) => Effect.Effect<void, E, R>;
   uncertain: Effect.Effect<void, E, R>;
+  resumeUnissuedPermit?: boolean;
 }) =>
   Effect.gen(function* () {
     const identity = yield* Schema.decodeUnknownEffect(Identity)(options.identity);
@@ -154,7 +155,10 @@ export const dispatchOnce = <E, R>(options: {
     if (!created) {
       const retained = yield* io(async () => {
         const bytes = await readPrivate(receiptPath);
-        if (!bytes) throw failure("start_unknown");
+        if (!bytes) {
+          if (options.resumeUnissuedPermit) return null;
+          throw failure("start_unknown");
+        }
         const raw: RawResponse = {
           bytes,
           sha256: createHash("sha256").update(bytes).digest("hex"),
@@ -163,8 +167,10 @@ export const dispatchOnce = <E, R>(options: {
         };
         return validate({ raw, run: decodeRun(raw, true) });
       });
-      yield* options.accept(retained);
-      return retained;
+      if (retained) {
+        yield* options.accept(retained);
+        return retained;
+      }
     }
     return yield* Effect.gen(function* () {
       const input = yield* options.permit;

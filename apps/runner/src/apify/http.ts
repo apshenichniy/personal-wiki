@@ -45,7 +45,9 @@ const Run = Schema.Struct({
     "ABORTING",
     "ABORTED",
   ]),
-  usageTotalUsd: Schema.optional(Schema.Number.check(Schema.isGreaterThanOrEqualTo(0))),
+  usageTotalUsd: Schema.optional(
+    Schema.NullOr(Schema.Number.check(Schema.isGreaterThanOrEqualTo(0))),
+  ),
 });
 export type ApifyRun = typeof Run.Type;
 export type RawResponse = {
@@ -126,7 +128,7 @@ export function decodeRun(raw: RawResponse, start: boolean): ApifyRun {
   if (
     !Number.isFinite(Date.parse(run.startedAt)) ||
     (run.finishedAt !== null && !Number.isFinite(Date.parse(run.finishedAt))) ||
-    (run.usageTotalUsd !== undefined && !Number.isFinite(run.usageTotalUsd))
+    (run.usageTotalUsd != null && !Number.isFinite(run.usageTotalUsd))
   )
     throw error("protocol", start);
   return run;

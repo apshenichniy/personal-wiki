@@ -21,6 +21,7 @@
             "budget",
             "deadline",
             "remote_pending",
+            "capacity",
             "invalid_transition"
           ]
         },

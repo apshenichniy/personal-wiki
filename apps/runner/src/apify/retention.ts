@@ -1,8 +1,8 @@
 import { constants } from "node:fs";
-import { link, lstat, mkdir, open, unlink } from "node:fs/promises";
+import { link, lstat, mkdir, open, unlink, rename } from "node:fs/promises";
 import { join } from "node:path";
 import { createHash, randomUUID } from "node:crypto";
-import { Effect, Schema } from "effect";
+import { Clock, Effect, Schema } from "effect";
 import type { makeJobClient } from "@personal-wiki/client";
 import { ProviderRawUpload } from "@personal-wiki/contracts/provider-api";
 import * as P from "@personal-wiki/contracts/provider";
@@ -23,6 +23,81 @@ const isCode = (error: unknown, code: string) =>
   typeof error === "object" && error !== null && "code" in error && error.code === code;
 const sha = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
 type Upload = typeof ProviderRawUpload.Type;
+
+const RetentionDebt = Schema.Struct({
+  reason: Schema.Literals(["capacity", "retryable"]),
+  retryAt: Schema.NullOr(P.Millis),
+});
+/** Terminal evidence debt must not monopolize the Runner or suppress billing
+ * reconciliation. Keep conservative Service liability and throttle local reads.
+ * Capacity needs operator intervention; changing the byte limit is not a retry. */
+export const recoverProviderDebt = <E, R>(
+  root: string,
+  operation: P.Operation,
+  kind: "retention" | "accounting",
+  retain: Effect.Effect<P.Operation, E, R>,
+  now: number,
+) =>
+  Effect.gen(function* () {
+    yield* Schema.decodeUnknownEffect(P.Operation.fields.operationId)(operation.operationId);
+    const path = join(root, `${operation.operationId}.${kind}-debt.json`);
+    const old = yield* io(async () => {
+      const file = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW).catch(
+        (error: unknown) => {
+          if (isCode(error, "ENOENT")) return null;
+          throw error;
+        },
+      );
+      if (!file) return null;
+      try {
+        const stat = await file.stat();
+        if (!stat.isFile() || stat.mode & 0o077 || stat.size > 4096) throw fail("storage");
+        return Schema.decodeUnknownSync(Schema.fromJsonString(RetentionDebt))(
+          await file.readFile("utf8"),
+        );
+      } finally {
+        await file.close();
+      }
+    });
+    if (old && (old.retryAt === null || now < old.retryAt)) return { operation, deferred: true };
+    const attemptedAt = yield* Clock.currentTimeMillis;
+    const result = yield* retain.pipe(Effect.result);
+    if (result._tag === "Success") return { operation: result.success, deferred: false };
+    const elapsed = Math.max(0, (yield* Clock.currentTimeMillis) - attemptedAt);
+    const capacity = kind === "retention" && isCode(result.failure, "capacity");
+    yield* io(async () => {
+      const directory = await open(root, constants.O_RDONLY | constants.O_NOFOLLOW);
+      const stat = await directory.stat();
+      if (!stat.isDirectory() || stat.mode & 0o077) {
+        await directory.close();
+        throw fail("storage");
+      }
+      const temp = join(root, `.${randomUUID()}.debt-pending`);
+      try {
+        const file = await open(
+          temp,
+          constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW,
+          0o600,
+        );
+        try {
+          await file.writeFile(
+            JSON.stringify({
+              reason: capacity ? "capacity" : "retryable",
+              retryAt: capacity ? null : now + elapsed + 60_000,
+            }),
+          );
+          await file.sync();
+        } finally {
+          await file.close();
+        }
+        await rename(temp, path);
+        await directory.sync();
+      } finally {
+        await directory.close();
+      }
+    });
+    return { operation, deferred: true };
+  });
 
 /** Fsync exact response bytes before sending the Service a write intent. Terminal
  * run metadata (including costs) can change, so a failed upload must replay the

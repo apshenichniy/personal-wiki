@@ -212,7 +212,7 @@ test("pending raw writes consume capacity and block archive completion without r
       expect(yield* ledger.pages(id)).toHaveLength(0);
       expect(yield* archive.retain(upload(id, "run", runBody)).pipe(Effect.result)).toMatchObject({
         _tag: "Failure",
-        failure: { code: "invalid_request" },
+        failure: { code: "capacity" },
       });
       expect(yield* ledger.archived(id).pipe(Effect.result)).toMatchObject({ _tag: "Failure" });
     }),

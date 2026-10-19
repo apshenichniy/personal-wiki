@@ -16,12 +16,12 @@ import type { ProviderRawUpload } from "@personal-wiki/contracts/provider-api";
 const invalid = (message: string) => new JobError({ code: "invalid_transition", message });
 const providerCleanup = (reason: string | null) =>
   reason === "provider_start_unknown" || reason === "provider_execution_pending";
-const acquisitionStopped = (job: JobRecord, now: number) =>
+const acquisitionClosed = (job: JobRecord, now: number) =>
   isTerminal(job.stage) ||
   job.stopReason !== null ||
-  job.lease === null ||
-  job.lease.expiresAt <= now ||
   (job.startedAt !== null && now >= job.startedAt + 300_000);
+const acquisitionStopped = (job: JobRecord, now: number) =>
+  acquisitionClosed(job, now) || job.lease === null || job.lease.expiresAt <= now;
 
 export const makeJobProviders = (namespace: typeof P.Namespace.Type, enabled = true) =>
   Effect.gen(function* () {
@@ -30,6 +30,12 @@ export const makeJobProviders = (namespace: typeof P.Namespace.Type, enabled = t
     const ledger = yield* ProviderLedger;
     const archive = yield* ProviderArchive;
     const library = yield* Library;
+    const fenceStoppedExecution = (job: JobRecord, now: number) =>
+      acquisitionClosed(job, now)
+        ? ledger.requestStop(job.jobId)
+        : acquisitionStopped(job, now)
+          ? ledger.requestExecutionStop(job.jobId)
+          : Effect.void;
     const configure = (
       identityId: string,
       scope: J.JobScope,
@@ -197,8 +203,7 @@ export const makeJobProviders = (namespace: typeof P.Namespace.Type, enabled = t
           const { saved } = yield* member(identityId, operationId);
           // A retained receipt may arrive after cancellation or lease expiry.
           // Adopt its identity for cleanup without reviving the acquisition.
-          if (acquisitionStopped(saved.record, yield* Clock.currentTimeMillis))
-            yield* ledger.requestStop(saved.record.jobId);
+          yield* fenceStoppedExecution(saved.record, yield* Clock.currentTimeMillis);
           const result = yield* ledger.attachRun(operationId, run, evidence);
           if (saved.record.cleanupPending && providerCleanup(saved.record.reason))
             yield* store.put(
@@ -212,16 +217,17 @@ export const makeJobProviders = (namespace: typeof P.Namespace.Type, enabled = t
       const saved = yield* jobs.requireJob(jobId);
       const job = saved.record;
       if (!job.cleanupPending || !providerCleanup(job.reason) || job.activeAttemptId) return;
+      const now = yield* Clock.currentTimeMillis;
       const operations = (yield* ledger.all()).filter((op) => op.job.jobId === jobId);
       if (
         operations.some(
           (op) =>
-            ["reserved", "dispatching", "unknown"].includes(op.phase) ||
+            ["dispatching", "unknown"].includes(op.phase) ||
+            (op.phase === "reserved" && job.lease !== null && job.lease.expiresAt > now) ||
             (op.phase === "known" && !P.terminal(op.status)),
         )
       )
         return;
-      const now = yield* Clock.currentTimeMillis;
       const next = { ...job, cleanupPending: false, reason: null };
       if (job.stopReason || (job.deadline !== null && now >= job.deadline)) {
         yield* ledger.requestStop(jobId);
@@ -275,7 +281,7 @@ export const makeJobProviders = (namespace: typeof P.Namespace.Type, enabled = t
             });
           const now = yield* Clock.currentTimeMillis;
           const shouldStop = acquisitionStopped(job, now);
-          if (shouldStop) yield* ledger.requestStop(jobId);
+          yield* fenceStoppedExecution(job, now);
           yield* settle(jobId);
           return {
             shouldStop,

@@ -102,6 +102,36 @@ const program = Effect.gen(function* () {
     );
     assert.equal(result.failure.code, code);
   });
+  const reclaim = Effect.fn(function* (jobId: string) {
+    for (let i = 0; i < 200; i++) {
+      const value = yield* jobs.claim(identity, { requestId: randomUUID(), instanceId });
+      if (value) {
+        assert.equal(value.job.jobId, jobId);
+        return value;
+      }
+      yield* Effect.sleep("20 millis");
+    }
+    return yield* Effect.die("Synthetic recovery claim not delivered");
+  });
+
+  // A pre-permit crash has no remote obligation and must not poison the job's
+  // original acquisition window when a new epoch resumes it.
+  const unissued = yield* claim();
+  const reserved = yield* provider.reserve(identity, unissued.scope, input());
+  yield* lifecycle.sweep(true);
+  yield* provider.inspect(identity, unissued.scope.jobId);
+  assert.equal((yield* ledger.get(reserved.operationId)).phase, "reserved");
+  const resumed = yield* reclaim(unissued.scope.jobId);
+  assert.equal(
+    (yield* provider.reserve(identity, resumed.scope, input())).operationId,
+    reserved.operationId,
+  );
+  yield* lifecycle.cancel("synthetic-owner", {
+    requestId: randomUUID(),
+    jobId: unissued.scope.jobId,
+  });
+  yield* provider.inspect(identity, unissued.scope.jobId);
+  assert.equal((yield* ledger.get(reserved.operationId)).phase, "closed");
 
   const cancelled = yield* claim();
   const first = yield* provider.reserve(identity, cancelled.scope, input());
@@ -174,10 +204,17 @@ const program = Effect.gen(function* () {
     transientFailure: false,
   });
   assert.equal((yield* jobs.get(restarted.scope.jobId)).stage, "queued");
+  yield* provider.inspect(identity, restarted.scope.jobId);
+  const resumedAcquisition = yield* reclaim(restarted.scope.jobId);
+  assert.equal(
+    (yield* provider.reserve(identity, resumedAcquisition.scope, input("author"))).phase,
+    "reserved",
+  );
   yield* lifecycle.cancel("synthetic-owner", {
     requestId: randomUUID(),
     jobId: restarted.scope.jobId,
   });
+  yield* provider.inspect(identity, restarted.scope.jobId);
 
   // A crash in the two-database gap is conservative until cancellation proves
   // the never-issued permit can no longer be consumed.
@@ -192,6 +229,16 @@ const program = Effect.gen(function* () {
   );
   yield* provider.inspect(identity, gap.scope.jobId);
   assert.equal((yield* jobs.get(gap.scope.jobId)).cleanupPending, true);
+  yield* lifecycle.sweep(true);
+  yield* provider.inspect(identity, gap.scope.jobId);
+  assert.equal((yield* jobs.get(gap.scope.jobId)).cleanupPending, false);
+  assert.equal((yield* jobs.get(gap.scope.jobId)).stage, "queued");
+  assert.equal((yield* ledger.get(third.operationId)).phase, "reserved");
+  const gapResumed = yield* reclaim(gap.scope.jobId);
+  assert.equal(
+    (yield* provider.reserve(identity, gapResumed.scope, input())).operationId,
+    third.operationId,
+  );
   yield* lifecycle.cancel("synthetic-owner", { requestId: randomUUID(), jobId: gap.scope.jobId });
   yield* provider.inspect(identity, gap.scope.jobId);
   assert.equal((yield* ledger.get(third.operationId)).phase, "closed");

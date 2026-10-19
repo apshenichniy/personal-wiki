@@ -105,6 +105,20 @@ test("503, malformed success and mismatched build never auto-retry or expose pro
   }
 });
 
+test("pending null usage retains exact run identities without inventing zero cost", async () => {
+  await withServer(
+    () => Response.json({ data: { ...run, usageTotalUsd: null } }),
+    async (client) => {
+      const started = await Effect.runPromise(client.start(start()));
+      expect(started.run.id).toBe(run.id);
+      expect(started.run.usageTotalUsd).toBeNull();
+      const status = await Effect.runPromise(client.status(run.id, deadline()));
+      expect(status.run.defaultDatasetId).toBe(run.defaultDatasetId);
+      expect(status.run.usageTotalUsd).toBeNull();
+    },
+  );
+});
+
 test("redirects cannot forward authentication or replay an Actor POST", async () => {
   let requests = 0;
   await withServer(

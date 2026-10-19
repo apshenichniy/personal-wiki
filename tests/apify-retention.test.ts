@@ -6,8 +6,14 @@ import { createHash } from "node:crypto";
 import { Effect, Redacted } from "effect";
 import { makeJobClient } from "@personal-wiki/client";
 import type * as P from "@personal-wiki/contracts/provider";
-import { makeRetention, rawSpool } from "../apps/runner/src/apify/retention.ts";
+import {
+  makeRetention,
+  rawSpool,
+  recoverProviderDebt,
+  RetentionError,
+} from "../apps/runner/src/apify/retention.ts";
 import { makeApifyHttp } from "../apps/runner/src/apify/http.ts";
+import { makeProviderRecovery } from "../apps/runner/src/apify/recovery.ts";
 const sha = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
 const op = (): P.Operation => ({
   operationId: crypto.randomUUID(),
@@ -47,6 +53,177 @@ const op = (): P.Operation => ({
   archived: false,
   transientFailure: false,
   resolutionEvidence: null,
+});
+
+test("terminal retention debt survives restart without repeated oversized reads or suppressing later work", async () => {
+  const root = await mkdtemp(join(tmpdir(), "wiki-retention-debt-"));
+  try {
+    const operation = op();
+    let attempts = 0;
+    let accounting = 0;
+    const oversized = Effect.sync(() => {
+      attempts++;
+    }).pipe(
+      Effect.andThen(
+        Effect.fail(new RetentionError({ code: "capacity", message: "Synthetic oversized page" })),
+      ),
+    );
+    for (const now of [1_000, 1_000_000]) {
+      const result = await Effect.runPromise(
+        recoverProviderDebt(root, operation, "retention", oversized, now).pipe(
+          Effect.tap(() =>
+            Effect.sync(() => {
+              accounting++;
+            }),
+          ),
+        ),
+      );
+      expect(result).toEqual({ operation, deferred: true });
+    }
+    expect(attempts).toBe(1);
+    expect(accounting).toBe(2);
+    const other = op();
+    let retries = 0;
+    const transient = Effect.sync(() => {
+      retries++;
+    }).pipe(
+      Effect.andThen(
+        Effect.fail(
+          new RetentionError({ code: "storage", message: "Synthetic unavailable archive" }),
+        ),
+      ),
+    );
+    await Effect.runPromise(recoverProviderDebt(root, other, "retention", transient, 1_000));
+    await Effect.runPromise(recoverProviderDebt(root, other, "retention", transient, 2_000));
+    expect(retries).toBe(1);
+    const recovered = await Effect.runPromise(
+      recoverProviderDebt(
+        root,
+        other,
+        "retention",
+        Effect.succeed({ ...other, archived: true }),
+        62_000,
+      ),
+    );
+    expect(recovered.deferred).toBe(false);
+    expect(recovered.operation.archived).toBe(true);
+    const slow = op();
+    let slowAttempts = 0;
+    const slowFailure = Effect.sync(() => {
+      slowAttempts++;
+    }).pipe(
+      Effect.andThen(Effect.sleep("80 millis")),
+      Effect.andThen(
+        Effect.fail(new RetentionError({ code: "storage", message: "Delayed failure" })),
+      ),
+    );
+    await Effect.runPromise(recoverProviderDebt(root, slow, "retention", slowFailure, 1_000));
+    await Effect.runPromise(recoverProviderDebt(root, slow, "retention", slowFailure, 61_001));
+    expect(slowAttempts).toBe(1);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("Runner recovery closes a cancelled reservation and reconciles costs despite deferred retention", async () => {
+  const root = await mkdtemp(join(tmpdir(), "wiki-recovery-"));
+  const reserved: P.Operation = { ...op(), phase: "reserved", run: null, status: null };
+  let terminal: P.Operation = { ...op(), costStable: false };
+  let observations = 0;
+  let retentionReads = 0;
+  let accountingReads = 0;
+  let accountingUnavailable = false;
+  const api = Bun.serve({
+    hostname: "127.0.0.1",
+    port: 0,
+    fetch: async (request) => {
+      const path = new URL(request.url).pathname;
+      if (path.endsWith("/pending")) return Response.json([reserved, terminal]);
+      if (path.endsWith("/inspect")) {
+        const body = await request.json();
+        return Response.json({
+          shouldStop: true,
+          operations: [
+            body.jobId === reserved.job.jobId ? { ...reserved, phase: "closed" } : terminal,
+          ],
+        });
+      }
+      if (path.endsWith("/pages")) {
+        retentionReads++;
+        return Response.json(
+          { code: "capacity", message: "Synthetic capacity limit", requestId: crypto.randomUUID() },
+          { status: 409 },
+        );
+      }
+      if (path.endsWith("/observe")) {
+        observations++;
+        terminal = { ...terminal, costStable: true, observedCost: 250_000 };
+        return Response.json(terminal);
+      }
+      throw new Error(`Unexpected recovery Service route: ${path}`);
+    },
+  });
+  const remote = Bun.serve({
+    hostname: "127.0.0.1",
+    port: 0,
+    fetch: (request) => {
+      expect(request.method).toBe("GET");
+      accountingReads++;
+      if (accountingUnavailable) return new Response("Temporary outage", { status: 503 });
+      return Response.json({
+        data: {
+          id: terminal.run!.runId,
+          actId: "actor",
+          buildId: terminal.run!.buildId,
+          defaultDatasetId: terminal.run!.datasetId,
+          defaultKeyValueStoreId: terminal.run!.keyValueStoreId,
+          startedAt: new Date(terminal.run!.startedAt).toISOString(),
+          finishedAt: new Date(terminal.finishedAt!).toISOString(),
+          status: "SUCCEEDED",
+          usageTotalUsd: 0.00025,
+        },
+      });
+    },
+  });
+  try {
+    const client = await Effect.runPromise(makeJobClient(api.url.origin, "synthetic"));
+    const recover = makeProviderRecovery({
+      client,
+      http: makeApifyHttp(Redacted.make("synthetic"), remote.url.origin),
+      spool: root,
+    });
+    expect(await Effect.runPromise(recover())).toEqual({
+      unresolved: 0,
+      retentionPending: 1,
+      accountingPending: 0,
+    });
+    expect(observations).toBe(1);
+    expect(await Effect.runPromise(recover())).toEqual({
+      unresolved: 0,
+      retentionPending: 1,
+      accountingPending: 0,
+    });
+    expect(retentionReads).toBe(1);
+    expect(terminal.archived).toBe(false);
+    accountingUnavailable = true;
+    terminal = { ...terminal, costStable: false };
+    expect(await Effect.runPromise(recover())).toEqual({
+      unresolved: 0,
+      retentionPending: 1,
+      accountingPending: 1,
+    });
+    expect(await Effect.runPromise(recover())).toEqual({
+      unresolved: 0,
+      retentionPending: 1,
+      accountingPending: 1,
+    });
+    expect(accountingReads).toBe(2);
+    expect(observations).toBe(1);
+  } finally {
+    await api.stop(true);
+    await remote.stop(true);
+    await rm(root, { recursive: true, force: true });
+  }
 });
 
 test("retention replays exact spooled bytes after Service failure without a second provider download", async () => {

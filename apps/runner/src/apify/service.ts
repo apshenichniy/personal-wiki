@@ -46,6 +46,7 @@ export function makeServiceAcquisition(options: {
     const profile = yield* api.profile();
     yield* dispatchOnce({
       root: options.spool,
+      resumeUnissuedPermit: operation.phase === "reserved",
       identity: {
         operationId: operation.operationId,
         inputDigest: operation.digest,
@@ -105,7 +106,7 @@ export function makeServiceAcquisition(options: {
     )
       return yield* fail("conflict");
     const usageNanos = yield* Effect.try({
-      try: () => (run.usageTotalUsd === undefined ? null : P.usdToNanos(run.usageTotalUsd)),
+      try: () => (run.usageTotalUsd == null ? null : P.usdToNanos(run.usageTotalUsd)),
       catch: () => fail("conflict"),
     });
     const updated = yield* api.observe({

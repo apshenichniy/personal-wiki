@@ -2,14 +2,12 @@ import { BunRuntime } from "@effect/platform-bun";
 import { Cause, Config, Console, Effect, Redacted, Schema } from "effect";
 import { constants } from "node:fs";
 import { open, mkdir, lstat } from "node:fs/promises";
-import { isAbsolute, join } from "node:path";
+import { isAbsolute } from "node:path";
 import { randomUUID } from "node:crypto";
 import { makeJobClient } from "@personal-wiki/client";
-import * as P from "@personal-wiki/contracts/provider";
 import { ingestX } from "./apify/ingest.ts";
 import { makeApifyHttp } from "./apify/http.ts";
-import { makeServiceAcquisition } from "./apify/service.ts";
-import { makeRetention } from "./apify/retention.ts";
+import { makeProviderRecovery } from "./apify/recovery.ts";
 
 const Configuration = Schema.Struct({
   serviceUrl: Schema.String,
@@ -73,54 +71,12 @@ export const acquireOnce = Effect.gen(function* () {
     (yield* privateText(config.runnerTokenFile)).trim(),
   );
   const http = makeApifyHttp(Redacted.make((yield* privateText(config.apifyTokenFile)).trim()));
-  const recover = Effect.fn("Runner.recoverProviderObligations")(function* () {
-    let unresolved = 0;
-    for (let operation of yield* client.providers.pending()) {
-      const spool = join(config.spool, operation.job.jobId);
-      yield* Effect.tryPromise(() => mkdir(spool, { recursive: true, mode: 0o700 }));
-      const service = makeServiceAcquisition({ client, http, spool });
-      operation = yield* service.recover(operation);
-      if (!operation.run) {
-        unresolved++;
-        continue;
-      }
-      const inspection = yield* client.providers.inspect({
-        payload: { jobId: operation.job.jobId },
-      });
-      if (!P.terminal(operation.status) && !inspection.shouldStop) {
-        unresolved++;
-        continue;
-      }
-      if (!P.terminal(operation.status))
-        operation = (yield* service.stop(operation, Date.now() + 15_000)).operation;
-      for (let poll = 0; !P.terminal(operation.status) && poll < 30; poll++) {
-        yield* Effect.sleep("1 second");
-        operation = (yield* service.refresh(operation, Date.now() + 15_000)).operation;
-      }
-      if (!P.terminal(operation.status)) {
-        unresolved++;
-        continue;
-      }
-      if (!operation.archived)
-        operation = yield* makeRetention({ client, http, spool: join(spool, "raw") })(
-          operation,
-          Date.now() + 120_000,
-        );
-      if (!operation.costStable) {
-        operation = (yield* service.refresh(operation, Date.now() + 15_000)).operation;
-        if (!operation.costStable) {
-          yield* Effect.sleep("11 seconds");
-          operation = (yield* service.refresh(operation, Date.now() + 15_000)).operation;
-        }
-      }
-    }
-    return unresolved;
-  });
-  const unresolved = yield* recover();
-  if (unresolved) return { status: "blocked", unresolved };
+  const recover = makeProviderRecovery({ client, http, spool: config.spool });
+  const recovery = yield* recover();
+  if (recovery.unresolved) return { status: "blocked", ...recovery };
   const instanceId = randomUUID();
   const claim = yield* client.worker.claim({ payload: { requestId: randomUUID(), instanceId } });
-  if (!claim) return { status: "idle" };
+  if (!claim) return { status: "idle", ...recovery };
   const heartbeat = Effect.gen(function* () {
     while (true) {
       yield* Effect.sleep("5 seconds");
@@ -137,7 +93,7 @@ export const acquireOnce = Effect.gen(function* () {
     status: job.stage,
     jobId: job.jobId,
     warnings: job.warnings.length,
-    unresolved: remaining,
+    ...remaining,
   };
 });
 

@@ -294,7 +294,7 @@ test("page checkpoints are immutable, resume after expiry, and enforce shared ra
           ...page(op.operationId, `dataset:${i}`),
           byteLength: 16_777_216,
         });
-      yield* failed(ledger.retainPage(page(op.operationId, "dataset:4")), "invalid_request");
+      yield* failed(ledger.retainPage(page(op.operationId, "dataset:4")), "capacity");
       expect((yield* ledger.pages(op.operationId)).length).toBe(4);
     }),
   ));

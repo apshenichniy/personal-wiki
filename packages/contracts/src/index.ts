@@ -33,6 +33,7 @@ export const ErrorEnvelope = Schema.Struct({
     "budget",
     "deadline",
     "remote_pending",
+    "capacity",
   ]),
   message: Schema.String,
   requestId: RequestId,

@@ -12,6 +12,7 @@ const Input = Schema.Struct({
   buildId: Identifier,
   startedAfter: Schema.Number,
   evidenceFile: Schema.String,
+  accountEvidenceFile: Schema.optional(Schema.String),
 });
 async function privateText(path: string) {
   if (!isAbsolute(path)) throw new Error("Private absolute path required");
@@ -71,15 +72,36 @@ try {
     run.id !== input.runId ||
     run.actId !== input.actorId ||
     run.buildId !== input.buildId ||
-    run.generalAccess !== "RESTRICTED" ||
     typeof run.startedAt !== "string" ||
     !Number.isFinite(Date.parse(run.startedAt)) ||
     Date.parse(run.startedAt) < input.startedAfter - 10_000 ||
     Date.now() - Date.parse(run.startedAt) > 300_000
   )
     throw new Error("Fresh restricted run identity was not verified");
-  const checks: Array<{ resource: string; anonymousStatus: number; restrictedMetadata: boolean }> =
-    [];
+  let inheritedRestriction = false;
+  if (input.accountEvidenceFile) {
+    const account = Schema.decodeUnknownSync(
+      Schema.fromJsonString(
+        Schema.Struct({
+          observedAt: Schema.String,
+          generalResourceAccess: Schema.Literal("RESTRICTED"),
+          savedAndConfirmedAfterReload: Schema.Literal(true),
+        }),
+      ),
+    )(await privateText(input.accountEvidenceFile));
+    const observed = Date.parse(account.observedAt);
+    inheritedRestriction = Number.isFinite(observed) && observed <= Date.parse(run.startedAt);
+  }
+  // FOLLOW_USER_SETTING is the documented account-level inheritance mode.
+  // Require prior account evidence AND fresh denial, never the enum alone.
+  const restricted = (value: unknown) =>
+    value === "RESTRICTED" || (value === "FOLLOW_USER_SETTING" && inheritedRestriction);
+  const checks: Array<{
+    resource: string;
+    anonymousStatus: number;
+    generalAccess: unknown;
+    effectiveRestrictionVerified: boolean;
+  }> = [];
   const resources = [
     ["actor-runs", input.runId],
     ["datasets", run.defaultDatasetId],
@@ -90,12 +112,27 @@ try {
     const id = Schema.decodeUnknownSync(Identifier)(rawId);
     const path = `${kind}/${id}`;
     const authenticated = kind === "actor-runs" ? response : await read(path, token);
-    if (authenticated.data?.generalAccess !== "RESTRICTED")
+    if (!restricted(authenticated.data?.generalAccess))
       throw new Error("Storage privacy metadata was not verified");
     const anonymous = await read(path);
     if (![401, 403, 404].includes(anonymous.status))
       throw new Error("Anonymous denial was not verified");
-    checks.push({ resource: kind, anonymousStatus: anonymous.status, restrictedMetadata: true });
+    checks.push({
+      resource: kind,
+      anonymousStatus: anonymous.status,
+      generalAccess: authenticated.data?.generalAccess,
+      effectiveRestrictionVerified: true,
+    });
+  }
+  // Metadata protection alone is insufficient: check the actual content paths.
+  for (const path of [
+    `actor-runs/${input.runId}/log`,
+    `datasets/${Schema.decodeUnknownSync(Identifier)(run.defaultDatasetId)}/items?limit=1`,
+    `key-value-stores/${Schema.decodeUnknownSync(Identifier)(run.defaultKeyValueStoreId)}/records/INPUT`,
+  ]) {
+    const anonymous = await read(path);
+    if (![401, 403].includes(anonymous.status))
+      throw new Error("Anonymous content denial was not verified");
   }
   if (!isAbsolute(input.evidenceFile)) throw new Error("Private evidence path required");
   const file = await open(
@@ -114,6 +151,8 @@ try {
           startedAt: run.startedAt,
           checkedWithinSeconds: (Date.now() - Date.parse(run.startedAt as string)) / 1000,
           noPrivacyMutations: true,
+          inheritedRestriction,
+          anonymousContentDenied: true,
           checks,
         },
         null,

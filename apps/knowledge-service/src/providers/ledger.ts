@@ -361,6 +361,18 @@ export const makeProviderLedger = Effect.gen(function* () {
         return next;
       }),
     );
+  const requestExecutionStop = (jobId: string) =>
+    sql.withTransaction(
+      Effect.gen(function* () {
+        for (const op of yield* all())
+          if (
+            op.job.jobId === jobId &&
+            ["dispatching", "unknown", "known"].includes(op.phase) &&
+            !P.terminal(op.status)
+          )
+            yield* put({ ...op, stopRequested: true });
+      }),
+    );
   const requestStop = (jobId: string) =>
     sql.withTransaction(
       Effect.gen(function* () {
@@ -435,7 +447,7 @@ export const makeProviderLedger = Effect.gen(function* () {
           }
         }
         if (bytes + page.byteLength > 67_108_864)
-          return yield* fail("invalid_request", "Raw job capacity exceeded.");
+          return yield* fail("capacity", "Raw job capacity exceeded.");
         yield* sql`INSERT INTO provider_page_intents VALUES(${page.operationId},${page.pageKey},${page.assetId},${stable(page)})`;
         return page;
       }),
@@ -499,6 +511,7 @@ export const makeProviderLedger = Effect.gen(function* () {
     attachRun,
     observe,
     requestStop,
+    requestExecutionStop,
     resolveAbsent,
     retainPage,
     reservePage,

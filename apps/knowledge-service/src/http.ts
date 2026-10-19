@@ -87,6 +87,7 @@ const Boundary = HttpRouter.middleware(
                 unavailable: 503,
                 cancelled: 409,
                 invalid_transition: 409,
+                capacity: 409,
                 deadline_exceeded: 409,
                 launch_limit: 409,
                 stale_owner: 409,
