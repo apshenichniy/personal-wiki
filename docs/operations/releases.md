@@ -91,3 +91,16 @@ inventory; it does not keep those import files synchronized. Rotate the canonica
 files through owner administration with dispatch stopped, update the corresponding
 runner token when rotating machine credentials, and restart both affected units so
 systemd reloads credentials. The installer preserves existing identities.
+
+### Pinned verifier prerequisite
+
+The owner installs GitHub CLI 2.101.0 at
+`/opt/personal-wiki-tools/gh/2.101.0/bin/gh` before installing the controller.
+The official `gh_2.101.0_linux_amd64.tar.gz` release asset has SHA-256
+`9bca2d1c16825f109907a23307628a2f0698fbf99662b73a5cf0b020293072b8`.
+Verify that digest before extraction and keep the directory root-owned and
+non-writable by application or deployment identities. The CLI needs no saved
+GitHub login to verify the public repository's bundled attestation.
+
+Ordinary PR CI also builds and smokes a disposable Linux package without
+provider credentials. Only `release.yml` on trusted main attests/promotes bytes.
