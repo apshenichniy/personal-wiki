@@ -309,6 +309,19 @@ class Deployment(unittest.TestCase):
         self.assertEqual(calls[0][1], calls[1][1])
         self.assertFalse((directory / "upload.stream").exists())
 
+    def test_cli_status_exit_distinguishes_null_error_from_failure(self):
+        import client
+        import contextlib
+        for result, expected in (({"phase": "complete", "error": None}, 0),
+                                 ({"phase": "uploaded", "error": None}, 0),
+                                 ({"phase": "failed", "error": "deployment_failed"}, 1),
+                                 ({"error": "request_rejected"}, 1)):
+            with self.subTest(result=result), patch("client.socket.socket") as socket, \
+                 patch.object(sys, "argv", ["client.py", "status", str(uuid.uuid4())]), \
+                 contextlib.redirect_stdout(io.StringIO()):
+                socket.return_value.__enter__.return_value.makefile.return_value.readline.return_value = json.dumps(result).encode() + b"\n"
+                self.assertEqual(client.main(), expected)
+
     def test_provenance_enforces_all_identity_dimensions(self):
         req = self.upload()
         folder = self.engine.uploads / req["operationId"]

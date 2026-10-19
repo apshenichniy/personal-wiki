@@ -37,7 +37,7 @@ def main():
             file.flush()
             result = json.loads(file.readline())
         print(json.dumps(result))
-        if "error" in result or result.get("phase") == "failed":
+        if result.get("error") is not None or result.get("phase") == "failed":
             return 1
     return 0
 

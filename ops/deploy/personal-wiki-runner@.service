@@ -20,6 +20,8 @@ ExecStartPre=/usr/bin/install -m 0600 %d/runner.json /run/personal-wiki-runner-%
 ExecStartPre=/usr/bin/install -m 0600 %d/runner-token /run/personal-wiki-runner-%i/runner-token
 ExecStartPre=/usr/bin/install -m 0600 %d/apify-token /run/personal-wiki-runner-%i/apify-token
 ExecStart=/usr/bin/python3 /opt/personal-wiki/current-%i/locked-runner.py /opt/personal-wiki/current-%i/bun /opt/personal-wiki/current-%i/runner.js
+# BunRuntime reports a handled interruption as exit 130.
+SuccessExitStatus=130
 Restart=on-failure
 RestartSec=10
 TimeoutStopSec=60

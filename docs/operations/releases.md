@@ -122,3 +122,8 @@ These are bootstrap observations, not representative ingestion capacity results.
 
 The first trusted artifact deployment and rollback evidence is tracked in #35.
 Production remains gated by P12/P13.
+
+The pinned Effect/Bun runtime exits with status 130 after an orderly stop signal.
+The service units classify this handled interruption as successful; other nonzero
+exit codes retain failure/restart behavior. This avoids false failed-unit alerts
+when deployment deliberately checkpoints and stops a healthy Runner or Service.

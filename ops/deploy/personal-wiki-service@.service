@@ -23,6 +23,8 @@ ExecStartPre=/usr/bin/install -m 0600 %d/owner-access.json /run/personal-wiki-se
 ExecStartPre=/usr/bin/install -m 0600 %d/machine-credentials.json /run/personal-wiki-service-%i/machine-credentials.json
 ExecStartPre=/usr/bin/install -m 0600 %d/r2.json /run/personal-wiki-service-%i/r2.json
 ExecStart=/usr/bin/python3 /opt/personal-wiki/current-%i/locked-service.py /opt/personal-wiki/current-%i/bun /opt/personal-wiki/current-%i/service.js
+# BunRuntime reports a handled interruption as exit 130.
+SuccessExitStatus=130
 Restart=on-failure
 RestartSec=5
 TimeoutStopSec=60
