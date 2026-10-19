@@ -77,6 +77,58 @@ def group_alive(group):
         return True
 
 
+def reap_descendants(child):
+    child.poll()
+    if child.returncode is None:
+        return False
+    try:
+        while os.waitpid(-1, os.WNOHANG)[0]:
+            pass
+        return False
+    except ChildProcessError:
+        return True
+
+
+def signal_adopted(signum):
+    if sys.platform != "linux":
+        return
+    # Subreaped Bubblewrap monitors can have a separate process group. Target
+    # only this guardian's direct children, using pidfds to avoid PID reuse.
+    children = pathlib.Path(f"/proc/{os.getpid()}/task/{os.getpid()}/children")
+    for value in children.read_text().split():
+        try:
+            fd = os.pidfd_open(int(value))
+        except ProcessLookupError:
+            continue
+        try:
+            parent = pathlib.Path(f"/proc/{value}/stat").read_text().rsplit(")", 1)[1].split()[1]
+            if int(parent) == os.getpid():
+                signal.pidfd_send_signal(fd, signum)
+        except (ProcessLookupError, FileNotFoundError):
+            pass
+        finally:
+            os.close(fd)
+
+
+def confirm_cleanup(child, lock, timeout=5):
+    # Bubblewrap's leader can disappear before its adopted descendants release
+    # inherited descriptors. Group death alone is not the final boundary proof.
+    end = time.monotonic() + timeout
+    while True:
+        reaped = reap_descendants(child)
+        acquired = False
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            acquired = True
+        except BlockingIOError:
+            pass
+        if reaped and acquired and not group_alive(child.pid):
+            return True
+        if time.monotonic() >= end:
+            return False
+        time.sleep(.02)
+
+
 def tree_bytes(root):
     total = 0
     for directory, dirs, files in os.walk(root, followlinks=False):
@@ -287,13 +339,10 @@ def main():
             except ProcessLookupError:
                 pass
         end = time.monotonic() + config.get("graceMs", 10000) / 1000
-        while time.monotonic() < end and group_alive(child.pid):
-            child.poll()
-            try:
-                while child.returncode is not None and os.waitpid(-1, os.WNOHANG)[0]:
-                    pass
-            except ChildProcessError:
-                pass
+        while time.monotonic() < end:
+            if reap_descendants(child) and not group_alive(child.pid):
+                break
+            signal_adopted(signal.SIGTERM)
             time.sleep(.02)
         if group_alive(child.pid):
             try:
@@ -301,13 +350,10 @@ def main():
             except ProcessLookupError:
                 pass
         end = time.monotonic() + 5
-        while time.monotonic() < end and group_alive(child.pid):
-            child.poll()
-            try:
-                while child.returncode is not None and os.waitpid(-1, os.WNOHANG)[0]:
-                    pass
-            except ChildProcessError:
-                pass
+        while time.monotonic() < end:
+            if reap_descendants(child) and not group_alive(child.pid):
+                break
+            signal_adopted(signal.SIGKILL)
             time.sleep(.02)
         gone = not group_alive(child.pid)
         # A fast exit can happen before select observes the final diagnostics.
@@ -347,10 +393,7 @@ def main():
     # Reopening after closing only our copy detects surviving lock holders.
     os.close(lock)
     lock = os.open(slot / "execution.lock", os.O_RDWR | os.O_NOFOLLOW)
-    try:
-        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-    except BlockingIOError:
-        gone = False
+    gone = confirm_cleanup(child, lock)
     if not gone:
         print('{"status":"blocked","reason":"process_cleanup_unconfirmed"}', flush=True)
         return 76
