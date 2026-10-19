@@ -8,7 +8,7 @@ The Cloudflare Tunnel must target **only the owner listener**, with its exact co
 
 Create distinct confidential Pocket ID clients for production and staging/local integration. Restrict each client to the owner's verified Pocket ID account and register its exact HTTPS callback, without wildcards. Production uses `https://wiki.alexp.sh/auth/callback`; staging/local hosts and client registrations must be separately recorded in private operator configuration. Local integration needs real HTTPS (for example an isolated tunnel); the implementation does not disable TLS or secure cookies for development.
 
-The configuration file must be an absolute, regular file with no group/other permissions or final symlink. It contains:
+The configuration file must be an absolute, regular file with no group/other permissions or final symlink. On the current CX33, systemd `LoadCredential` exposes a protected credential as mode `0440`; copy it with `install -m 0600` into a service-owned `RuntimeDirectory` with mode `0700`, then point the application at that ephemeral copy. Do not loosen the application file check or give Runner access. It contains:
 
 ```json
 {
@@ -59,4 +59,17 @@ Disabling a Pocket ID account alone does **not** invalidate existing application
 
 `mise exec -- bun test tests/owner-access.test.ts` exercises the real OIDC client against a controlled signing provider, the actual owner router/domain runtime and SQLite/Git. It covers wrong discovery issuer, issuer/audience/authorized-party/nonce/signature/expiry, failed PKCE, missing ID token, non-owner rejection, consumed/expired login transactions, secure cookies, session rotation/expiry, CSRF/origin checks, unknown routes, private asset retrieval, worker isolation, callback/download revocation races and the separate operator command. The fixture's in-process transport is test code, not a deployed login bypass.
 
-Real Pocket ID client provisioning, browser HTTPS/cookie evidence and private R2 retrieval through the deployed owner route remain separate integration requirements. A passing controlled-provider test does not close P9 or establish the deployed G4/G5 gates.
+### Recorded CX33 integration, 2026-10-19
+
+The P9 integration candidate used real Pocket ID with distinct confidential production and staging clients, exact callbacks, PKCE and a dedicated group containing the deliberately verified owner only. Client-level restriction is additional defense; the application still verifies the configured issuer/subject. Secrets have private VPS and off-VPS copies; temporary administration used the official one-time access CLI and was logged out without creating a persistent administrator API key.
+
+The isolated staging origin is `https://wiki-staging.alexp.sh`, with callback `/auth/callback`. Its Tunnel route targets only the owner listener at `127.0.0.1:3003`; the machine listener is `127.0.0.1:3002`. Existing production wiki placeholder, identity and Telegram routes are preserved. This temporary integration service runs as `wiki-service-staging`, without a Runner, Apify credentials or enabled paid-provider profile. P11 replaces the probe packaging with verified artifact delivery.
+
+Observed checks:
+
+- Chrome completed the actual Pocket ID authorization/callback, then read a synthetic published note and its captured original through the protected API over valid HTTPS.
+- Six unauthenticated GET/HEAD/range/conditional probes returned generic 401 with `private, no-store` and no CDN cache hit, including asset and worker paths.
+- The real operator command revoked the application session; the same Chrome session's next captured-source request returned generic 401.
+- Local combined verification passed 179 tests / 1,165 assertions; Linux CI passed 179 tests / 1,164 assertions. Platform-specific process probes account for the assertion difference. No paid provider was used for these access checks.
+
+Private evidence lives in the owner's `personal-wiki/evidence/p9` directory. A browser automation attempt to navigate directly to a binary attachment was blocked by the browser client; it is not reported as a successful browser download. The generated client binary-delivery test passed against the actual HTTP handler with controlled archive bytes. Browser download UX and assembled real-R2 delivery remain explicit P10/P13 checks. These observations establish the P9 identity/source-access boundary, not final artifact provenance, G4/G5 or iPhone owner acceptance.
