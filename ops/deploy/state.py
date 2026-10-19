@@ -73,14 +73,17 @@ class Records:
         atomic_json(self.path(record["operationId"]), record)
         return record
 
-    def create(self, request):
+    def create(self, request, recovery_of=None):
         path = self.path(request["operationId"])
         if path.exists():
             old = self.get(request["operationId"])
             if old["request"] != request:
                 raise ValueError("operation_conflict")
             return old
-        return self.put({"operationId": request["operationId"], "request": request, "phase": "uploaded", "error": None})
+        record = {"operationId": request["operationId"], "request": request, "phase": "uploaded", "error": None}
+        if recovery_of is not None:
+            record["recoveryOf"] = operation_id(recovery_of)
+        return self.put(record)
 
     def pending(self):
         return [json.loads(p.read_text()) for p in sorted(self.root.glob("*.json"))

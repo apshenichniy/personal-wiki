@@ -7,6 +7,7 @@ import subprocess
 import sys
 import time
 import uuid
+from artifact import identity, MAX_ARCHIVE
 
 
 def ssh(host, args, **options):
@@ -20,6 +21,9 @@ def main():
     if target not in ("staging", "production"):
         raise ValueError("Unknown target")
     metadata = json.loads((directory / "identity.json").read_text())
+    identity(metadata["revision"], metadata["digest"])
+    if type(metadata["size"]) is not int or not 0 < metadata["size"] <= MAX_ARCHIVE:
+        raise ValueError("Invalid artifact size")
     host = os.environ["CI_VPS_HOST"]
     # Rerunning a job for the same artifact/target uses the same durable operation.
     op_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f'personal-wiki:{target}:{metadata["digest"]}:{os.environ["GITHUB_RUN_ID"]}'))
@@ -31,15 +35,19 @@ def main():
         with (directory / "personal-wiki.tar.gz").open("rb") as source:
             import shutil
             shutil.copyfileobj(source, file)
-    with upload.open("rb") as file:
-        sent = ssh(host, ["install", op_id, target, metadata["revision"], metadata["digest"], str(metadata["size"])], stdin=file, capture_output=True, timeout=180)
-    upload.unlink()
+    try:
+        with upload.open("rb") as file:
+            ssh(host, ["install", op_id, target, metadata["revision"], metadata["digest"], str(metadata["size"])], stdin=file, capture_output=True, timeout=180)
+    except subprocess.TimeoutExpired:
+        pass  # The server may have committed acceptance before the connection died.
+    finally:
+        upload.unlink()
     # Lost transport acknowledgement is not another installation. Query the ID.
     for _ in range(120):
-        result = ssh(host, ["status", op_id], capture_output=True, text=True, timeout=30)
         try:
+            result = ssh(host, ["status", op_id], capture_output=True, text=True, timeout=30)
             value = json.loads(result.stdout)
-        except ValueError:
+        except (ValueError, subprocess.TimeoutExpired):
             time.sleep(3)
             continue
         if value.get("phase") == "complete":

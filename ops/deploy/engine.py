@@ -81,10 +81,7 @@ class Engine:
                 if not destination.exists():
                     os.link(self.root / "artifacts" / previous["digest"] / name, destination)
             sync_directory(folder)
-            record = self.records.create(request)
-            if recovery_of is not None:
-                record["recoveryOf"] = recovery_of
-                self.records.put(record)
+            self.records.create(request, recovery_of=recovery_of)
             return self.status(op_id)
 
     def critical_owner(self):
@@ -172,7 +169,8 @@ class Engine:
                         if not (cache / name).exists():
                             os.link(upload / name, cache / name)
                     sync_directory(cache)
-                    record["previous"] = self.active(target)
+                    record["previous"] = (self.records.get(record["recoveryOf"])["previous"].get("previous")
+                                          if record.get("recoveryOf") else self.active(target))
                     if req["operation"] == "rollback":
                         expected = (self.records.get(record["recoveryOf"])["previous"]
                                     if record.get("recoveryOf") else self.previous(target))

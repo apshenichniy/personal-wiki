@@ -222,6 +222,7 @@ class Deployment(unittest.TestCase):
         self.assertEqual(restarted.drive(second["operationId"])["phase"], "complete")
         self.assertEqual(restarted.drive(first["operationId"])["phase"], "complete")
         self.assertEqual(restarted.active("staging")["digest"], second["digest"])
+        self.assertEqual(restarted.previous("staging")["digest"], first["digest"])
         self.assertEqual((restarted.releases.parent / "current-staging").resolve(), (restarted.releases / second["digest"]).resolve())
 
     def test_failed_cutover_can_recover_to_last_healthy_release_without_reset(self):
@@ -242,10 +243,31 @@ class Deployment(unittest.TestCase):
         restarted = Engine(self.engine.root, self.engine.releases, self.host)
         self.assertEqual(restarted.drive(recovery)["phase"], "complete")
         self.assertEqual(restarted.active("staging")["digest"], second["digest"])
+        self.assertEqual(restarted.previous("staging")["digest"], first["digest"])
         self.assertEqual((restarted.releases.parent / "current-staging").resolve(), (restarted.releases / second["digest"]).resolve())
         self.assertEqual(restarted.drive(third["operationId"])["phase"], "superseded")
         self.assertEqual(restarted.resume(third["operationId"])["phase"], "superseded")
         self.assertEqual(self.host.cut, "state-with-accepted-job-and-git-history")
+
+    def test_recovery_identity_survives_death_after_first_durable_record(self):
+        first = self.upload()
+        second = self.upload("b" * 40)
+        self.engine.drive(first["operationId"])
+        with patch.object(self.host, "readiness", side_effect=ValueError("broken_binary")):
+            self.engine.drive(second["operationId"])
+        op_id = str(uuid.uuid4())
+        write = self.engine.records.put
+        def crash_after_record(record, phase=None):
+            write(record, phase)
+            raise Crash()
+        with patch.object(self.engine.records, "put", side_effect=crash_after_record):
+            with self.assertRaises(Crash):
+                self.engine.rollback(op_id, "staging")
+        restarted = Engine(self.engine.root, self.engine.releases, self.host)
+        self.assertEqual(restarted.records.get(op_id)["recoveryOf"], second["operationId"])
+        restarted.rollback(op_id, "staging")
+        self.assertEqual(restarted.drive(op_id)["phase"], "complete")
+        self.assertEqual(restarted.active("staging")["digest"], first["digest"])
 
     def test_rollback_retry_preserves_original_predecessor_and_rejects_identity_reuse(self):
         first = self.upload()
