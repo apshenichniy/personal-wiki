@@ -36,6 +36,14 @@ def copy_cut(source, destination, runner_spool=False, immutable_sqlite=False):
             raise ValueError('state_symlink')
         target = destination / entry.name
         if entry.is_dir():
+            if (runner_spool and entry.name == 'tmp' and entry.parent.name == 'auth'
+                    and re.fullmatch(r'[a-f0-9-]{36}', entry.parents[1].name)
+                    and re.fullmatch(r'[a-f0-9-]{36}', entry.parents[2].name)
+                    and entry.parents[3].name == 'agent-spool'):
+                # Pinned Codex may leave executable aliases in its temporary
+                # auth home after an early failure. Never follow or restore them;
+                # admitted inputs, results and process evidence live outside tmp.
+                continue
             copy_cut(entry, target, runner_spool=runner_spool, immutable_sqlite=immutable_sqlite)
         elif entry.is_file():
             if any(entry.name.endswith(suffix) and entry.with_name(entry.name[:-len(suffix)]).is_file()
