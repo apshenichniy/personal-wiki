@@ -23,9 +23,9 @@ with tempfile.TemporaryDirectory(prefix="wiki-cleanup-") as root:
 pid=os.fork()
 if pid==0:
  os.setsid()
+ print(os.getpid(), flush=True)
  time.sleep(float(sys.argv[1]))
  os._exit(0)
-print(pid, flush=True)
 os._exit(0)
 """
         leader = subprocess.Popen([sys.executable, "-c", script, str(delay)], pass_fds=(held,), start_new_session=True, stdout=subprocess.PIPE, text=True)

@@ -18,6 +18,29 @@
               "type": "null"
             }
           ]
+        },
+        "cursor": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 1024
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "limit": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "maximum": 100,
+              "exclusiveMinimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "required": [

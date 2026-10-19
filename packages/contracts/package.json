@@ -12,7 +12,8 @@
     "./provider": "./src/provider.ts",
     "./provider-api": "./src/provider-api.ts",
     "./x-url": "./src/x-url.ts",
-    "./curation": "./src/curation.ts"
+    "./curation": "./src/curation.ts",
+    "./citation": "./src/citation.ts"
   },
   "dependencies": {
     "effect": "4.0.5"

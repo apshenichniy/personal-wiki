@@ -50,7 +50,8 @@ const KnowledgeHandlers = HttpApiBuilder.group(
       note: ({ params, query }) => library.note(params.noteId, query.revision).pipe(Effect.orDie),
       capture: ({ params, query }) =>
         library.capture(params.captureId, query.revision).pipe(Effect.orDie),
-      search: ({ payload }) => library.search(payload.query, payload.revision).pipe(Effect.orDie),
+      search: ({ payload }) =>
+        library.search(payload.query, payload.revision, payload).pipe(Effect.orDie),
       rebuild: () => library.rebuild().pipe(Effect.orDie),
     });
   }),

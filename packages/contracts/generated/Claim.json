@@ -352,6 +352,68 @@
             }
           ]
         },
+        "captureSummary": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "captureId": {
+                    "type": "string",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                    "format": "uuid"
+                  },
+                  "endedAt": {
+                    "type": "string"
+                  },
+                  "posts": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "coverage": {
+                    "type": "object",
+                    "properties": {
+                      "main": {
+                        "type": "string"
+                      },
+                      "discussion": {
+                        "type": "string"
+                      },
+                      "context": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "main",
+                      "discussion",
+                      "context"
+                    ],
+                    "additionalProperties": true
+                  },
+                  "warnings": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "captureId",
+                  "endedAt",
+                  "posts",
+                  "coverage",
+                  "warnings"
+                ],
+                "additionalProperties": true
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "retainedCapture": {
           "type": "boolean"
         },

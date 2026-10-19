@@ -1,3 +1,4 @@
+import { citationTitle } from "@personal-wiki/contracts/citation";
 import { Schema } from "effect";
 import * as C from "@personal-wiki/contracts/curation";
 import * as K from "@personal-wiki/contracts/knowledge";
@@ -163,7 +164,7 @@ export function buildProposal(
             providerId: id,
             canonicalUrl: observation.canonicalUrl,
           });
-          return `[Источник](${observation.canonicalUrl})`;
+          return `[Источник](${observation.canonicalUrl} "${citationTitle(key)}")`;
         })
         .join(" ");
       return `${p.heading ? `### ${prose(p.heading)}\n\n` : ""}${p.attribution === "inference" ? "Комментарий составителя: " : ""}${prose(p.text)} ${links}`;

@@ -1,0 +1,10 @@
+language: typescript
+toolchains:
+  default: [javascript, bun]
+tasks:
+  build:
+    options:
+      cache: false
+    command: bun run build.ts
+    inputs: ["src/**/*", "build.ts", "package.json", "/bun.lock", "/packages/**/*.ts"]
+    outputs: [dist]

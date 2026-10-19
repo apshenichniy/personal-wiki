@@ -349,3 +349,49 @@ test("oversized complete proposals are rejected before retaining an operation", 
     db.close();
   }
 });
+
+test("search pagination binds query, page size and applied revision without duplicate note hits", async () => {
+  for (const id of ["99881001", "99881002", "99881003"]) {
+    const fixture = await prepareSource(client, [postSource(id)]);
+    const proposal = {
+      ...fixture.proposal,
+      notes: fixture.proposal.notes.map((note) => ({
+        ...note,
+        title: `Пагинация ${id}`,
+        aliases: ["pagination-only"],
+      })),
+    };
+    await Effect.runPromise(client.knowledge.publish({ payload: proposal }));
+  }
+  const first = await Effect.runPromise(
+    client.knowledge.search({ payload: { query: "Пагинация", limit: 2 } }),
+  );
+  expect(first.results).toHaveLength(2);
+  expect(first.nextCursor).toBeString();
+  const second = await Effect.runPromise(
+    client.knowledge.search({
+      payload: { query: "Пагинация", limit: 2, cursor: first.nextCursor! },
+    }),
+  );
+  expect(second.results).toHaveLength(1);
+  expect(second.nextCursor).toBeNull();
+  expect(new Set([...first.results, ...second.results].map((hit) => hit.note.noteId)).size).toBe(3);
+  for (const payload of [
+    { query: "different", limit: 2, cursor: first.nextCursor! },
+    { query: "Пагинация", limit: 1, cursor: first.nextCursor! },
+    { query: "Пагинация", cursor: "invalid" },
+    { query: "Пагинация", limit: 101 },
+  ]) {
+    const bad = await request("/api/v1/search", payload);
+    expect(bad.status).toBe(400);
+  }
+  const fixture = await prepareSource(client, [postSource("99881004")]);
+  await Effect.runPromise(client.knowledge.publish({ payload: fixture.proposal }));
+  const changed = await request("/api/v1/search", {
+    query: "Пагинация",
+    limit: 2,
+    cursor: first.nextCursor,
+  });
+  expect(changed.status).toBe(409);
+  expect(changed.body).toMatchObject({ code: "revision_changed" });
+}, 20000);

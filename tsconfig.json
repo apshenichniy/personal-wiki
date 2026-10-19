@@ -31,7 +31,8 @@
         ]
       }
     ],
-    "allowImportingTsExtensions": true
+    "allowImportingTsExtensions": true,
+    "jsx": "react-jsx"
   },
-  "include": ["apps/**/*.ts", "packages/**/*.ts", "tools/**/*.ts", "tests/**/*.ts"]
+  "include": ["apps/**/*.ts", "packages/**/*.ts", "tools/**/*.ts", "tests/**/*.ts", "apps/**/*.tsx"]
 }
