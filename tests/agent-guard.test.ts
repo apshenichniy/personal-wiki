@@ -138,7 +138,7 @@ test("guardian death leaves both inherited exclusion and durable recovery eviden
     // Orphan retains pipe handles, so close may wait until the orphan is stopped.
     await sleep(100);
     const second = run(f.path);
-    expect([73, 74]).toContain(await second.exited);
+    expect([73, 74].includes((await second.exited) ?? -1)).toBe(true);
     if (alive(childPid)) process.kill(-childPid, "SIGKILL");
     await first.exited;
   } finally {
