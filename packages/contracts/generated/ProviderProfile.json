@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "enum": [
+        "apify-x-v1"
+      ]
+    },
+    "actorId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "buildId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "buildNumber": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "privacyEvidence": {
+      "type": "string"
+    },
+    "pricingEvidence": {
+      "type": "string"
+    },
+    "inputSchemaDigest": {
+      "type": "string"
+    },
+    "campaignId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "eventNanos": {
+      "type": "integer",
+      "maximum": 9007199254740991,
+      "exclusiveMinimum": 0
+    },
+    "platformNanos": {
+      "type": "integer",
+      "maximum": 9007199254740991,
+      "exclusiveMinimum": 0
+    },
+    "retrievalNanos": {
+      "type": "integer",
+      "maximum": 9007199254740991,
+      "exclusiveMinimum": 0
+    }
+  },
+  "required": [
+    "version",
+    "actorId",
+    "buildId",
+    "buildNumber",
+    "privacyEvidence",
+    "pricingEvidence",
+    "inputSchemaDigest",
+    "campaignId",
+    "eventNanos",
+    "platformNanos",
+    "retrievalNanos"
+  ],
+  "additionalProperties": true,
+  "$defs": {}
+}

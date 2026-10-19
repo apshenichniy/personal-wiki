@@ -12,6 +12,38 @@ export const makeJobPublication = Effect.gen(function* () {
   const jobs = yield* Jobs;
   const store = yield* JobStore;
   const library = yield* Library;
+  const failAcquisition = (identityId: string, input: typeof J.FailAcquisition.Type) =>
+    store.transaction(
+      Effect.gen(function* () {
+        yield* store.assertOwner();
+        yield* jobs.authorizedRunner(identityId);
+        const prior = yield* jobs.priorRequest(identityId, input.requestId, input, J.JobView);
+        if (prior) return prior;
+        const saved = yield* jobs.owned(identityId, input.scope);
+        if (
+          saved.record.stage !== "acquiring" ||
+          saved.record.capture ||
+          saved.record.cleanupPending ||
+          saved.record.activeAttemptId
+        )
+          return yield* new JobError({
+            code: "invalid_transition",
+            message: "Only settled acquisition can fail without curation.",
+          });
+        const next = {
+          ...saved.record,
+          stage: "failed" as const,
+          lease: null,
+          ready: false,
+          reason: input.reason,
+          warnings: input.warnings,
+        };
+        yield* store.put(next, saved.version);
+        const result = yield* jobs.view(next);
+        yield* jobs.remember(identityId, input.requestId, input, result);
+        return result;
+      }),
+    );
   const reserve = (identityId: string, scope: J.JobScope, input: typeof K.ReserveRequest.Type) =>
     library.reserve(input, {
       jobId: scope.jobId,
@@ -199,7 +231,7 @@ export const makeJobPublication = Effect.gen(function* () {
         }),
       );
     });
-  return { reserve, upload, prepare, publish };
+  return { reserve, upload, prepare, publish, failAcquisition };
 });
 export class JobPublication extends Context.Service<
   JobPublication,

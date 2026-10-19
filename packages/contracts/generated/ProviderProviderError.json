@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$ref": "#/$defs/ProviderErrorEncoded",
+  "$defs": {
+    "ProviderErrorEncoded": {
+      "type": "object",
+      "properties": {
+        "_tag": {
+          "type": "string",
+          "enum": [
+            "ProviderError"
+          ]
+        },
+        "code": {
+          "type": "string",
+          "enum": [
+            "invalid_request",
+            "conflict",
+            "not_found",
+            "disabled",
+            "budget",
+            "deadline",
+            "remote_pending",
+            "capacity",
+            "invalid_transition"
+          ]
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "_tag",
+        "code",
+        "message"
+      ],
+      "additionalProperties": true
+    }
+  }
+}

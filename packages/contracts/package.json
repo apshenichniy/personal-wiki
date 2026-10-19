@@ -8,6 +8,8 @@
     "./jobs": "./src/jobs.ts",
     "./jobs-api": "./src/jobs-api.ts",
     "./processing": "./src/processing.ts",
+    "./provider": "./src/provider.ts",
+    "./provider-api": "./src/provider-api.ts",
     "./x-url": "./src/x-url.ts"
   },
   "dependencies": {

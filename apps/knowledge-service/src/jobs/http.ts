@@ -8,6 +8,7 @@ import { JobExecution } from "./execution.ts";
 import { JobLifecycle } from "./lifecycle.ts";
 import { JobPublication } from "./publication.ts";
 import { MachineCredentials } from "./credentials.ts";
+import { JobProviders } from "../providers/jobs.ts";
 const actor = <A, E, R>(
   credentials: typeof MachineCredentials.Service,
   run: (identityId: string) => Effect.Effect<A, E, R>,
@@ -28,6 +29,8 @@ const WorkerHandlers = HttpApiBuilder.group(
     const lifecycle = yield* JobLifecycle;
     const publication = yield* JobPublication;
     return handlers.handleAll({
+      failAcquisition: ({ payload }) =>
+        actor(credentials, (id) => publication.failAcquisition(id, payload)),
       resolve: ({ payload }) => actor(credentials, (id) => resolution.resolve(id, payload)),
       claim: ({ payload }) => actor(credentials, (id) => jobs.claim(id, payload)),
       heartbeat: ({ payload }) => actor(credentials, (id) => jobs.heartbeat(id, payload)),
@@ -65,9 +68,42 @@ const OwnerHandlers = HttpApiBuilder.group(
     });
   }),
 );
+const ProviderHandlers = HttpApiBuilder.group(
+  WorkflowApi,
+  "providers",
+  Effect.fn(function* (handlers) {
+    const credentials = yield* MachineCredentials;
+    const providers = yield* JobProviders;
+    return handlers.handleAll({
+      configure: ({ payload }) =>
+        actor(credentials, (id) => providers.configure(id, payload.scope, payload.policy)),
+      retain: ({ payload }) => actor(credentials, (id) => providers.retain(id, payload)),
+      pages: ({ payload }) => actor(credentials, (id) => providers.pages(id, payload.operationId)),
+      raw: ({ payload }) =>
+        actor(credentials, (id) => providers.raw(id, payload.operationId, payload.pageKey)),
+      archive: ({ payload }) =>
+        actor(credentials, (id) => providers.completeArchive(id, payload.operationId)),
+      pending: () => actor(credentials, (id) => providers.pending(id)),
+      profile: () => actor(credentials, (id) => providers.profile(id)),
+      reserve: ({ payload }) =>
+        actor(credentials, (id) => providers.reserve(id, payload.scope, payload)),
+      begin: ({ payload }) =>
+        actor(credentials, (id) => providers.begin(id, payload.scope, payload.operationId)),
+      unknown: ({ payload }) =>
+        actor(credentials, (id) => providers.unknown(id, payload.operationId)),
+      attach: ({ payload }) =>
+        actor(credentials, (id) =>
+          providers.attach(id, payload.operationId, payload.run, payload.evidence),
+        ),
+      observe: ({ payload }) =>
+        actor(credentials, (id) => providers.observe(id, payload.operationId, payload.observation)),
+      inspect: ({ payload }) => actor(credentials, (id) => providers.inspect(id, payload.jobId)),
+    });
+  }),
+);
 export const WorkflowRoutes = HttpApiBuilder.layer(WorkflowApi, {
   openapiPath: "/internal/openapi.json",
-}).pipe(Layer.provide([WorkerHandlers, OwnerHandlers]));
+}).pipe(Layer.provide([WorkerHandlers, OwnerHandlers, ProviderHandlers]));
 // This middleware is wired only by the production entry point. The focused P2/P3
 // storage harness mounts its own route layer, outside the production artifact.
 export const Authentication = Layer.unwrap(

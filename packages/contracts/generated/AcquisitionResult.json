@@ -73,7 +73,8 @@
             "unavailable",
             "failed",
             "budget",
-            "deadline"
+            "deadline",
+            "capacity"
           ]
         },
         "pages": {

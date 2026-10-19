@@ -86,6 +86,13 @@ test("built synthetic Runner uses authenticated job HTTP without canonical stora
     );
     expect(accepted.outcome).toBe("accepted");
     expect(accepted.job?.stage).toBe("queued");
+    // Merely starting the built Service never enables paid acquisition. The
+    // shared accounting path and namespace must be explicitly configured.
+    const disabledProvider = await fetch(service.url + "/internal/v1/providers/profile", {
+      headers: { authorization: `Bearer ${runner}` },
+    });
+    expect(disabledProvider.status).toBe(503);
+    expect(await disabledProvider.json()).toMatchObject({ code: "disabled" });
     const child = Bun.spawn([process.execPath, "apps/runner/dist/synthetic.js"], {
       env: {
         PATH: process.env.PATH,

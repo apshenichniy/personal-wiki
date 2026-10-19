@@ -1,4 +1,5 @@
-import { Context, Effect, Layer } from "effect";
+import { Context, Effect, Layer, Schema } from "effect";
+import { Draft } from "@personal-wiki/contracts/knowledge";
 import * as J from "@personal-wiki/contracts/jobs";
 import { Jobs } from "./service.ts";
 import { JobStore } from "./store.ts";
@@ -23,12 +24,33 @@ export const makeResolution = Effect.gen(function* () {
         if (prior) return prior;
         const saved = yield* jobs.owned(identityId, input.scope);
         const job = saved.record;
-        if (
-          job.stage !== "acquiring" ||
-          job.cleanupPending ||
-          job.capture ||
-          (yield* sql`SELECT job_id FROM drafts WHERE job_id=${job.jobId}`).length
-        )
+        const reserved = (yield* sql<{
+          payload: string;
+        }>`SELECT payload FROM drafts WHERE job_id=${job.jobId}`)[0];
+        if (reserved && job.stage === "acquiring" && !job.capture && !job.cleanupPending) {
+          const draft = yield* Schema.decodeUnknownEffect(Schema.fromJsonString(Draft))(
+            reserved.payload,
+          );
+          const source = draft.slots[0]?.source;
+          if (
+            source &&
+            stable({
+              kind: source.kind,
+              primaryId: source.primaryId,
+              aliases: source.aliases,
+              resolution: source.resolution,
+            }) === stable(input.source)
+          ) {
+            const result = {
+              outcome: "continued" as const,
+              job: yield* jobs.view(job),
+              noteId: null,
+            };
+            yield* jobs.remember(identityId, input.requestId, input, result);
+            return result;
+          }
+        }
+        if (job.stage !== "acquiring" || job.cleanupPending || job.capture || reserved)
           return yield* new JobError({
             code: "invalid_transition",
             message: "Resolve source identity before reserving capture identities.",

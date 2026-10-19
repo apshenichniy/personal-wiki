@@ -37,6 +37,13 @@ export function createObservations() {
     });
     if (result.status !== "succeeded") warnings.add(`${mode}:${result.status}`);
     if (result.status === "budget" || result.status === "deadline") halted = true;
+    if (result.status === "capacity") {
+      halted = true;
+      // Missing required main/ancestry bytes is actionable; an optional discussion
+      // or quote/article overflow may preserve already retained useful main text.
+      if (["anchor", "parents", "author"].includes(mode)) rawCapacity = true;
+      else warnings.add(`${mode}:processing_gap`);
+    }
     if (rowCount >= limit) warnings.add(`${mode}:requested_limit_reached`);
     if (rowCount > limit) warnings.add(`${mode}:provider_over_return`);
     let seen = 0;

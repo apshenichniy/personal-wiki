@@ -135,6 +135,18 @@ export const QueueMessage = Schema.Struct({
   jobId: Id,
   generation: Schema.Int.check(Schema.isGreaterThan(0)),
 });
+export const FailAcquisition = Schema.Struct({
+  ...WorkerRequest.fields,
+  reason: Schema.Literals([
+    "source_unavailable",
+    "source_capacity",
+    "provider_failure",
+    "identity_conflict",
+  ]),
+  warnings: Schema.Array(Schema.String.check(Schema.isMaxLength(4096))).check(
+    Schema.isMaxLength(64),
+  ),
+});
 export type JobStage = typeof JobStage.Type;
 export type AttemptReason = typeof AttemptReason.Type;
 export type JobAction = typeof JobAction.Type;

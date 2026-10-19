@@ -96,7 +96,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -142,7 +148,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -251,7 +263,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -297,7 +315,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -343,7 +367,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -389,7 +419,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -435,7 +471,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -481,7 +523,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -527,7 +575,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -616,7 +670,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -662,7 +722,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -708,7 +774,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -754,7 +826,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -800,7 +878,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -846,7 +930,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -892,7 +982,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -1015,7 +1111,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -1061,7 +1163,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -1107,7 +1215,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -1153,7 +1267,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -1199,7 +1319,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -1245,7 +1371,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -1291,7 +1423,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -1352,7 +1490,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -1398,7 +1542,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -1444,7 +1594,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -1490,7 +1646,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -1536,7 +1698,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -1582,7 +1750,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -1628,7 +1802,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -1717,7 +1897,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -1763,7 +1949,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -1809,7 +2001,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -1855,7 +2053,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -1901,7 +2105,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -1947,7 +2157,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -1993,7 +2209,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -2071,7 +2293,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -2117,7 +2345,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -2163,7 +2397,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -2209,7 +2449,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -2255,7 +2501,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -2301,7 +2553,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -2347,7 +2605,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -2425,7 +2689,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -2471,7 +2741,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -2517,7 +2793,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -2563,7 +2845,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -2609,7 +2897,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -2655,7 +2949,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -2701,7 +3001,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -2811,7 +3117,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -2857,7 +3169,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -2903,7 +3221,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -2949,7 +3273,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -2995,7 +3325,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -3041,7 +3377,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -3087,7 +3429,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -3194,7 +3542,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -3240,7 +3594,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -3286,7 +3646,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -3332,7 +3698,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -3378,7 +3750,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -3424,7 +3802,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -3470,7 +3854,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -3564,7 +3954,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -3610,7 +4006,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -3656,7 +4058,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -3702,7 +4110,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -3748,7 +4162,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -3794,7 +4214,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -3840,7 +4266,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -3908,7 +4340,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -3954,7 +4392,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -4000,7 +4444,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -4046,7 +4496,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -4092,7 +4548,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -4138,7 +4600,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -4184,7 +4652,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -4278,7 +4752,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -4324,7 +4804,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -4370,7 +4856,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -4416,7 +4908,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -4462,7 +4960,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -4508,7 +5012,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {
@@ -4554,7 +5064,13 @@
                         "launch_limit",
                         "stale_owner",
                         "unauthenticated",
-                        "forbidden"
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
                       ]
                     },
                     "message": {

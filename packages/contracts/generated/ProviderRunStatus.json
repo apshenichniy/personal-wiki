@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "string",
+  "enum": [
+    "READY",
+    "RUNNING",
+    "SUCCEEDED",
+    "FAILED",
+    "TIMING-OUT",
+    "TIMED-OUT",
+    "ABORTING",
+    "ABORTED"
+  ],
+  "$defs": {}
+}

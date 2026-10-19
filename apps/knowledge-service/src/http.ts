@@ -1,6 +1,8 @@
 import { JobError } from "./jobs/policy.ts";
+import { ProviderError } from "@personal-wiki/contracts/provider";
 import { Library } from "./storage/library.ts";
 import { LibraryError } from "./storage/io.ts";
+import { ArchiveError } from "./storage/raw-archive.ts";
 import { Cause, Context, Effect, Layer, Schema } from "effect";
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
 import { HttpApiBuilder, HttpApiError } from "effect/http-api";
@@ -68,7 +70,12 @@ const Boundary = HttpRouter.middleware(
             error.kind !== "Body" &&
             error.kind !== "ResponseHeaders";
           const domain =
-            error instanceof LibraryError || error instanceof JobError ? error : undefined;
+            error instanceof LibraryError ||
+            error instanceof JobError ||
+            error instanceof ProviderError ||
+            error instanceof ArchiveError
+              ? error
+              : undefined;
           const status = domain
             ? {
                 invalid_request: 400,
@@ -80,11 +87,17 @@ const Boundary = HttpRouter.middleware(
                 unavailable: 503,
                 cancelled: 409,
                 invalid_transition: 409,
+                capacity: 409,
                 deadline_exceeded: 409,
                 launch_limit: 409,
                 stale_owner: 409,
                 unauthenticated: 401,
                 forbidden: 403,
+                conflict: 409,
+                disabled: 503,
+                budget: 409,
+                deadline: 409,
+                remote_pending: 409,
               }[domain.code]
             : invalid
               ? 400

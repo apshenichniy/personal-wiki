@@ -84,7 +84,15 @@ export const AcquiredPage = Schema.Struct({
   articles: Schema.Array(Schema.Unknown).check(Schema.isMaxLength(1000)),
 }).annotate({ identifier: "AcquiredPage" });
 export const AcquisitionResult = Schema.Struct({
-  status: Schema.Literals(["succeeded", "partial", "unavailable", "failed", "budget", "deadline"]),
+  status: Schema.Literals([
+    "succeeded",
+    "partial",
+    "unavailable",
+    "failed",
+    "budget",
+    "deadline",
+    "capacity",
+  ]),
   pages: Schema.Array(AcquiredPage).check(Schema.isMaxLength(256)),
   diagnostics: Schema.Array(Schema.String.check(Schema.isMaxLength(4096))).check(
     Schema.isMaxLength(64),
