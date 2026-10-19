@@ -143,3 +143,34 @@ test("Codex output schema has an inline object root with recursively closed obje
   };
   visit(schema);
 });
+
+test("unprocessed sources remain safe explicit links even when the model omits the warning", async () => {
+  const context = await contextFixture();
+  const warning = (url: string, kind = "external_page", fromProviderId = "100") =>
+    "unprocessed:" +
+    JSON.stringify({
+      kind,
+      url,
+      fromKind: "post",
+      fromProviderId,
+      reason: "processor_not_supported",
+    });
+  const captures = context.captures.map((c) => ({
+    ...c,
+    warnings: [
+      ...c.warnings,
+      warning("https://example.com/report"),
+      warning("https://x.com/i/article/910", "article"),
+      warning("javascript:alert(1)"),
+      warning("https://other.example/", "image", "777"),
+      warning("https://example.com/x)text("),
+    ],
+  }));
+  const note = buildProposal({ ...context, captures }, editorial(context), "synthetic").notes[0]!;
+  expect(note.markdown).toContain("[открыть источник](https://example.com/report) — не обработано");
+  expect(note.markdown).toContain("https://x.com/i/article/910");
+  expect(note.markdown).toContain("https://example.com/x%29text%28");
+  expect(note.markdown).not.toContain("javascript:");
+  expect(note.markdown).not.toContain("https://other.example/");
+  expect(note.markdown).not.toContain("unprocessed:");
+});

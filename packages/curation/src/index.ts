@@ -94,6 +94,51 @@ const coverageLabels: Record<string, string> = {
 };
 const coverageLabel = (value: string) => coverageLabels[value] ?? "см. ограничения источника";
 
+function unprocessedReferences(capture: K.Capture) {
+  const labels: Record<string, string> = {
+    external_page: "Внешняя страница",
+    article: "Статья",
+    quote: "Цитируемый пост",
+    image: "Изображение",
+    video: "Видео",
+    audio: "Аудио",
+  };
+  const references: string[] = [];
+  for (const warning of capture.warnings) {
+    if (!warning.startsWith("unprocessed:")) continue;
+    try {
+      const value: unknown = JSON.parse(warning.slice("unprocessed:".length));
+      if (
+        value === null ||
+        typeof value !== "object" ||
+        !("url" in value) ||
+        typeof value.url !== "string" ||
+        !("kind" in value) ||
+        typeof value.kind !== "string"
+      )
+        continue;
+      if (
+        "fromProviderId" in value &&
+        !capture.observations.some((o) => o.providerId === value.fromProviderId)
+      )
+        continue;
+      const url = new URL(value.url);
+      if (!["http:", "https:"].includes(url.protocol) || url.username || url.password) continue;
+      const href = url.href.replace(/[()]/g, (c) => (c === "(" ? "%28" : "%29"));
+      const reason =
+        "reason" in value && value.reason === "processor_not_supported"
+          ? "обработка этого типа источника пока не поддерживается"
+          : "материал не получен или не обработан в пределах этого захвата";
+      references.push(
+        `- ${labels[value.kind] ?? "Ссылка"}: [открыть источник](${href}) — не обработано: ${reason}.`,
+      );
+    } catch {
+      /* Malformed diagnostics never become navigational URLs. */
+    }
+  }
+  return [...new Set(references)];
+}
+
 export function buildProposal(
   context: C.CurationContext,
   output: C.CurationResult,
@@ -152,7 +197,7 @@ export function buildProposal(
     const emptyDiscussion = ["not_applicable", "not_acquired"].includes(capture.coverage.discussion)
       ? "Обсуждение этого материала отдельно не получено."
       : "Содержательных дополнений в отобранном обсуждении нет; это не означает отсутствия других ответов в X.";
-    let markdown = `# ${prose(note.title)}\n\nИсточник: [X](${slot.source.canonicalUrl}). Захват: ${capture.endedAt}.\n\nПокрытие: основной материал — ${coverageLabel(capture.coverage.main)}; обсуждение — ${coverageLabel(capture.coverage.discussion)}; контекст — ${coverageLabel(capture.coverage.context)}.\n\n## Кратко\n\n${passage(note.overview)}\n\n## Подробный пересказ\n\n${note.main.map(passage).join("\n\n")}\n\n## Обсуждение\n\n${note.discussion.length ? note.discussion.map(passage).join("\n\n") : emptyDiscussion}\n\n## Связанные заметки\n\n${related.join("\n") || "Подходящие заметки в доступном контексте не найдены."}\n\n## Ограничения\n\n${limitations.map((x) => `- ${prose(x)}`).join("\n")}\n`;
+    let markdown = `# ${prose(note.title)}\n\nИсточник: [X](${slot.source.canonicalUrl}). Захват: ${capture.endedAt}.\n\nПокрытие: основной материал — ${coverageLabel(capture.coverage.main)}; обсуждение — ${coverageLabel(capture.coverage.discussion)}; контекст — ${coverageLabel(capture.coverage.context)}.\n\n## Кратко\n\n${passage(note.overview)}\n\n## Подробный пересказ\n\n${note.main.map(passage).join("\n\n")}\n\n## Обсуждение\n\n${note.discussion.length ? note.discussion.map(passage).join("\n\n") : emptyDiscussion}\n\n## Связанные заметки\n\n${related.join("\n") || "Подходящие заметки в доступном контексте не найдены."}\n\n## Ограничения\n\n${limitations.map((x) => `- ${prose(x)}`).join("\n")}\n${unprocessedReferences(capture).join("\n")}\n`;
     const previous = context.previous.find((p) => p.note.noteId === note.noteId);
     const captureIds = [capture.captureId];
     if (previous) {
