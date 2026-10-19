@@ -3,6 +3,7 @@ import { mkdtemp, writeFile, mkdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomUUID, randomBytes } from "node:crypto";
+import { sandboxCommand } from "../apps/runner/src/codex/sandbox.ts";
 import { spawn } from "node:child_process";
 import { recoverExecutions } from "../apps/runner/src/codex/recovery.ts";
 import { curatePrepared } from "../apps/runner/src/codex/curate.ts";
@@ -127,11 +128,20 @@ for (const scenario of ["output", "cancel", "invalid", "spool", "auth"] as const
             deadline: Date.parse(attempt.deadline),
             inputFile,
             outputFile: join(workspace, "result.json"),
-            argv: [
-              runtime.python,
-              "-c",
-              'import sys;open("result.json","w").write(sys.stdin.read())',
-            ],
+            argv:
+              process.platform === "linux"
+                ? await sandboxCommand({
+                    binary: runtime.python,
+                    workspace,
+                    codexHome: workspace,
+                    input: inputFile,
+                    args: ["-c", 'import sys;open("result.json","w").write(sys.stdin.read())'],
+                  })
+                : [
+                    runtime.python,
+                    "-c",
+                    'import sys;open("result.json","w").write(sys.stdin.read())',
+                  ],
             env: { PATH: "/usr/bin:/bin" },
           }),
           { mode: 0o600 },

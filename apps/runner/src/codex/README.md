@@ -44,9 +44,11 @@ The Python guardian holds a second attempt lock and persists boot/start/generati
 identities before spawn. It requires a fresh acknowledged heartbeat, stops after
 15 seconds without renewal, and enforces the persisted launch deadline. Cleanup
 uses TERM, a ten-second grace and then KILL with five-second verification. A
-successful leader exit does not establish process-tree death. Children inherit
-its lock descriptor: a surviving detached lock holder prevents a death certificate
-and keeps the slot blocked. Linux additionally uses a private PID namespace.
+successful leader exit does not establish process-tree death. A kernel containment boundary is mandatory: Linux requires bubblewrap's private
+PID namespace, while macOS probes run with a Seatbelt prohibition on process
+forking. This also handles ordinary fork+exec children that close inherited
+file descriptors. The inherited lock remains a supplementary defense, not proof
+that an arbitrary uncontained process tree died.
 
 A complete bounded result is fsynced with a checksum and exit certificate after
 cleanup. An inspector must establish physical safety before restart adoption. A
@@ -64,7 +66,7 @@ service database is mounted. The model has no browsing or file/command tool.
 The outer CLI retains network access for subscription transport. The adapter
 rejects other platforms before execution.
 
-macOS runs deterministic real-process fault probes and the Seatbelt file-access
+macOS runs deterministic real-process fault probes (forking is denied) and the Seatbelt file-access
 probe. Actual Codex 0.163.0 needs macOS preferences IPC that the current narrow
 profile denies; this is not enabled by broadening access to the user's preferences.
 The initial supported execution host is the agreed Linux VPS.
@@ -86,7 +88,7 @@ mise exec -- bun run verify
 
 These commands use synthetic child processes, actual OS isolation and separate
 Service processes. They test inherited locks, paused/killed guardian, orphan and
-TERM-resistant descendants, stale initial renewal, parent disconnection, deadline,
+TERM-resistant processes/contained Linux descendants, stale initial renewal, parent disconnection, deadline,
 workspace/log/output overflow, retained spool adoption, cancellation and auth
 gating. CI installs bubblewrap and grants user-namespace permission to its binary
 through a narrow AppArmor profile; it does not disable host AppArmor or skip probes.

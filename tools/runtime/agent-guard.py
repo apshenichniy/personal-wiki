@@ -184,6 +184,18 @@ def main():
     argv = config["argv"]
     if not argv or not all(isinstance(arg, str) for arg in argv) or not os.path.isabs(argv[0]):
         raise ValueError("Explicit absolute executable required")
+    # Process groups and inherited descriptors cannot contain fork+exec callers
+    # that close descriptors. Require a kernel boundary before every spawn.
+    if sys.platform == "linux":
+        if (argv[0] != "/usr/bin/bwrap" or "--unshare-all" not in argv
+                or "--die-with-parent" not in argv or "--new-session" not in argv):
+            raise ValueError("Linux execution requires the verified PID boundary")
+    elif sys.platform == "darwin":
+        # Local probes cannot create descendants at all. Actual subscription
+        # execution is rejected by the adapter on macOS.
+        argv = ["/usr/bin/sandbox-exec", "-p", "(version 1)(allow default)(deny process-fork)"] + argv
+    else:
+        raise ValueError("No verified process boundary")
     # Pass only the dedicated adapter environment; no inherited API fallback.
     allowed_env = {"PATH", "HOME", "CODEX_HOME", "TMPDIR", "LANG", "SSL_CERT_FILE", "SSL_CERT_DIR"}
     if not set(config["env"]).issubset(allowed_env):

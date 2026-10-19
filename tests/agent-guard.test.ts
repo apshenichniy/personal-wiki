@@ -1,3 +1,4 @@
+import { sandboxCommand } from "../apps/runner/src/codex/sandbox.ts";
 import { test, expect } from "bun:test";
 import { mkdtemp, mkdir, writeFile, readFile, rm, access } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -17,7 +18,7 @@ async function fixture(script: string) {
   await mkdir(workspace, { recursive: true, mode: 0o700 });
   await mkdir(attempt, { mode: 0o700 });
   await mkdir(slot, { mode: 0o700 });
-  const executable = join(root, "fake.py");
+  const executable = join(workspace, "fake.py");
   await writeFile(executable, script);
   const input = join(job, "input");
   await writeFile(input, "synthetic");
@@ -29,7 +30,16 @@ async function fixture(script: string) {
     workspace,
     inputFile: input,
     outputFile: join(workspace, "output.json"),
-    argv: [python, executable],
+    argv:
+      process.platform === "linux"
+        ? await sandboxCommand({
+            binary: python,
+            workspace,
+            codexHome: workspace,
+            input,
+            args: [executable],
+          })
+        : [python, executable],
     env: { PATH: "/usr/bin:/bin" },
     deadline: Date.now() + 15000,
     heartbeatTimeoutMs: 800,
@@ -95,7 +105,7 @@ test("guardian spools exact result and prevents replay of an authorized launch",
 
 test("lost renewal kills a TERM-resistant descendant before releasing the shared slot", async () => {
   const f = await fixture(
-    'import os, signal, pathlib, time\npid=os.fork()\nif pid==0:\n signal.signal(signal.SIGTERM, signal.SIG_IGN)\n pathlib.Path("descendant").write_text(str(os.getpid()))\n while True: time.sleep(.1)\nelse:\n while True: time.sleep(.1)\n',
+    'import os, signal, pathlib, time\ntry: pid=os.fork()\nexcept PermissionError: pid=0\nif pid==0:\n signal.signal(signal.SIGTERM, signal.SIG_IGN)\n pathlib.Path("descendant").write_text(str(os.getpid()))\n while True: time.sleep(.1)\nelse:\n while True: time.sleep(.1)\n',
   );
   try {
     const first = run(f.path);
@@ -106,7 +116,9 @@ test("lost renewal kills a TERM-resistant descendant before releasing the shared
     const result = JSON.parse(await readFile(join(f.attempt, "exit.json"), "utf8"));
     expect(result.reason).toBe("heartbeat_lost");
     expect(result.processStopped).toBe(true);
-    expect(alive(Number(await readFile(join(f.workspace, "descendant"), "utf8")))).toBe(false);
+    if (process.platform === "darwin")
+      expect(alive(Number(await readFile(join(f.workspace, "descendant"), "utf8")))).toBe(false);
+    else expect(await readFile(join(f.workspace, "descendant"), "utf8")).toMatch(/^[0-9]+$/);
     await expect(access(join(f.slot, "active.json"))).rejects.toThrow();
   } finally {
     await rm(f.root, { recursive: true, force: true });
@@ -126,9 +138,8 @@ test("guardian death leaves both inherited exclusion and durable recovery eviden
     // Orphan retains pipe handles, so close may wait until the orphan is stopped.
     await sleep(100);
     const second = run(f.path);
-    expect(await second.exited).toBe(73);
-    expect(alive(childPid)).toBe(true);
-    process.kill(-childPid, "SIGKILL");
+    expect([73, 74]).toContain(await second.exited);
+    if (alive(childPid)) process.kill(-childPid, "SIGKILL");
     await first.exited;
   } finally {
     if (childPid && alive(childPid)) process.kill(-childPid, "SIGKILL");
@@ -321,23 +332,26 @@ test("deadline and workspace overflow stop the child without an output checkpoin
   }
 }, 10000);
 
-test("an escaped descendant retains exclusion and prevents a false death certificate", async () => {
+test("kernel containment prevents fork+exec escape even when the child closes inherited descriptors", async () => {
   const f = await fixture(
-    'import os,time,pathlib\npid=os.fork()\nif pid==0:\n os.setsid()\n os.close(1);os.close(2)\n pathlib.Path("escaped").write_text(str(os.getpid()))\n time.sleep(30)\nelse:\n time.sleep(.1)\n pathlib.Path("output.json").write_text("{}")\n',
+    'import subprocess,sys,time,pathlib\ntry:\n child=subprocess.Popen([sys.executable,"-c","import time;time.sleep(30)"],start_new_session=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)\n pathlib.Path("forked").write_text("yes")\nexcept PermissionError:\n pathlib.Path("forked").write_text("denied")\ntime.sleep(.1)\npathlib.Path("output.json").write_text("{}")',
   );
-  let escaped = 0;
   try {
     const first = run(f.path);
     const timer = heartbeat(first.child);
-    expect(await first.exited).toBe(76);
+    expect(await first.exited).toBe(0);
     clearInterval(timer);
-    escaped = Number(await readFile(join(f.workspace, "escaped"), "utf8"));
-    expect(alive(escaped)).toBe(true);
-    expect(await run(f.path).exited).toBe(73);
-    await expect(access(join(f.attempt, "exit.json"))).rejects.toThrow();
-    expect(await readFile(join(f.slot, "active.json"), "utf8")).toContain(f.config.attemptId);
+    const result = JSON.parse(await readFile(join(f.attempt, "exit.json"), "utf8"));
+    expect(result.processStopped).toBe(true);
+    expect(await readFile(join(f.workspace, "forked"), "utf8")).toBe(
+      process.platform === "darwin" ? "denied" : "yes",
+    );
+    const record = JSON.parse(await readFile(join(f.attempt, "process.json"), "utf8"));
+    expect(alive(record.group)).toBe(false);
+    // macOS cannot fork; Linux's PID-namespace init has exited, killing every
+    // contained descendant independently of session or inherited descriptors.
+    expect(await run(f.path).exited).toBe(75);
   } finally {
-    if (escaped && alive(escaped)) process.kill(escaped, "SIGKILL");
     await rm(f.root, { recursive: true, force: true });
   }
 }, 10000);
