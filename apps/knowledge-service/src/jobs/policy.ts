@@ -84,6 +84,7 @@ export function allowedActions(
     return retainedCapture ? ["retry_retained", "refresh"] : ["refresh"];
   if (stage === "publishing" || stage === "stopping") return [];
   if (stage === "blocked") {
+    if (reason === "restore_accounting_unknown") return [];
     if (reason === "retry_scheduled") return ["cancel"];
     if (reason === "provider_start_unknown" || reason === "process_ownership_unknown") return [];
     if (deadline !== null && now >= deadline)

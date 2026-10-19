@@ -53,6 +53,9 @@ class FakeHost:
     def checkpoint_identity(self, target):
         return self.cut
 
+    def prepare_recovery(self, op_id):
+        pass
+
     def checkpoint(self, phase):
         if self.crash == phase:
             self.crash = None

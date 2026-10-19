@@ -5,6 +5,7 @@ import { Routes, StorageWrites } from "./http.ts";
 import { Authentication, WorkflowRoutes } from "./jobs/http.ts";
 import { JobError } from "./jobs/policy.ts";
 import { jobRuntime } from "./jobs/runtime.ts";
+import { recoveryArchive } from "./storage/recovery-archive.ts";
 import { loadR2Archive } from "./storage/raw-archive.ts";
 import { Server, Ready, BunRuntime } from "./server.ts";
 import { OwnerServer } from "./access/server.ts";
@@ -24,8 +25,13 @@ const Runtime = Layer.unwrap(
       return yield* Effect.die(
         "Shared provider accounting must live outside the namespace library",
       );
-    const archivePath = yield* Config.String("WIKI_R2_CREDENTIALS_FILE");
-    const archive = yield* loadR2Archive(archivePath);
+    const recoveryPath = yield* Config.String("WIKI_RECOVERY_ARCHIVE_DIR").pipe(Config.option);
+    const archivePath = yield* Config.String("WIKI_R2_CREDENTIALS_FILE").pipe(Config.option);
+    if (Option.isSome(recoveryPath) === Option.isSome(archivePath))
+      return yield* Effect.die("Configure exactly one primary or recovery archive");
+    const archive = Option.isSome(recoveryPath)
+      ? recoveryArchive(recoveryPath.value)
+      : yield* loadR2Archive(Option.getOrThrow(archivePath));
     return jobRuntime(root, { path: providerPath.value, namespace, archive });
   }),
 );

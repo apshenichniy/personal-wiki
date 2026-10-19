@@ -1,0 +1,21 @@
+[Unit]
+Description=Personal Wiki verified encrypted backup (%i)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/personal-wiki-backup/host_backup.py %i
+ExecStopPost=/usr/bin/python3 /opt/personal-wiki-backup/checkpoint_recover.py %i
+UMask=0077
+TimeoutStartSec=7200
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/personal-wiki-backup /var/lib/personal-wiki-deploy /var/lib/personal-wiki-staging /var/lib/personal-wiki-production /var/lib/personal-wiki-accounting /var/lib/personal-wiki-runner/agent-slot /var/lib/pocket-id
+MemoryMax=1536M
+MemorySwapMax=0
+CPUQuota=150%
+TasksMax=64
+LimitNOFILE=1024

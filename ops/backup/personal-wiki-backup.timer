@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily Personal Wiki encrypted recovery point
+
+[Timer]
+OnCalendar=*-*-* 04:15:00 UTC
+Persistent=true
+RandomizedDelaySec=300
+Unit=personal-wiki-backup@daily.service
+
+[Install]
+WantedBy=timers.target

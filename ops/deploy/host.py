@@ -32,6 +32,8 @@ class Host:
         verify_provenance(archive, bundle, revision, digest, GH)
 
     def preflight(self, target, manifest):
+        if Path("/var/lib/personal-wiki-backup/checkpoint-owner.json").exists():
+            raise ValueError("backup_checkpoint_requires_recovery")
         config = Path(f"/etc/personal-wiki/deploy/{target}")
         for name in ("owner-access.json", "machine-credentials.json", "r2.json"):
             file = config / name
@@ -96,6 +98,9 @@ class Host:
                 with file.open("rb") as stream:
                     digest.update(hashlib.file_digest(stream, "sha256").digest())
         return digest.hexdigest()
+
+    def prepare_recovery(self, op_id):
+        run("systemctl", "start", f"personal-wiki-backup@{op_id}.service", timeout=3600)
 
     def checkpoint(self, phase):
         # Test doubles inject crashes here; production has no fault-injection flag.
