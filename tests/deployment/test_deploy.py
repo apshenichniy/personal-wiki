@@ -23,6 +23,7 @@ class Crash(BaseException):
 class FakeHost:
     def __init__(self):
         self.events = []
+        self.settings = {"dispatchEnabled": {"staging": True, "production": False}}
         self.cut = "state-with-accepted-job-and-git-history"
         self.version = 7
         self.crash = None
@@ -127,6 +128,60 @@ class Deployment(unittest.TestCase):
                 count = len(self.host.events)
                 restarted.drive(req["operationId"])
                 self.assertEqual(count, len(self.host.events))
+
+    def test_cold_boot_restores_verified_reader_before_dispatch_without_redeploy(self):
+        req = self.upload()
+        self.engine.drive(req["operationId"])
+        self.host.events.clear()
+        restarted = Engine(self.engine.root, self.engine.releases, self.host)
+        self.assertTrue(restarted.restore_runtime())
+        self.assertEqual(self.host.events, ["preflight", "start-service", "ready", "dispatch"])
+        self.assertEqual(self.host.cut, "state-with-accepted-job-and-git-history")
+        self.assertEqual(restarted.active("staging")["digest"], req["digest"])
+
+    def test_cold_boot_never_bypasses_incomplete_or_failed_cutover(self):
+        self.engine.drive(self.upload()["operationId"])
+        req = self.upload("b" * 40)
+        self.host.crash = "checkpointed"
+        with self.assertRaises(Crash):
+            self.engine.drive(req["operationId"])
+        self.host.events.clear()
+        restarted = Engine(self.engine.root, self.engine.releases, self.host)
+        self.assertFalse(restarted.restore_runtime())
+        self.assertEqual(self.host.events, [])
+        self.host.cut = "unexpected-state-change"
+        self.assertEqual(restarted.drive(req["operationId"])["phase"], "failed")
+        self.host.events.clear()
+        self.assertFalse(restarted.restore_runtime())
+        self.assertEqual(self.host.events, [])
+
+    def test_cold_boot_rejects_changed_bytes_link_and_double_dispatch(self):
+        req = self.upload()
+        self.engine.drive(req["operationId"])
+        release = self.engine.releases / req["digest"]
+        original = (release / "service.js").read_bytes()
+        (release / "service.js").write_bytes(b"changed")
+        self.host.events.clear()
+        with self.assertRaisesRegex(ValueError, "active_release_bytes_changed"):
+            self.engine.restore_runtime()
+        self.assertEqual(self.host.events, [])
+        (release / "service.js").write_bytes(original)
+        link = self.engine.releases.parent / "current-staging"
+        link.unlink()
+        link.symlink_to(self.root)
+        with self.assertRaisesRegex(ValueError, "active_release_link_changed"):
+            self.engine.restore_runtime()
+        link.unlink()
+        link.symlink_to(release)
+        self.host.settings["dispatchEnabled"]["production"] = True
+        with self.assertRaisesRegex(ValueError, "multiple_dispatch_targets"):
+            self.engine.restore_runtime()
+        self.assertEqual(self.host.events, [])
+        self.host.settings["dispatchEnabled"]["production"] = False
+        self.host.version = 8
+        with self.assertRaisesRegex(ValueError, "active_schema_not_readable"):
+            self.engine.restore_runtime()
+        self.assertEqual(self.host.events, [])
 
     def test_reused_operation_cannot_change_target_or_artifact(self):
         req = self.upload()

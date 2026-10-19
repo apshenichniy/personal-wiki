@@ -62,6 +62,14 @@ Production activation also requires a root-only P12 recovery proof at `/var/lib/
 
 The controller remains in the last durable phase if killed; it rechecks stopped cgroups, preserved locks and checkpoint identity before activation. An unexpectedly changed checkpoint fails closed. Ready means the Service recovered its durable publication state and authenticated reads are coherent; it does not imply that paid execution was enabled or that an owner accepted the product.
 
+## Cold boot and dispatch selection
+
+Only the deployment controller is enabled at boot. Keep the application Service and Runner template instances disabled: independently enabling them could bypass an interrupted deployment checkpoint. On startup, the controller first reconciles pending deployment operations. A failed critical operation blocks runtime restoration until an explicit resume/rollback resolves it.
+
+With no outstanding cutover, the controller validates each recorded completed release, its selected symlink and bundled file hashes, starts its private Service, checks authenticated readiness, and resumes only the namespace selected by `dispatchEnabled`. It preserves the existing databases, history, jobs and lock inodes. An unavailable prerequisite leaves restoration retrying; it never initializes a new allowance or substitutes a release. Two enabled dispatch namespaces are rejected.
+
+After an owner-admin changes `/etc/personal-wiki/deploy/settings.json`, restart `personal-wiki-deploy.service` with no in-flight deployment so the controller reads the new settings. Stop the old Runner before selecting the other namespace. Settings are startup configuration, not a hot-reload API. Normal controller restart does not restart already-running application units; `systemctl start` is idempotent.
+
 ## Finite resource policy
 
 Service: 1280 MiB RAM, no swap, two CPU equivalents, 96 tasks, 4096 descriptors. Runner: 3072 MiB RAM, no swap, 2.5 CPU equivalents, 192 tasks, 4096 descriptors. Controller: 1024 MiB RAM, one CPU equivalent, 32 tasks, 256 descriptors. One physical Runner runs at a time. Archive upload is bounded to 160 MiB, expansion to 384 MiB and at most 20 regular allowlisted files; links/traversal/duplicates are rejected. Installation requires at least 5 GiB free disk. Retained releases are deliberately not garbage-collected automatically.

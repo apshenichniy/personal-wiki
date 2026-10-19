@@ -13,6 +13,9 @@ NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
 PrivateTmp=true
+# SQLite read-only connections may create WAL/SHM bookkeeping beside a closed
+# database. Runner is fenced before its spool is read; keep WAL-aware backup.
+ReadWritePaths=/var/lib/personal-wiki-runner/staging /var/lib/personal-wiki-runner/production
 ReadWritePaths=/var/lib/personal-wiki-backup /var/lib/personal-wiki-deploy /var/lib/personal-wiki-staging /var/lib/personal-wiki-production /var/lib/personal-wiki-accounting /var/lib/personal-wiki-runner/agent-slot /var/lib/pocket-id
 MemoryMax=1536M
 MemorySwapMax=0
