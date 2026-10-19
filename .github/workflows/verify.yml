@@ -43,3 +43,7 @@ jobs:
         run: mise exec -- bun run verify
       - name: Require unchanged generated files and lockfile
         run: git diff --exit-code
+      - name: Exercise the Linux release package without provider credentials
+        run: |
+          mise exec -- python3 ops/release/package.py "$RUNNER_TEMP/package-smoke"
+          python3 ops/release/smoke.py "$RUNNER_TEMP/package-smoke/payload"

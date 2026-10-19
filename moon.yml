@@ -27,6 +27,10 @@ tasks:
       cache: false
     command: bun test
     deps: [knowledge-service:build, runner:build, web:build]
+  deployment:
+    options:
+      cache: false
+    command: python3 -m unittest discover -s tests/deployment -v
   browser:
     options:
       cache: false
@@ -40,4 +44,4 @@ tasks:
     options:
       cache: false
     command: bun run tools/verified.ts
-    deps: [typecheck, diagnostics, lint, format, contracts, test, negative, browser]
+    deps: [typecheck, diagnostics, lint, format, contracts, test, negative, browser, deployment]

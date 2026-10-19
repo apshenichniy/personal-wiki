@@ -1,0 +1,96 @@
+name: Verify and release application
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: personal-wiki-release
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3
+        with:
+          version: 2026.9.1
+          cache: false
+      - name: Linux prerequisites
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y bubblewrap apparmor
+          sudo apparmor_parser -r .github/bwrap.apparmor
+      - name: Frozen install and full verification
+        run: |
+          mise exec -- bun install --frozen-lockfile
+          mise exec -- bunx --no-install playwright install --with-deps chromium
+          mise exec -- bun run verify
+          git diff --exit-code
+      - name: Package the checked revision and exercise its runtime
+        run: |
+          mise exec -- python3 ops/release/package.py "$RUNNER_TEMP/release"
+          python3 ops/release/smoke.py "$RUNNER_TEMP/release/payload"
+      - name: Attest the exact archive
+        id: provenance
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
+        with:
+          subject-path: ${{ runner.temp }}/release/personal-wiki.tar.gz
+      - name: Keep the signed bundle with the artifact
+        env:
+          BUNDLE: ${{ steps.provenance.outputs.bundle-path }}
+        run: cp "$BUNDLE" "$RUNNER_TEMP/release/attestation.json"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: personal-wiki-release
+          path: |
+            ${{ runner.temp }}/release/personal-wiki.tar.gz
+            ${{ runner.temp }}/release/identity.json
+            ${{ runner.temp }}/release/attestation.json
+          retention-days: 30
+          if-no-files-found: error
+
+  staging:
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      CI_VPS_HOST: ${{ vars.CI_VPS_HOST }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: personal-wiki-release
+          path: ${{ runner.temp }}/release
+      - name: Connect an ephemeral CI node using the existing OIDC policy
+        uses: tailscale/github-action@d1b6cd204f8dceda5b3eaad7f1f767be390056cd # v4
+        with:
+          oauth-client-id: ${{ vars.TS_OIDC_CLIENT_ID }}
+          audience: ${{ vars.TS_OIDC_AUDIENCE }}
+          tags: tag:personal-wiki-ci
+          version: 1.104.1
+          sha256sum: 108d1d96ecf410d305571e173516f27038f870919a9b89c914a167c6d33a4528
+          hostname: wiki-ci-release-${{ github.run_id }}-${{ github.run_attempt }}
+          use-cache: "false"
+          retry: "2"
+          ping: ${{ vars.CI_VPS_HOST }}
+      - name: Install verified bytes through the restricted helper
+        run: python3 ops/deploy/dispatch.py "$RUNNER_TEMP/release" staging

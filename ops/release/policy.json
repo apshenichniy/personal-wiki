@@ -1,0 +1,8 @@
+{
+  "format": 1,
+  "platform": "linux-amd64",
+  "bun": "1.3.13",
+  "schema": { "target": 7, "readableMin": 7, "readableMax": 7 },
+  "runtime": ["python3", "git", "bubblewrap", "codex@0.163.0"],
+  "configuration": ["owner-access", "machine-credentials", "r2", "runner", "shared-provider-ledger", "shared-agent-slot"]
+}

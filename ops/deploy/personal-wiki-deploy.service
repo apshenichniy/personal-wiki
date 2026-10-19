@@ -1,0 +1,33 @@
+[Unit]
+Description=Personal Wiki verified-release controller
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /opt/personal-wiki-deploy/server.py
+WorkingDirectory=/opt/personal-wiki-deploy
+Environment=PYTHONDONTWRITEBYTECODE=1
+RuntimeDirectory=personal-wiki-deploy
+RuntimeDirectoryMode=0755
+UMask=0077
+Restart=always
+RestartSec=3
+TimeoutStopSec=15
+KillMode=control-group
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ReadWritePaths=/opt/personal-wiki /var/lib/personal-wiki-deploy /var/lib/personal-wiki-staging /var/lib/personal-wiki-production /var/lib/personal-wiki-runner/agent-slot
+MemoryMax=1024M
+MemorySwapMax=0
+CPUQuota=100%
+TasksMax=32
+LimitNOFILE=256
+
+[Install]
+WantedBy=multi-user.target
