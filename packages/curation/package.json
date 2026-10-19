@@ -1,0 +1,12 @@
+{
+  "name": "@personal-wiki/curation",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@personal-wiki/contracts": "workspace:*",
+    "effect": "4.0.5"
+  }
+}

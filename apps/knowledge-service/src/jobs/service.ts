@@ -262,6 +262,28 @@ export const makeJobs = Effect.fn("Jobs.make")(function* (root: string) {
         yield* authorizedRunner(identityId);
         const prior = yield* priorRequest(identityId, input.requestId, input, J.Claim);
         if (prior) return prior;
+        // Retained-output recovery grants a completion lease before a fresh queue
+        // delivery exists. Return that owned job first, without creating a launch.
+        const held = (yield* store.active()).find(
+          ({ record }) =>
+            record.lease?.identityId === identityId &&
+            record.lease.instanceId === input.instanceId &&
+            record.lease.expiresAt > Date.now() &&
+            !isTerminal(record.stage) &&
+            record.stage !== "blocked" &&
+            record.stage !== "stopping",
+        );
+        if (held) {
+          const job = held.record;
+          const result: typeof J.Claim.Type = {
+            scope: { jobId: job.jobId, instanceId: input.instanceId, epoch: job.epoch },
+            job: yield* view(job),
+            capture: job.capture,
+            nextReason: job.nextReason,
+          };
+          yield* remember(identityId, input.requestId, input, result);
+          return result;
+        }
         const delivery = scheduler.current();
         if (!delivery) return null;
         const saved = yield* requireJob(delivery.jobId);

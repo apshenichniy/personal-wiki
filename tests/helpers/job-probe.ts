@@ -6,6 +6,7 @@ import { Library } from "../../apps/knowledge-service/src/storage/library.ts";
 import { JobStore } from "../../apps/knowledge-service/src/jobs/store.ts";
 import { JobScheduler } from "../../apps/knowledge-service/src/jobs/scheduler.ts";
 import { Jobs } from "../../apps/knowledge-service/src/jobs/service.ts";
+import { JobCuration } from "../../apps/knowledge-service/src/jobs/curation.ts";
 import { JobExecution } from "../../apps/knowledge-service/src/jobs/execution.ts";
 import { JobLifecycle } from "../../apps/knowledge-service/src/jobs/lifecycle.ts";
 import { SourceResolution } from "../../apps/knowledge-service/src/jobs/resolution.ts";
@@ -22,7 +23,7 @@ const Runtime = Layer.mergeAll(
   JobExecution.layer,
   JobLifecycle.layer,
   JobPublication.layer,
-).pipe(Layer.provideMerge(Base));
+).pipe(Layer.provideMerge(JobCuration.layer.pipe(Layer.provideMerge(Base))));
 const program = Effect.gen(function* () {
   const jobs = yield* Jobs;
   const execution = yield* JobExecution;

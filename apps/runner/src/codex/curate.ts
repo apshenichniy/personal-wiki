@@ -13,6 +13,7 @@ export function curatePrepared(options: {
   runtime: CodexRuntime;
   claim: NonNullable<typeof Claim.Type>;
   input: CodexInput;
+  contextId?: string;
 }) {
   return Effect.gen(function* () {
     const { client, runtime, claim, input } = options;
@@ -38,6 +39,7 @@ export function curatePrepared(options: {
         scope: claim.scope,
         reason: claim.nextReason,
         inputDigest: admission.inputDigest,
+        ...(options.contextId ? { contextId: options.contextId } : {}),
       },
     });
     const result = yield* executeCodex({

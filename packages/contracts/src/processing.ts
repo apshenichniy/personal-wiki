@@ -51,6 +51,8 @@ export const UnprocessedReference = Schema.Struct({
 // Provider adapters map observed fields to this boundary; they may not infer
 // missing parents/authors or turn a preview into a full article body.
 export const XPost = Schema.Struct({
+  authorHandle: Schema.optional(Schema.NullOr(Schema.String.check(Schema.isMaxLength(128)))),
+  authorName: Schema.optional(Schema.NullOr(Schema.String.check(Schema.isMaxLength(256)))),
   id: ProviderId,
   authorId: Schema.NullOr(ProviderId),
   parentId: Schema.NullOr(ProviderId),

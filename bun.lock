@@ -24,6 +24,7 @@
         "@effect/platform-bun": "4.0.5",
         "@effect/sql-sqlite-bun": "4.0.5",
         "@personal-wiki/contracts": "workspace:*",
+        "@personal-wiki/curation": "workspace:*",
         "effect": "4.0.5",
       },
     },
@@ -33,6 +34,7 @@
         "@effect/platform-bun": "4.0.5",
         "@personal-wiki/client": "workspace:*",
         "@personal-wiki/contracts": "workspace:*",
+        "@personal-wiki/curation": "workspace:*",
         "@personal-wiki/source-processing": "workspace:*",
         "effect": "4.0.5",
         "js-tiktoken": "1.0.21",
@@ -48,6 +50,13 @@
     "packages/contracts": {
       "name": "@personal-wiki/contracts",
       "dependencies": {
+        "effect": "4.0.5",
+      },
+    },
+    "packages/curation": {
+      "name": "@personal-wiki/curation",
+      "dependencies": {
+        "@personal-wiki/contracts": "workspace:*",
         "effect": "4.0.5",
       },
     },
@@ -173,6 +182,8 @@
     "@personal-wiki/client": ["@personal-wiki/client@workspace:packages/client"],
 
     "@personal-wiki/contracts": ["@personal-wiki/contracts@workspace:packages/contracts"],
+
+    "@personal-wiki/curation": ["@personal-wiki/curation@workspace:packages/curation"],
 
     "@personal-wiki/knowledge-service": ["@personal-wiki/knowledge-service@workspace:apps/knowledge-service"],
 
