@@ -286,6 +286,29 @@ class Deployment(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "operation_conflict"):
             self.engine.rollback(first["operationId"], "staging")
 
+    def test_transport_timeout_queries_the_same_durable_operation(self):
+        import contextlib
+        import dispatch
+        import subprocess
+        directory = self.root / "transport"
+        directory.mkdir()
+        (directory / "identity.json").write_text(json.dumps({"revision": "a" * 40, "digest": "b" * 64, "size": 3}))
+        (directory / "personal-wiki.tar.gz").write_bytes(b"tar")
+        (directory / "attestation.json").write_text("{}")
+        calls = []
+        def ssh(host, args, **options):
+            calls.append(args)
+            if args[0] == "install":
+                raise subprocess.TimeoutExpired("synthetic-lost-ack", 180)
+            return type("Result", (), {"stdout": json.dumps({"phase": "complete"})})()
+        with patch.object(sys, "argv", ["dispatch.py", str(directory), "staging"]), \
+             patch.dict(os.environ, {"CI_VPS_HOST": "fixture.invalid", "GITHUB_RUN_ID": "42"}), \
+             patch.object(dispatch, "ssh", side_effect=ssh), contextlib.redirect_stdout(io.StringIO()):
+            dispatch.main()
+        self.assertEqual([call[0] for call in calls], ["install", "status"])
+        self.assertEqual(calls[0][1], calls[1][1])
+        self.assertFalse((directory / "upload.stream").exists())
+
     def test_provenance_enforces_all_identity_dimensions(self):
         req = self.upload()
         folder = self.engine.uploads / req["operationId"]

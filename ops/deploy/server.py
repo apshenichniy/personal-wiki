@@ -37,6 +37,8 @@ class Handler(socketserver.StreamRequestHandler):
             if len(line) > 1024 * 1024:
                 raise ValueError("request_capacity")
             value = json.loads(line)
+            if not isinstance(value, dict):
+                raise ValueError("invalid_request")
             action = value.get("action")
             if action in ("status", "resume"):
                 if set(value) != {"action", "operationId"}:
