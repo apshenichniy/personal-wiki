@@ -12,6 +12,12 @@ Releases are root-owned under `/opt/personal-wiki/releases/{sha256}`. Fixed `cur
 
 Both Runners use the existing canonical supervisor/execution lock inodes and `/var/lib/personal-wiki-runner/agent-slot`. Deployment stops both Runner units, checks their cgroups and lock availability, then checkpoints the target publisher. Only the selected environment resumes dispatch. The existing campaign/month ledger must be transferred coherently and reconciled before enabling acquisition; a new namespace cannot provision a new allowance. Provisioning defaults both dispatch flags to false.
 
+The actual Runner systemd policy is exercised around bubblewrap in CI and host provisioning by `ops/deploy/check-sandbox.py`. `ProtectKernelTunables=true` creates a partially masked outer `/proc` on CX33 and prevents an unprivileged private proc mount; the Runner therefore leaves that one outer switch false. It still has no host kernel privileges, retains `NoNewPrivileges`, filesystem/credential restrictions and finite cgroup limits, and executes the agent inside its private PID/mount boundary. The probe asserts host data is absent and global kernel tunables are not writable. Do not replace this with an idle-Runner check or remove the inner sandbox to make a model launch succeed.
+
+## Production promotion
+
+After integrated staging acceptance, dispatch `promote.yml` on `main` with `release_run_id`, the full `expected_revision`, and `expected_digest` from the accepted release. The workflow checks that the selected run is a successful `main` invocation of `release.yml` in this repository, verifies exact archive bytes and source ancestry, and only then obtains the existing restricted deployment identity. It downloads the prior artifact; it does not rebuild. The host independently verifies signed provenance and creates an operation-bound encrypted recovery point before production activation. CI success alone does not establish semantic acceptance; the operator records G1–G5 evidence before this promotion.
+
 ## Commands
 
 Owner-admin host provisioning, after installing the pinned GitHub CLI and deliberately handing over any existing stopped probe namespace:

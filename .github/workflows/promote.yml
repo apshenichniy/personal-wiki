@@ -1,0 +1,70 @@
+name: Promote verified staging artifact
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_run_id:
+        description: Successful main release run that passed integrated staging acceptance
+        required: true
+        type: string
+      expected_revision:
+        description: Accepted full source commit SHA
+        required: true
+        type: string
+      expected_digest:
+        description: Accepted archive SHA-256
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: personal-wiki-release
+  cancel-in-progress: false
+
+jobs:
+  production:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: production
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    env:
+      CI_VPS_HOST: ${{ vars.CI_VPS_HOST }}
+      RELEASE_RUN_ID: ${{ inputs.release_run_id }}
+      EXPECTED_REVISION: ${{ inputs.expected_revision }}
+      EXPECTED_DIGEST: ${{ inputs.expected_digest }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Verify trusted successful staging run before obtaining deployment identity
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 ops/release/promote.py run
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: personal-wiki-release
+          run-id: ${{ inputs.release_run_id }}
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/release
+      - name: Verify the selected bytes and source ancestry
+        run: python3 ops/release/promote.py artifact "$RUNNER_TEMP/release"
+      - name: Connect the restricted ephemeral deployment identity
+        uses: tailscale/github-action@d1b6cd204f8dceda5b3eaad7f1f767be390056cd # v4
+        with:
+          oauth-client-id: ${{ vars.TS_OIDC_CLIENT_ID }}
+          audience: ${{ vars.TS_OIDC_AUDIENCE }}
+          tags: tag:personal-wiki-ci
+          version: 1.104.1
+          sha256sum: 108d1d96ecf410d305571e173516f27038f870919a9b89c914a167c6d33a4528
+          hostname: wiki-ci-promote-${{ github.run_id }}-${{ github.run_attempt }}
+          use-cache: "false"
+          retry: "2"
+          ping: ${{ vars.CI_VPS_HOST }}
+      - name: Promote exactly the accepted artifact through the recovery-gated helper
+        run: python3 ops/deploy/dispatch.py "$RUNNER_TEMP/release" production

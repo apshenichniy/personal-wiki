@@ -31,7 +31,10 @@ NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
 PrivateTmp=true
-ProtectKernelTunables=true
+# A partially masked outer /proc prevents unprivileged bubblewrap from mounting
+# its private PID namespace. Runner has no host kernel privileges; the inner
+# mount boundary excludes host data and cannot write global kernel tunables.
+ProtectKernelTunables=false
 ProtectKernelModules=true
 ProtectControlGroups=true
 RestrictSUIDSGID=true
