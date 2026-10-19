@@ -43,6 +43,7 @@ async function fixture(script: string) {
 }
 function run(path: string) {
   const child = spawn(python, [guard, path], { stdio: "pipe" });
+  child.stdin.write(`heartbeat ${Date.now()}\n`);
   let stdout = "";
   child.stdout.on("data", (chunk) => {
     stdout += chunk.toString();
@@ -68,7 +69,7 @@ const alive = (pid: number) => {
 };
 function heartbeat(child: ChildProcessWithoutNullStreams) {
   child.stdin.on("error", () => {});
-  return setInterval(() => child.stdin.write("heartbeat\n"), 100);
+  return setInterval(() => child.stdin.write(`heartbeat ${Date.now()}\n`), 100);
 }
 
 test("guardian spools exact result and prevents replay of an authorized launch", async () => {
@@ -159,3 +160,163 @@ test("parent disconnect and diagnostic overflow terminate rather than publish", 
     }
   }
 }, 15000);
+
+test("paused guardian keeps physical exclusion after its renewal expires", async () => {
+  const f = await fixture(
+    "import signal,time\nsignal.signal(signal.SIGTERM,signal.SIG_IGN)\nwhile True: time.sleep(.1)\n",
+  );
+  try {
+    const first = run(f.path);
+    await running(first);
+    first.child.kill("SIGSTOP");
+    await sleep(1000);
+    const second = run(f.path);
+    expect(await second.exited).toBe(73);
+    first.child.kill("SIGCONT");
+    expect(await first.exited).toBe(0);
+    const result = JSON.parse(await readFile(join(f.attempt, "exit.json"), "utf8"));
+    expect(result.reason).toBe("heartbeat_lost");
+    expect(result.processStopped).toBe(true);
+  } finally {
+    await rm(f.root, { recursive: true, force: true });
+  }
+}, 12000);
+
+test("a stale launch acknowledgment cannot start the executable", async () => {
+  const f = await fixture('import pathlib\npathlib.Path("started").write_text("yes")\n');
+  try {
+    const child = spawn(python, [guard, f.path], { stdio: "pipe" });
+    child.stdout.resume();
+    child.stderr.resume();
+    child.stdin.write(`heartbeat ${Date.now() - 10000}\n`);
+    const code = await new Promise((resolve) => child.once("close", resolve));
+    expect(code).toBe(0);
+    const result = JSON.parse(await readFile(join(f.attempt, "exit.json"), "utf8"));
+    expect(result.reason).toBe("launch_lease_missing");
+    expect(result.spawned).toBe(false);
+    expect(
+      await access(join(f.workspace, "started")).then(
+        () => true,
+        () => false,
+      ),
+    ).toBe(false);
+  } finally {
+    await rm(f.root, { recursive: true, force: true });
+  }
+});
+
+test("proposal overflow is stopped while reading, without a truncated output checkpoint", async () => {
+  const f = await fixture(
+    'import pathlib\nwith open("output.json","w") as f:\n f.write("x"*2097152)\n',
+  );
+  try {
+    const first = run(f.path);
+    const timer = heartbeat(first.child);
+    expect(await first.exited).toBe(0);
+    clearInterval(timer);
+    const result = JSON.parse(await readFile(join(f.attempt, "exit.json"), "utf8"));
+    expect(result.reason).toBe("output_capacity");
+    expect(result.outputDigest).toBe(null);
+    expect(
+      await access(join(f.attempt, "output.json")).then(
+        () => true,
+        () => false,
+      ),
+    ).toBe(false);
+  } finally {
+    await rm(f.root, { recursive: true, force: true });
+  }
+}, 10000);
+
+test("physical inspector distinguishes a completed spool, live helper, and ambiguous orphan", async () => {
+  const f = await fixture(
+    'import time\ntime.sleep(.4)\nopen("output.json","w").write(\'{"ok":true}\')',
+  );
+  const inspect = async () => {
+    const child = Bun.spawn([
+      python,
+      join(import.meta.dir, "../tools/runtime/inspect-agent.py"),
+      f.slot,
+      f.attempt,
+    ]);
+    const value = JSON.parse(await new Response(child.stdout).text());
+    expect(await child.exited).toBe(0);
+    return value.status;
+  };
+  try {
+    expect(await inspect()).toBe("not_started");
+    const first = run(f.path);
+    const timer = heartbeat(first.child);
+    await running(first);
+    expect(await inspect()).toBe("running");
+    expect(await first.exited).toBe(0);
+    clearInterval(timer);
+    expect(await inspect()).toBe("stopped");
+    await rm(join(f.attempt, "exit.json"));
+    expect(await inspect()).toBe("unknown");
+  } finally {
+    await rm(f.root, { recursive: true, force: true });
+  }
+});
+
+test("lifetime Runner lock survives exec and a paused Bun process", async () => {
+  const root = await mkdtemp(join(tmpdir(), "wiki-supervisor-"));
+  const file = join(root, "probe.ts");
+  await writeFile(file, 'console.log("ready");setInterval(()=>{},1000);');
+  const start = () =>
+    spawn(
+      python,
+      [join(import.meta.dir, "../tools/runtime/locked-runner.py"), process.execPath, file],
+      { env: { PATH: process.env.PATH, WIKI_AGENT_SLOT: join(root, "slot") }, stdio: "pipe" },
+    );
+  const first = start();
+  try {
+    await new Promise<void>((resolve) => first.stdout.once("data", () => resolve()));
+    first.kill("SIGSTOP");
+    const second = start();
+    second.stdout.resume();
+    second.stderr.resume();
+    expect(await new Promise((resolve) => second.once("close", resolve))).not.toBe(0);
+    first.kill("SIGCONT");
+    first.kill("SIGTERM");
+    await new Promise((resolve) => first.once("close", resolve));
+    const third = start();
+    await new Promise<void>((resolve) => third.stdout.once("data", () => resolve()));
+    third.kill("SIGTERM");
+    await new Promise((resolve) => third.once("close", resolve));
+  } finally {
+    first.kill("SIGCONT");
+    first.kill("SIGKILL");
+    await rm(root, { recursive: true, force: true });
+  }
+}, 10000);
+
+test("deadline and workspace overflow stop the child without an output checkpoint", async () => {
+  for (const overflow of [false, true]) {
+    const f = await fixture(
+      overflow
+        ? 'import os,time\nf=open("large","wb");f.truncate(270*1024*1024)\ntime.sleep(10)'
+        : "import time\ntime.sleep(10)",
+    );
+    // Sparse size is counted, and the child is still subject to per-file limits.
+    if (overflow) await writeFile(join(f.job, "large"), new Uint8Array(0));
+    if (overflow) {
+      const { truncate } = await import("node:fs/promises");
+      await truncate(join(f.job, "large"), 270 * 1024 * 1024);
+    } else {
+      f.config.deadline = Date.now() + 500;
+      await writeFile(f.path, JSON.stringify(f.config), { mode: 0o600 });
+    }
+    try {
+      const first = run(f.path);
+      const timer = heartbeat(first.child);
+      expect(await first.exited).toBe(0);
+      clearInterval(timer);
+      const result = JSON.parse(await readFile(join(f.attempt, "exit.json"), "utf8"));
+      expect(result.reason).toBe(overflow ? "workspace_capacity" : "deadline");
+      expect(result.outputDigest).toBe(null);
+    } finally {
+      await rm(f.root, { recursive: true, force: true });
+    }
+  }
+}, 10000);

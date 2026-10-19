@@ -8,6 +8,7 @@ import os
 import pathlib
 import resource
 import selectors
+import select
 import signal
 import stat
 import subprocess
@@ -116,7 +117,7 @@ def main():
         safe = prior["boot"] != boot
         if complete.is_file() and not complete.is_symlink():
             certificate = private_json(complete)
-            safe = safe or (certificate.get("generation") == prior["generation"] and certificate.get("processStopped") is True and isinstance(prior.get("group"), int) and not group_alive(prior["group"]))
+            safe = safe or (certificate.get("generation") == prior["generation"] and certificate.get("processStopped") is True and (certificate.get("spawned") is False or (isinstance(prior.get("group"), int) and not group_alive(prior["group"]))))
         if not safe:
             print('{"status":"blocked","reason":"unreconciled_process"}', flush=True)
             return 74
@@ -130,6 +131,34 @@ def main():
     record = {"version": 1, "generation": generation, "boot": boot, "guardian": identity(os.getpid()), "attemptDirectory": str(attempt), "attemptId": config["attemptId"], "group": None, "child": None}
     durable(attempt / "intent.json", {**record, "argv": config["argv"], "profileDigest": config["profileDigest"], "inputDigest": config["inputDigest"], "deadline": config["deadline"]})
     durable(active, record)
+    # A paused Runner must renew its Service ownership after the guardian owns
+    # the physical slot, before any executable can be launched.
+    initial = bytearray()
+    initial_end = time.monotonic() + config.get("heartbeatTimeoutMs", 15000) / 1000
+    admitted = False
+    while time.monotonic() < initial_end and len(initial) <= 128:
+        if not select.select([sys.stdin.buffer], [], [], .05)[0]:
+            continue
+        part = os.read(sys.stdin.fileno(), 129)
+        if not part:
+            break
+        initial.extend(part)
+        if b"\n" in initial:
+            try:
+                command, stamp = initial.split(b"\n", 1)[0].split(b" ", 1)
+                age = time.time() * 1000 - int(stamp)
+                admitted = command == b"heartbeat" and -1000 <= age <= 5000
+            except ValueError:
+                pass
+            break
+    if not admitted or time.time() * 1000 >= config["deadline"]:
+        durable(attempt / "exit.json", {"version": 1, "generation": generation, "attemptId": config["attemptId"], "processStopped": True, "spawned": False, "exitCode": None, "reason": "launch_lease_missing", "outputDigest": None, "outputBytes": 0, "elapsedMs": 0, "profileDigest": config["profileDigest"], "inputDigest": config["inputDigest"], "completedAt": int(time.time() * 1000)})
+        fd = os.open(attempt / "diagnostic.log", os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        os.close(fd)
+        active.unlink()
+        sync_directory(slot)
+        print('{"status":"completed","reason":"launch_lease_missing","processStopped":true}', flush=True)
+        return 0
     # Subreaping lets Linux verify/reap orphan grandchildren before freeing the
     # host slot. The deployed sandbox additionally has a private PID namespace.
     if sys.platform == "linux":
@@ -167,7 +196,7 @@ def main():
     durable(active, record)
     durable(attempt / "process.json", record)
     print(json.dumps({"status": "running", "generation": generation, "pid": child.pid}), flush=True)
-    selector = selectors.DefaultSelector()
+    selector = selectors.SelectSelector()
     for stream in (child.stdout, child.stderr, sys.stdin.buffer):
         os.set_blocking(stream.fileno(), False)
         selector.register(stream, selectors.EVENT_READ)
@@ -212,8 +241,15 @@ def main():
                     while b"\n" in control:
                         line, _, rest = control.partition(b"\n")
                         control = bytearray(rest)
-                        if line == b"heartbeat":
-                            heartbeat = time.monotonic()
+                        if line.startswith(b"heartbeat "):
+                            try:
+                                age = time.time() * 1000 - int(line.split(b" ", 1)[1])
+                                if -1000 <= age <= 5000:
+                                    heartbeat = time.monotonic()
+                                else:
+                                    stop = "stale_heartbeat"
+                            except ValueError:
+                                stop = "invalid_control"
                         else:
                             stop = "cancelled"
                 else:

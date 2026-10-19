@@ -31,7 +31,10 @@ jobs:
           git --version
           python3 --version
       - name: Install Linux sandbox prerequisite
-        run: sudo apt-get update -qq && sudo apt-get install -y bubblewrap
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y bubblewrap apparmor
+          sudo apparmor_parser -r .github/bwrap.apparmor
       - name: Frozen install
         run: mise exec -- bun install --frozen-lockfile
       - name: Deterministic verification including Linux process probes

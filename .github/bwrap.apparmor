@@ -1,0 +1,7 @@
+# Permit only the sandbox launcher to create a user namespace on Ubuntu CI.
+# Filesystem/process isolation is subsequently established by bubblewrap.
+abi <abi/4.0>,
+include <tunables/global>
+profile personal-wiki-bwrap /usr/bin/bwrap flags=(unconfined) {
+  userns,
+}

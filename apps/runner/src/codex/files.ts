@@ -51,6 +51,7 @@ export function subscriptionAuth(text: string) {
     auth.tokens === null ||
     !("access_token" in auth.tokens) ||
     typeof auth.tokens.access_token !== "string" ||
+    !auth.tokens.access_token.trim() ||
     ("OPENAI_API_KEY" in auth && auth.OPENAI_API_KEY !== null) ||
     ("auth_mode" in auth && auth.auth_mode !== "chatgpt")
   )

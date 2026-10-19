@@ -164,3 +164,22 @@ export const SourceResolution = Schema.Struct({
   job: JobView,
   noteId: Schema.NullOr(Id),
 });
+
+export const RecoverAttempt = Schema.Struct({
+  ...CompleteAttempt.fields,
+  completedAt: Instant,
+});
+export const ExecutionPending = Schema.Array(
+  Schema.Struct({
+    job: JobView,
+    epoch: Schema.Int,
+    attempt: Attempt,
+    leaseActive: Schema.Boolean,
+    stopRequested: Schema.Boolean,
+  }),
+);
+export const SettleExecution = Schema.Struct({
+  jobId: Id,
+  epoch: Schema.Int,
+  processStopped: Schema.Literal(true),
+});

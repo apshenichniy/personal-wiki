@@ -5,6 +5,1293 @@
     "version": "0.0.1"
   },
   "paths": {
+    "/internal/v1/jobs/executions": {
+      "get": {
+        "tags": [
+          "worker"
+        ],
+        "operationId": "worker.pendingExecutions",
+        "parameters": [],
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "job": {
+                        "$ref": "#/components/schemas/JobView"
+                      },
+                      "epoch": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "attempt": {
+                        "$ref": "#/components/schemas/ExecutionAttempt"
+                      },
+                      "leaseActive": {
+                        "type": "boolean"
+                      },
+                      "stopRequested": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "job",
+                      "epoch",
+                      "attempt",
+                      "leaseActive",
+                      "stopRequested"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/jobs/recover-attempt": {
+      "post": {
+        "tags": [
+          "worker"
+        ],
+        "operationId": "worker.recoverAttempt",
+        "parameters": [],
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "JobView",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "requestId": {
+                    "type": "string",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                    "format": "uuid"
+                  },
+                  "scope": {
+                    "$ref": "#/components/schemas/JobScope"
+                  },
+                  "attemptId": {
+                    "type": "string",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                    "format": "uuid"
+                  },
+                  "processStopped": {
+                    "type": "boolean",
+                    "enum": [
+                      true
+                    ]
+                  },
+                  "outcome": {
+                    "type": "string",
+                    "enum": [
+                      "output",
+                      "transient",
+                      "auth",
+                      "quota",
+                      "failed"
+                    ]
+                  },
+                  "output": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 1048576
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "completedAt": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "requestId",
+                  "scope",
+                  "attemptId",
+                  "processStopped",
+                  "outcome",
+                  "output",
+                  "completedAt"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": true
+        }
+      }
+    },
+    "/internal/v1/jobs/settle-execution": {
+      "post": {
+        "tags": [
+          "worker"
+        ],
+        "operationId": "worker.settleExecution",
+        "parameters": [],
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "JobView",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "jobId": {
+                    "type": "string",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                    "format": "uuid"
+                  },
+                  "epoch": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "processStopped": {
+                    "type": "boolean",
+                    "enum": [
+                      true
+                    ]
+                  }
+                },
+                "required": [
+                  "jobId",
+                  "epoch",
+                  "processStopped"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": true
+        }
+      }
+    },
     "/internal/v1/jobs/fail-acquisition": {
       "post": {
         "tags": [
