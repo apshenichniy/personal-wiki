@@ -36,6 +36,45 @@ class Engine:
         path = self.root / f"active-{target}.json"
         return json.loads(path.read_text()) if path.exists() else None
 
+    def restore_runtime(self):
+        """Cold boot is not a deployment: keep data and never bypass a cutover."""
+        with exclusive(self.root / "deployment.lock"):
+            if self.critical_owner() is not None or self.records.pending():
+                return False
+            if sum(bool(self.host.settings["dispatchEnabled"][t]) for t in TARGETS) > 1:
+                raise ValueError("multiple_dispatch_targets")
+            selected = []
+            for target in TARGETS:
+                active = self.active(target)
+                if active is None:
+                    continue
+                identity(active["revision"], active["digest"])
+                operation = self.records.get(operation_id(active["operationId"]))
+                if operation["phase"] != "complete" or any(
+                    operation["request"][key] != value for key, value in
+                    (("target", target), ("revision", active["revision"]), ("digest", active["digest"]))):
+                    raise ValueError("active_release_not_complete")
+                release = self.releases / active["digest"]
+                current = self.releases.parent / ("current-" + target)
+                if not current.is_symlink() or current.resolve() != release.resolve():
+                    raise ValueError("active_release_link_changed")
+                manifest = json.loads((release / "release.json").read_text())
+                if manifest["revision"] != active["revision"] or any(
+                    (release / name).is_symlink() or sha256(release / name) != digest
+                    for name, digest in manifest["files"].items()):
+                    raise ValueError("active_release_bytes_changed")
+                version = self.host.schema(target)
+                if not manifest["schema"]["readableMin"] <= version <= manifest["schema"]["readableMax"]:
+                    raise ValueError("active_schema_not_readable")
+                selected.append((target, release, manifest))
+            # Validate every recorded identity before starting either namespace.
+            for target, release, manifest in selected:
+                self.host.preflight(target, manifest)
+                self.host.start_service(target)
+                self.host.readiness(target, release)
+                self.host.resume_dispatch(target)
+            return True
+
     def previous(self, target):
         active = self.active(target)
         if not active or not active.get("previous"):

@@ -97,12 +97,24 @@ class Handler(socketserver.StreamRequestHandler):
 
 
 def work():
+    restored = False
+    last_restore_error = None
     while True:
         for record in engine.records.pending():
             try:
                 print(json.dumps(engine.drive(record["operationId"])), flush=True)
             except (OSError, ValueError):
                 pass  # Lock contention/restart is reconciled from the durable record.
+        if not restored:
+            try:
+                restored = engine.restore_runtime()
+            except (OSError, ValueError, KeyError) as error:
+                # A failed cutover, unavailable identity provider, or altered
+                # release must not be bypassed by independently enabled units.
+                code = str(error) if type(error) is ValueError else "runtime_prerequisite_unavailable"
+                if code != last_restore_error:
+                    print(json.dumps({"event": "runtime-restore-blocked", "code": code}), flush=True)
+                    last_restore_error = code
         time.sleep(1)
 
 
