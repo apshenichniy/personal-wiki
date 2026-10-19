@@ -135,8 +135,24 @@ export function buildProposal(
         output.notes.find((n) => n.noteId === id)?.title;
       return `- [${prose(title ?? id)}](/notes/${id})`;
     });
-    const limitations = [...new Set([...note.limitations, ...capture.warnings])];
-    let markdown = `# ${prose(note.title)}\n\nИсточник: [X](${slot.source.canonicalUrl}). Захват: ${capture.endedAt}.\n\nПокрытие: основной материал — ${coverageLabel(capture.coverage.main)}; обсуждение — ${coverageLabel(capture.coverage.discussion)}; контекст — ${coverageLabel(capture.coverage.context)}.\n\n## Кратко\n\n${passage(note.overview)}\n\n## Подробный пересказ\n\n${note.main.map(passage).join("\n\n")}\n\n## Обсуждение\n\n${note.discussion.length ? note.discussion.map(passage).join("\n\n") : "Содержательных дополнений в отобранном обсуждении нет; это не означает отсутствия других ответов в X."}\n\n## Связанные заметки\n\n${related.join("\n") || "Подходящие заметки в доступном контексте не найдены."}\n\n## Ограничения\n\n${limitations.map((x) => `- ${prose(x)}`).join("\n")}\n`;
+    const limitations = [
+      ...new Set([
+        ...note.limitations,
+        ...(capture.warnings.length
+          ? [
+              "При захвате сохранены диагностические предупреждения; снимок не считается исчерпывающим.",
+            ]
+          : []),
+        ...(slot.source.kind === "x_article" &&
+        capture.warnings.includes("article_body_completeness_unverified")
+          ? ["Полнота полученного тела статьи отдельно не подтверждена."]
+          : []),
+      ]),
+    ];
+    const emptyDiscussion = ["not_applicable", "not_acquired"].includes(capture.coverage.discussion)
+      ? "Обсуждение этого материала отдельно не получено."
+      : "Содержательных дополнений в отобранном обсуждении нет; это не означает отсутствия других ответов в X.";
+    let markdown = `# ${prose(note.title)}\n\nИсточник: [X](${slot.source.canonicalUrl}). Захват: ${capture.endedAt}.\n\nПокрытие: основной материал — ${coverageLabel(capture.coverage.main)}; обсуждение — ${coverageLabel(capture.coverage.discussion)}; контекст — ${coverageLabel(capture.coverage.context)}.\n\n## Кратко\n\n${passage(note.overview)}\n\n## Подробный пересказ\n\n${note.main.map(passage).join("\n\n")}\n\n## Обсуждение\n\n${note.discussion.length ? note.discussion.map(passage).join("\n\n") : emptyDiscussion}\n\n## Связанные заметки\n\n${related.join("\n") || "Подходящие заметки в доступном контексте не найдены."}\n\n## Ограничения\n\n${limitations.map((x) => `- ${prose(x)}`).join("\n")}\n`;
     const previous = context.previous.find((p) => p.note.noteId === note.noteId);
     const captureIds = [capture.captureId];
     if (previous) {
