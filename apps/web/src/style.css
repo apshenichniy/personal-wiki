@@ -541,3 +541,14 @@ footer {
     scroll-behavior: auto !important;
   }
 }
+
+.citation-source {
+  font-size: 0.7em;
+  margin-inline: 0.3em;
+  padding: 0.1em 0.4em;
+  vertical-align: baseline;
+}
+.source-post:focus {
+  outline: 2px solid var(--accent, #2458a6);
+  outline-offset: 4px;
+}

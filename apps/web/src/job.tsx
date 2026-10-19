@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import type { JobView } from "@personal-wiki/contracts/jobs";
 import { client, message, mutation, request } from "./api.ts";
 import { usePoll } from "./use-poll.ts";
-import { navigate } from "./navigation.ts";
+import { navigate, useNavigationGuard } from "./navigation.ts";
 import { RefreshSource } from "./submission.tsx";
 import { External } from "./markdown.tsx";
 import { date, Freshness, Link, Notice, stages, Warnings } from "./shared.tsx";
@@ -20,8 +20,10 @@ function Actions({ job, refresh }: { job: JobView; refresh: () => void }) {
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const busy = useRef(false);
+  const guard = useNavigationGuard();
   const act = async (action: "cancel" | "resume" | "retry_retained") => {
     if (busy.current) return;
+    const isCurrent = guard();
     busy.current = true;
     setPending(true);
     setError("");
@@ -36,9 +38,11 @@ function Actions({ job, refresh }: { job: JobView; refresh: () => void }) {
               : client.jobs.retryRetained(input),
         );
       });
+      if (!isCurrent()) return;
       if (result.jobId !== job.jobId) navigate(`/jobs/${result.jobId}`);
       else refresh();
     } catch (e) {
+      if (!isCurrent()) return;
       setError(message(e));
       refresh();
     } finally {

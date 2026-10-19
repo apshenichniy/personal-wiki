@@ -84,6 +84,8 @@ test("weaker refresh preserves dated original evidence and stable note identity"
   expect(refreshed.markdown).toContain("Предыдущая версия");
   expect(refreshed.markdown).toContain("https://x.com/i/status/201");
   expect(refreshed.markdown).toContain(before.captures[0]!.endedAt);
+  expect(refreshed.markdown).toContain(`"wiki-citation:${id}:100"`);
+  expect(refreshed.markdown).toContain(`"wiki-citation:${before.captures[0]!.captureId}:100"`);
   // Even an unchanged capture must not silently drop a previously useful reply.
   const omission = editorial(before);
   const omitted = {

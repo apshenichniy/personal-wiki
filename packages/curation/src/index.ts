@@ -163,7 +163,7 @@ export function buildProposal(
             providerId: id,
             canonicalUrl: observation.canonicalUrl,
           });
-          return `[Источник](${observation.canonicalUrl})`;
+          return `[Источник](${observation.canonicalUrl} "wiki-citation:${key}")`;
         })
         .join(" ");
       return `${p.heading ? `### ${prose(p.heading)}\n\n` : ""}${p.attribution === "inference" ? "Комментарий составителя: " : ""}${prose(p.text)} ${links}`;

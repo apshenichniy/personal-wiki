@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { CaptureDetail, NoteDetail } from "@personal-wiki/contracts/knowledge";
+import type { CaptureDetail, NoteDetail, Citation } from "@personal-wiki/contracts/knowledge";
 import { client, request, RequestError } from "./api.ts";
 import { usePoll } from "./use-poll.ts";
 import { External, SafeMarkdown } from "./markdown.tsx";
@@ -82,6 +82,7 @@ function Sources({ bundle, selected }: { bundle: Bundle; selected: string | null
             {capture.observations.map((post) => (
               <section
                 className="source-post"
+                tabIndex={-1}
                 key={post.providerId}
                 id={`post-${capture.captureId}-${post.providerId}`}
               >
@@ -113,6 +114,16 @@ export function Reader({ id, enabled }: { id: string; enabled: boolean }) {
   useEffect(() => {
     if (state.data && !shown) setShown(state.data);
   }, [state.data, shown]);
+  const openCitation = (citation: typeof Citation.Type) => {
+    setTab("source");
+    requestAnimationFrame(() => {
+      const target = document.getElementById(`post-${citation.captureId}-${citation.providerId}`);
+      const details = target?.closest("details");
+      if (details) details.open = true;
+      target?.scrollIntoView({ block: "center" });
+      target?.focus({ preventScroll: true });
+    });
+  };
   const bundle = shown;
   const note = bundle?.detail.note;
   const refreshCapture = bundle?.captures
@@ -164,7 +175,11 @@ export function Reader({ id, enabled }: { id: string; enabled: boolean }) {
           </nav>
           {tab === "note" ? (
             <>
-              <SafeMarkdown text={note.markdown} />
+              <SafeMarkdown
+                text={note.markdown}
+                citations={note.citations}
+                onSource={openCitation}
+              />
               <section className="provenance">
                 <h2>Источники и ссылки</h2>
                 {bundle.captures.map(({ capture }) => (
@@ -177,20 +192,7 @@ export function Reader({ id, enabled }: { id: string; enabled: boolean }) {
                   {note.citations.map((citation) => (
                     <li key={citation.citationId}>
                       <External href={citation.canonicalUrl}>Пост {citation.providerId} ↗</External>
-                      <button
-                        className="quiet"
-                        onClick={() => {
-                          setTab("source");
-                          requestAnimationFrame(() => {
-                            const target = document.getElementById(
-                              `post-${citation.captureId}-${citation.providerId}`,
-                            );
-                            const details = target?.closest("details");
-                            if (details) details.open = true;
-                            target?.scrollIntoView({ block: "center" });
-                          });
-                        }}
-                      >
+                      <button className="quiet" onClick={() => openCitation(citation)}>
                         В сохранённом захвате
                       </button>
                       <small>

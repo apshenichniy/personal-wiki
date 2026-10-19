@@ -1,13 +1,14 @@
 import { useRef, useState } from "react";
 import { normalizeSubmission } from "@personal-wiki/contracts/x-url";
 import { client, message, mutation, request } from "./api.ts";
-import { navigate } from "./navigation.ts";
+import { navigate, useNavigationGuard } from "./navigation.ts";
 import { Notice } from "./shared.tsx";
-export async function submit(url: string, mode: "save" | "refresh") {
+async function submit(url: string, mode: "save" | "refresh", isCurrent: () => boolean) {
   normalizeSubmission(url);
   const result = await mutation(`submit:${mode}:${url}`, (requestId) =>
     request(client.jobs.submit({ payload: { requestId, mode, url } })),
   );
+  if (!isCurrent()) return;
   if (result.noteId && result.outcome === "existing_note") navigate(`/notes/${result.noteId}`);
   else if (result.job) navigate(`/jobs/${result.job.jobId}`);
 }
@@ -16,6 +17,7 @@ export function SaveForm() {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const busy = useRef(false);
+  const guard = useNavigationGuard();
   return (
     <form
       className="save-form"
@@ -25,7 +27,7 @@ export function SaveForm() {
         busy.current = true;
         setPending(true);
         setError("");
-        void submit(url.trim(), "save")
+        void submit(url.trim(), "save", guard())
           .catch((error: unknown) => setError(message(error)))
           .finally(() => {
             busy.current = false;
@@ -64,6 +66,7 @@ export function RefreshSource({ url }: { url: string }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const busy = useRef(false);
+  const guard = useNavigationGuard();
   return (
     <div className="refresh-source">
       {confirm ? (
@@ -78,7 +81,7 @@ export function RefreshSource({ url }: { url: string }) {
               if (busy.current) return;
               busy.current = true;
               setPending(true);
-              void submit(url, "refresh")
+              void submit(url, "refresh", guard())
                 .catch((e: unknown) => setError(message(e)))
                 .finally(() => {
                   busy.current = false;

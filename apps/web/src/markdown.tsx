@@ -1,6 +1,8 @@
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { ReactNode } from "react";
+import type { Citation } from "@personal-wiki/contracts/knowledge";
+type SourceCitation = typeof Citation.Type;
 export function safeExternal(value: string | undefined) {
   if (!value) return undefined;
   try {
@@ -22,14 +24,47 @@ export function External({ href, children }: { href?: string | undefined; childr
     <span>{children}</span>
   );
 }
-export function SafeMarkdown({ text }: { text: string }) {
+export function SafeMarkdown({
+  text,
+  citations = [],
+  onSource,
+}: {
+  text: string;
+  citations?: readonly SourceCitation[];
+  onSource?: (citation: SourceCitation) => void;
+}) {
   return (
     <div className="prose">
       <Markdown
         remarkPlugins={[remarkGfm]}
         urlTransform={(url) => safeExternal(url) ?? ""}
         components={{
-          a: ({ href, children }) => <External href={href}>{children}</External>,
+          a: ({ href, title, children }) => {
+            const matches = citations.filter((c) => c.canonicalUrl === href);
+            const pinned = title?.startsWith("wiki-citation:")
+              ? matches.filter((c) => c.citationId === title.slice("wiki-citation:".length))
+              : matches;
+            // Legacy Markdown may not identify one of multiple captures. Show
+            // every candidate explicitly rather than silently choosing latest.
+            const ambiguous = !title?.startsWith("wiki-citation:") && pinned.length > 1;
+            return (
+              <>
+                <External href={href}>{children}</External>
+                {onSource &&
+                  pinned.map((citation) => (
+                    <button
+                      key={citation.citationId}
+                      className="citation-source"
+                      data-capture-id={citation.captureId}
+                      aria-label={`${ambiguous ? "Возможный" : "Сохранённый"} источник: захват ${citation.captureId}, пост ${citation.providerId}`}
+                      onClick={() => onSource(citation)}
+                    >
+                      {ambiguous ? "возможный захват" : "захват"} {citation.captureId.slice(0, 8)}
+                    </button>
+                  ))}
+              </>
+            );
+          },
           img: ({ src, alt }) => (
             <External href={typeof src === "string" ? src : undefined}>
               Медиа: {alt || "открыть источник"}

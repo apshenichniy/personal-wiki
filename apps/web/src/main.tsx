@@ -57,7 +57,10 @@ function App() {
         );
       } catch (e) {
         if (current !== generation) return;
-        clear();
+        // A transport failure cannot prove revocation. Hide private views, but
+        // keep pending mutation IDs until confirmed logout/401 or session expiry.
+        setReady(false);
+        setCsrf("");
         setError(message(e));
       } finally {
         if (current === generation) setChecking(false);
@@ -139,13 +142,23 @@ function App() {
           <h1>{checking ? "Проверяем доступ…" : "Ваша библиотека"}</h1>
           {!checking && (
             <>
-              <p>Войдите через Pocket ID, чтобы читать и сохранять материалы.</p>
-              <a
-                className="button primary"
-                href={`/auth/login?returnTo=${encodeURIComponent(route)}`}
-              >
-                Войти
-              </a>
+              <p>
+                {signedIn
+                  ? "Не удалось подтвердить доступ. Содержимое скрыто до восстановления связи."
+                  : "Войдите через Pocket ID, чтобы читать и сохранять материалы."}
+              </p>
+              {signedIn ? (
+                <button className="primary" onClick={() => check.current()}>
+                  Повторить проверку
+                </button>
+              ) : (
+                <a
+                  className="button primary"
+                  href={`/auth/login?returnTo=${encodeURIComponent(route)}`}
+                >
+                  Войти
+                </a>
+              )}
             </>
           )}
           {error && <Notice error>{error}</Notice>}

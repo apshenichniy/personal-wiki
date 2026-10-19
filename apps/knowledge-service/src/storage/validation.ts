@@ -105,7 +105,12 @@ export function validateBatch(
         !note.captureIds.includes(citation.captureId) ||
         !observation ||
         observation.canonicalUrl !== citation.canonicalUrl ||
-        !note.markdown.includes(`](${citation.canonicalUrl})`)
+        !(
+          note.markdown.includes(`](${citation.canonicalUrl})`) ||
+          note.markdown.includes(
+            `](${citation.canonicalUrl} "wiki-citation:${citation.citationId}")`,
+          )
+        )
       )
         throw invalid("Citation does not resolve to retained inline evidence.");
     }

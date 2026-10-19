@@ -45,6 +45,14 @@ test("save, lost response retry, progress, Russian reading, original search, dow
   const citation = page.locator(".prose a").first();
   expect(await citation.getAttribute("href")).toMatch(/^https:\/\/x.com\/i\/status\/[0-9]+$/);
   await expect(citation).toHaveAttribute("rel", "noopener noreferrer");
+  const pinned = page.locator(".prose .citation-source").first();
+  const captureId = await pinned.getAttribute("data-capture-id");
+  await pinned.click();
+  await expect(page.locator(`section.source-post:focus`)).toHaveAttribute(
+    "id",
+    new RegExp(`^post-${captureId}-`),
+  );
+  await page.getByRole("button", { name: "Заметка", exact: true }).click();
   await page.screenshot({
     path: `.scratch/browser-results/${info.project.name}-reader.png`,
     fullPage: true,
@@ -247,4 +255,71 @@ test("pagination restarts visibly when the applied revision changes", async ({ p
     page.getByText("Библиотека изменилась. Поиск начат заново.", { exact: true }),
   ).toBeVisible();
   await expect(page.locator(".note-list a").first()).toBeVisible();
+});
+
+test("a session transport failure preserves the idempotency key of an accepted refresh", async ({
+  page,
+  context,
+}) => {
+  await login(page);
+  await page.locator(".note-list a").first().click();
+  await expect(page.locator(".prose")).toBeVisible();
+  const keys: string[] = [];
+  await page.route("**/api/v1/submissions", async (route) => {
+    keys.push((route.request().postDataJSON() as { requestId: string }).requestId);
+    const response = await route.fetch();
+    if (keys.length === 1) await route.abort("failed");
+    else await route.fulfill({ response });
+  });
+  await page.getByRole("button", { name: "Обновить источник…" }).click();
+  await page.getByRole("button", { name: "Получить новый захват" }).click();
+  await expect(page.locator(".refresh-source [role=alert]")).toBeVisible();
+  await page.route("**/api/v1/session", (route) =>
+    route.fulfill({ status: 503, body: "Unavailable" }),
+  );
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await expect(page.getByRole("button", { name: "Повторить проверку" })).toBeVisible();
+  await expect(page.locator(".prose")).not.toBeVisible();
+  // Finish the accepted job before retry: URL-level active-job deduplication
+  // cannot hide a lost request ID by this point.
+  expect((await context.request.post("/__test/run")).ok()).toBeTruthy();
+  await page.unroute("**/api/v1/session");
+  await page.getByRole("button", { name: "Повторить проверку" }).click();
+  await expect(page.locator(".prose")).toBeVisible();
+  await page.getByRole("button", { name: "Получить новый захват" }).click();
+  await expect(page).toHaveURL(/\/jobs\/[a-f0-9-]+$/);
+  await expect(page.getByRole("heading", { name: "Готово", exact: true })).toBeVisible();
+  expect(keys).toHaveLength(2);
+  expect(keys[1]).toBe(keys[0]);
+});
+
+test("an accepted submission response cannot replace a newer navigation", async ({
+  page,
+  context,
+}) => {
+  await login(page);
+  let release!: () => void;
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let accepted = false;
+  let delivered = false;
+  await page.route("**/api/v1/submissions", async (route) => {
+    const response = await route.fetch();
+    accepted = true;
+    await held;
+    await route.fulfill({ response });
+    delivered = true;
+  });
+  await page.getByLabel("Сохранить из X").fill(postUrl());
+  await page.getByRole("button", { name: "Сохранить", exact: true }).click();
+  await expect.poll(() => accepted).toBeTruthy();
+  await page.locator(".note-list a").first().click();
+  await expect(page.locator(".prose")).toBeVisible();
+  const destination = page.url();
+  release();
+  await expect.poll(() => delivered).toBeTruthy();
+  await page.waitForTimeout(300);
+  await expect(page).toHaveURL(destination);
+  expect((await context.request.post("/__test/run")).ok()).toBeTruthy();
 });
