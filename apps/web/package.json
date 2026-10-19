@@ -1,0 +1,14 @@
+{
+  "name": "@personal-wiki/web",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@personal-wiki/client": "workspace:*",
+    "@personal-wiki/contracts": "workspace:*",
+    "effect": "4.0.5",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "react-markdown": "10.1.0",
+    "remark-gfm": "4.0.1"
+  }
+}

@@ -23,7 +23,7 @@ export type InvalidIdentity =
 
 /** A controlled OIDC peer signs real JWTs; openid-client still performs all
  * discovery, code exchange, PKCE and signature/claim validation. No live auth. */
-export async function ownerProviderFixture() {
+export async function ownerProviderFixture(settings = ownerSettings) {
   const key = await generateKeyPair("RS256");
   const wrong = await generateKeyPair("RS256");
   const publicKey = {
@@ -37,13 +37,13 @@ export async function ownerProviderFixture() {
   let exchanges = 0;
   const transport: NonNullable<Parameters<typeof discoverOwnerProvider>[1]> = async (url, init) => {
     const parsed = new URL(String(url));
-    if (parsed.origin !== ownerSettings.issuer) throw new Error("Unexpected fixture destination");
+    if (parsed.origin !== settings.issuer) throw new Error("Unexpected fixture destination");
     if (parsed.pathname === "/.well-known/openid-configuration")
       return Response.json({
-        issuer: discoveryMismatch ? "https://wrong.example.test" : ownerSettings.issuer,
-        authorization_endpoint: `${ownerSettings.issuer}/authorize`,
-        token_endpoint: `${ownerSettings.issuer}/token`,
-        jwks_uri: `${ownerSettings.issuer}/jwks`,
+        issuer: discoveryMismatch ? "https://wrong.example.test" : settings.issuer,
+        authorization_endpoint: `${settings.issuer}/authorize`,
+        token_endpoint: `${settings.issuer}/token`,
+        jwks_uri: `${settings.issuer}/jwks`,
         response_types_supported: ["code"],
         subject_types_supported: ["public"],
         id_token_signing_alg_values_supported: ["RS256"],
@@ -65,9 +65,9 @@ export async function ownerProviderFixture() {
       .digest("base64url");
     if (
       !grant ||
-      body.get("client_id") !== ownerSettings.clientId ||
-      body.get("client_secret") !== ownerSettings.clientSecret ||
-      body.get("redirect_uri") !== `${ownerSettings.publicOrigin}/auth/callback` ||
+      body.get("client_id") !== settings.clientId ||
+      body.get("client_secret") !== settings.clientSecret ||
+      body.get("redirect_uri") !== `${settings.publicOrigin}/auth/callback` ||
       grant.url.searchParams.get("code_challenge") !== challenge ||
       grant.invalid === "pkce"
     )
@@ -77,17 +77,17 @@ export async function ownerProviderFixture() {
     const now = Math.floor(Date.now() / 1000);
     const idToken = await new SignJWT({
       nonce: grant.invalid === "nonce" ? "wrong" : grant.url.searchParams.get("nonce"),
-      ...(grant.invalid === "azp" ? { aud: [ownerSettings.clientId, "other"], azp: "other" } : {}),
+      ...(grant.invalid === "azp" ? { aud: [settings.clientId, "other"], azp: "other" } : {}),
     })
       .setProtectedHeader({ alg: "RS256", kid: "fixture-key" })
-      .setIssuer(grant.invalid === "issuer" ? "https://wrong.example.test" : ownerSettings.issuer)
-      .setSubject(grant.invalid === "non-owner" ? "synthetic-stranger" : ownerSettings.ownerSubject)
+      .setIssuer(grant.invalid === "issuer" ? "https://wrong.example.test" : settings.issuer)
+      .setSubject(grant.invalid === "non-owner" ? "synthetic-stranger" : settings.ownerSubject)
       .setAudience(
         grant.invalid === "audience"
           ? "wrong-client"
           : grant.invalid === "azp"
-            ? [ownerSettings.clientId, "other"]
-            : ownerSettings.clientId,
+            ? [settings.clientId, "other"]
+            : settings.clientId,
       )
       .setIssuedAt(now)
       .setExpirationTime(grant.invalid === "expired" ? now - 120 : now + 300)
@@ -110,10 +110,10 @@ export async function ownerProviderFixture() {
       const url = new URL(authorization);
       const code = randomUUID();
       codes.set(code, { url, ...(invalid ? { invalid } : {}) });
-      const callback = new URL(`${ownerSettings.publicOrigin}/auth/callback`);
+      const callback = new URL(`${settings.publicOrigin}/auth/callback`);
       callback.searchParams.set("code", code);
       callback.searchParams.set("state", url.searchParams.get("state")!);
-      callback.searchParams.set("iss", ownerSettings.issuer);
+      callback.searchParams.set("iss", settings.issuer);
       return callback;
     },
   };

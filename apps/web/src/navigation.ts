@@ -1,0 +1,18 @@
+import { useSyncExternalStore } from "react";
+const event = "wiki:navigate";
+export function navigate(path: string) {
+  if (!/^\/(?:$|notes\/[a-f0-9-]{36}(?:\?.*)?$|jobs\/[a-f0-9-]{36}$)/.test(path)) return;
+  history.pushState(null, "", path);
+  window.dispatchEvent(new Event(event));
+  window.scrollTo(0, 0);
+}
+const subscribe = (notify: () => void) => {
+  window.addEventListener("popstate", notify);
+  window.addEventListener(event, notify);
+  return () => {
+    window.removeEventListener("popstate", notify);
+    window.removeEventListener(event, notify);
+  };
+};
+export const useLocation = () =>
+  useSyncExternalStore(subscribe, () => location.pathname + location.search);

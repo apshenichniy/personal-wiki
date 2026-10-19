@@ -26,7 +26,12 @@ tasks:
     options:
       cache: false
     command: bun test
-    deps: [knowledge-service:build, runner:build]
+    deps: [knowledge-service:build, runner:build, web:build]
+  browser:
+    options:
+      cache: false
+    command: bun run browser-test
+    deps: [web:build, runner:build]
   negative:
     options:
       cache: false
@@ -35,4 +40,4 @@ tasks:
     options:
       cache: false
     command: bun run tools/verified.ts
-    deps: [typecheck, diagnostics, lint, format, contracts, test, negative]
+    deps: [typecheck, diagnostics, lint, format, contracts, test, negative, browser]

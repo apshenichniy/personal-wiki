@@ -7,12 +7,13 @@ Install mise **2026.9.1**, trust this checkout's `mise.toml`, and run:
 ```sh
 mise install
 mise exec -- bun install --frozen-lockfile
+mise exec -- bunx --no-install playwright install chromium
 mise exec -- bun run verify
 ```
 
 The committed Bun lockfile is authoritative. Bun **1.3.13** is both runtime and package manager, with isolated workspace linking; moon **2.6.2** runs the verification DAG. Effect, platform-bun and the selected service-only SQLite adapter stay at **4.0.5**. TypeScript **7.0.2**, Effect diagnostics **0.53.4**, Oxlint **1.88.0**, Oxfmt **0.73.0** and oxlint-tsgolint **7.0.2004** match the successful stack spike. Ajv **8.17.1** and ajv-formats **3.0.1** are additional development-only dependencies for independent JSON Schema validation. No runtime-framework version deviations were introduced.
 
-`verify` runs typechecking, headless Effect diagnostics, type-aware lint, formatting, generated-contract freshness, an intentionally failing diagnostic fixture, builds, and real process/HTTP tests. The checks and process tests run on macOS and GitHub-hosted Linux without credentials or paid providers. Verification tasks deliberately disable moon result caching; a successful gate represents execution on the current machine. Build caching can be introduced later with explicit input/invalidation tests.
+`verify` runs typechecking, headless Effect diagnostics, type-aware lint, formatting, generated-contract freshness, an intentionally failing diagnostic fixture, builds, real process/HTTP tests, and Chromium desktop/phone viewport tests. Linux CI installs Chromium system dependencies with `playwright install --with-deps chromium`; local Linux hosts need those dependencies too. Python 3.12+, Git and OpenSSL are required for the disposable HTTPS browser fixture. The checks and process tests run on macOS and GitHub-hosted Linux without credentials or paid providers. Verification tasks deliberately disable moon result caching; a successful gate represents execution on the current machine. Build caching can be introduced later with explicit input/invalidation tests.
 
 The negative fixture is excluded from the application TypeScript project. Its separate diagnostic command must fail with `floatingEffect`; merely obtaining a nonzero exit is insufficient. Dependency declaration files use `skipLibCheck`, as in the spike; application code is strictly checked. Effect's unstable HTTP/SQL APIs are pinned and produce informational diagnostics, not silent compatibility guarantees. Selected correctness diagnostics are errors.
 
@@ -196,3 +197,16 @@ profile, physical ownership, recovery and platform limits. Tests use synthetic
 sources and real process boundaries. The actual subscription executor runs on
 Linux; macOS does not need an interactive Codex configuration or provider secrets
 for deterministic verification.
+
+
+## Responsive private reader (P10)
+
+`apps/web` contains the React 19 reader, built by Bun into two hashed JS/CSS assets. React Markdown plus GFM renders the specified reading subset; raw HTML remains escaped, unsafe links become plain text, and media becomes an explicit external link. There is no service worker, localStorage/sessionStorage content or third-party asset fetch. The browser uses the generated Effect `ReaderApi` client, not a hand-maintained API schema.
+
+Build with `mise exec -- moon run web:build`. Set `WIKI_WEB_DIR` to the absolute `apps/web/dist` directory inside the selected release, alongside the private `WIKI_OWNER_ACCESS_FILE`. The owner listener loads only the manifest's bounded hashed bundles at startup; request paths never become disk paths. Exact static assets are public/cacheable and contain no private state. HTML for `/`, `/jobs/{id}`, `/notes/{id}` remains session-protected and no-store; a missing bundle does not bypass authorization.
+
+The library submits supported X links, displays active/recent jobs and searches note/original text. Save and explicit refresh are distinct. Mutation IDs remain in memory across a lost response; no client-side policy invents job actions. Search cursors bind exact query/order/page size and applied revision; changing a revision restarts the displayed pages. Job views expose server-owned allowed actions and actual retained-capture counts/coverage.
+
+Visible job/library views poll at 5/15 seconds with bounded backoff. Hidden views stop polling; foreground, pageshow and reconnection verify the session before showing retained views. Logout clears all application state and broadcasts to other tabs without persistent storage. A loaded reader remains on its original coherent note/capture snapshot until the owner accepts an update notice. English original matches open the corresponding Russian note's retained source view.
+
+`mise exec -- bun run browser-test` runs the disposable HTTPS fixture (after web/Runner builds). Its controlled OIDC peer signs actual tokens and exercises the production session router; its synthetic Runner calls the real private job HTTP API and publishes through Git/SQLite. Fixture-only controls are in `tests/helpers/browser-service.ts`, never the production listener. The fixture's self-signed certificate is trusted only by that test browser; production TLS verification stays enabled. Browser evidence is written under ignored `.scratch/browser-results`. Viewport evidence is not actual iPhone G6 acceptance.

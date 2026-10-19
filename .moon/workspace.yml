@@ -1,4 +1,5 @@
 projects:
+  web: apps/web
   workspace: .
   contracts: packages/contracts
   client: packages/client

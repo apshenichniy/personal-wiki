@@ -2,6 +2,7 @@ import { Schema } from "effect";
 import { HttpApi, HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from "effect/http-api";
 import { ErrorEnvelope, KnowledgeApi } from "./index.ts";
 import { OwnerJobsApi } from "./jobs-api.ts";
+import { JobView } from "./jobs.ts";
 import { Id } from "./knowledge.ts";
 
 export const OwnerSession = Schema.Struct({
@@ -32,6 +33,10 @@ export class ReaderKnowledge extends HttpApiGroup.make("knowledge").add(
   }),
 ) {}
 export class ReaderJobs extends HttpApiGroup.make("jobs").add(
+  HttpApiEndpoint.get("recent", "/api/v1/jobs", {
+    success: Schema.Struct({ jobs: Schema.Array(JobView), hasMore: Schema.Boolean }),
+    error: errors,
+  }),
   OwnerJobsApi.endpoints.submit,
   OwnerJobsApi.endpoints.get,
   OwnerJobsApi.endpoints.cancel,

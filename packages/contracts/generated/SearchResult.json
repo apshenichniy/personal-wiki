@@ -130,6 +130,23 @@
         "appliedRevision": {
           "type": "string"
         },
+        "nextCursor": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "results": {
           "type": "array",
           "items": {

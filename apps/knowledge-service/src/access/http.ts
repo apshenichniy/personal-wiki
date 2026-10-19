@@ -1,3 +1,4 @@
+import { staticResponse, readerPath, htmlPolicy, type WebBundle } from "./web.ts";
 import { Effect, Layer } from "effect";
 import { HttpApiBuilder, HttpApiSchema } from "effect/http-api";
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
@@ -35,7 +36,8 @@ const knowledge = HttpApiBuilder.group(
       note: ({ params, query }) => library.note(params.noteId, query.revision).pipe(Effect.orDie),
       capture: ({ params, query }) =>
         library.capture(params.captureId, query.revision).pipe(Effect.orDie),
-      search: ({ payload }) => library.search(payload.query, payload.revision).pipe(Effect.orDie),
+      search: ({ payload }) =>
+        library.search(payload.query, payload.revision, payload).pipe(Effect.orDie),
       asset: ({ params }) =>
         Effect.gen(function* () {
           const bytes = yield* library.asset(params.assetId);
@@ -59,6 +61,7 @@ const jobs = HttpApiBuilder.group(
     const jobs = yield* Jobs;
     const lifecycle = yield* JobLifecycle;
     return handlers.handleAll({
+      recent: () => jobs.recent().pipe(Effect.orDie),
       submit: ({ payload }) => jobs.submit(payload).pipe(Effect.orDie),
       get: ({ params }) => jobs.get(params.jobId).pipe(Effect.orDie),
       cancel: ({ payload }) =>
@@ -147,57 +150,72 @@ const callback = HttpRouter.add(
   }),
 );
 
-const OwnerBoundary = HttpRouter.middleware(
-  (httpEffect) =>
-    Effect.gen(function* () {
-      const sessions = yield* OwnerSessions;
-      const request = yield* HttpServerRequest.HttpServerRequest;
-      const origin = new URL(sessions.settings.publicOrigin);
-      const path = new URL(request.url, origin).pathname;
-      const guarded = Effect.gen(function* () {
-        // This listener binds loopback only. The configured tunnel must send its
-        // exact public Host; forwarded metadata can never select another origin.
-        if (
-          request.headers.host !== origin.host ||
-          (request.headers["x-forwarded-host"] !== undefined &&
-            request.headers["x-forwarded-host"] !== origin.host) ||
-          (request.headers["x-forwarded-proto"] !== undefined &&
-            request.headers["x-forwarded-proto"] !== "https")
-        )
-          return errorResponse(400, "invalid_request", "Invalid request origin.");
-        if (path === "/health") return HttpServerResponse.empty({ status: 204 });
-        if ((path === "/auth/login" || path === "/auth/callback") && request.method === "GET")
-          return yield* httpEffect;
-        const raw = cookieValue(request.headers.cookie, sessionCookie);
-        const authenticated = yield* sessions.authenticate(raw).pipe(Effect.result);
-        if (authenticated._tag === "Failure") {
-          if (!path.startsWith("/api/") && request.headers.accept?.includes("text/html"))
-            return HttpServerResponse.text(
-              `<!doctype html><html lang="en"><meta charset="utf-8"><title>Sign in</title><p>Authentication required.</p><a href="/auth/login?returnTo=${encodeURIComponent(localReturn(path, origin.origin))}">Sign in</a></html>`,
-              { status: 401, contentType: "text/html; charset=utf-8" },
-            );
-          return errorResponse(401, "unauthenticated", "Authentication required.");
-        }
-        if (!["GET", "HEAD"].includes(request.method)) {
-          const permitted = yield* sessions
-            .csrf(raw, request.headers.origin, request.headers["x-csrf-token"])
-            .pipe(Effect.result);
-          if (permitted._tag === "Failure")
-            return errorResponse(403, "forbidden", "Request verification failed.");
-        }
-        const response = yield* httpEffect;
-        return path === "/api/v1/session/logout" && response.status === 204
-          ? HttpServerResponse.setHeader(response, "set-cookie", cookie(sessionCookie, "", 0))
-          : response;
-      });
-      return HttpServerResponse.setHeaders(yield* withErrorBoundary(guarded), privateHeaders);
-    }),
-  { global: true },
-);
+const ownerBoundary = (web?: WebBundle) =>
+  HttpRouter.middleware(
+    (httpEffect) =>
+      Effect.gen(function* () {
+        const sessions = yield* OwnerSessions;
+        const request = yield* HttpServerRequest.HttpServerRequest;
+        const origin = new URL(sessions.settings.publicOrigin);
+        const path = new URL(request.url, origin).pathname;
+        const guarded = Effect.gen(function* () {
+          // This listener binds loopback only. The configured tunnel must send its
+          // exact public Host; forwarded metadata can never select another origin.
+          if (
+            request.headers.host !== origin.host ||
+            (request.headers["x-forwarded-host"] !== undefined &&
+              request.headers["x-forwarded-host"] !== origin.host) ||
+            (request.headers["x-forwarded-proto"] !== undefined &&
+              request.headers["x-forwarded-proto"] !== "https")
+          )
+            return errorResponse(400, "invalid_request", "Invalid request origin.");
+          const asset = staticResponse(web, path, request.method);
+          if (asset) return asset;
+          if (path === "/health") return HttpServerResponse.empty({ status: 204 });
+          if ((path === "/auth/login" || path === "/auth/callback") && request.method === "GET")
+            return yield* httpEffect;
+          const raw = cookieValue(request.headers.cookie, sessionCookie);
+          const authenticated = yield* sessions.authenticate(raw).pipe(Effect.result);
+          if (authenticated._tag === "Failure") {
+            if (!path.startsWith("/api/") && request.headers.accept?.includes("text/html"))
+              return HttpServerResponse.text(
+                `<!doctype html><html lang="en"><meta charset="utf-8"><title>Sign in</title><p>Authentication required.</p><a href="/auth/login?returnTo=${encodeURIComponent(localReturn(path, origin.origin))}">Sign in</a></html>`,
+                { status: 401, contentType: "text/html; charset=utf-8" },
+              );
+            return errorResponse(401, "unauthenticated", "Authentication required.");
+          }
+          if (!["GET", "HEAD"].includes(request.method)) {
+            const permitted = yield* sessions
+              .csrf(raw, request.headers.origin, request.headers["x-csrf-token"])
+              .pipe(Effect.result);
+            if (permitted._tag === "Failure")
+              return errorResponse(403, "forbidden", "Request verification failed.");
+          }
+          if (web && readerPath(path) && ["GET", "HEAD"].includes(request.method))
+            return HttpServerResponse.text(request.method === "HEAD" ? "" : web.html, {
+              contentType: "text/html; charset=utf-8",
+            });
+          const response = yield* httpEffect;
+          return path === "/api/v1/session/logout" && response.status === 204
+            ? HttpServerResponse.setHeader(response, "set-cookie", cookie(sessionCookie, "", 0))
+            : response;
+        });
+        const response = yield* withErrorBoundary(guarded);
+        if (response.headers["cache-control"]?.startsWith("public,")) return response;
+        return HttpServerResponse.setHeaders(response, {
+          ...privateHeaders,
+          ...(response.headers["content-type"]?.startsWith("text/html")
+            ? { "content-security-policy": htmlPolicy }
+            : {}),
+        });
+      }),
+    { global: true },
+  );
 
-export const OwnerRoutes = Layer.mergeAll(
-  HttpApiBuilder.layer(ReaderApi).pipe(Layer.provide([knowledge, jobs, session])),
-  login,
-  callback,
-  OwnerBoundary,
-);
+export const ownerRoutes = (web?: WebBundle) =>
+  Layer.mergeAll(
+    HttpApiBuilder.layer(ReaderApi).pipe(Layer.provide([knowledge, jobs, session])),
+    login,
+    callback,
+    ownerBoundary(web),
+  );

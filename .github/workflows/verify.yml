@@ -16,7 +16,7 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-24.04
-    timeout-minutes: 12
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -37,6 +37,8 @@ jobs:
           sudo apparmor_parser -r .github/bwrap.apparmor
       - name: Frozen install
         run: mise exec -- bun install --frozen-lockfile
+      - name: Install pinned browser and system dependencies
+        run: mise exec -- bunx --no-install playwright install --with-deps chromium
       - name: Deterministic verification including Linux process probes
         run: mise exec -- bun run verify
       - name: Require unchanged generated files and lockfile

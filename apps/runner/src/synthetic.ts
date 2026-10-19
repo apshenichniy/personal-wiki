@@ -12,6 +12,9 @@ const program = Effect.gen(function* () {
   const token = (yield* Effect.tryPromise(() => readFile(tokenPath, "utf8"))).trim();
   const client = yield* makeJobClient(url, token);
   const reader = yield* makeClient(url, token);
+  const withArticle = yield* Config.Boolean("WIKI_SYNTHETIC_ARTICLE").pipe(
+    Config.withDefault(false),
+  );
   const instanceId = randomUUID();
   let claim = yield* client.worker.claim({ payload: { requestId: randomUUID(), instanceId } });
   while (!claim) {
@@ -34,9 +37,29 @@ const program = Effect.gen(function* () {
               client.worker.upload({ payload: { requestId: randomUUID(), scope, asset: payload } }),
           },
         },
-        [postSource(claim!.job.anchorId)],
+        [
+          postSource(claim!.job.anchorId),
+          ...(withArticle
+            ? [
+                {
+                  kind: "x_article" as const,
+                  primaryId: claim!.job.anchorId,
+                  aliases: [],
+                  resolution: "resolved" as const,
+                },
+              ]
+            : []),
+        ],
       ),
     );
+    fixture.proposal = {
+      ...fixture.proposal,
+      captures: fixture.proposal.captures.map((capture) => ({
+        ...capture,
+        submittedUrl: claim!.job.submittedUrl,
+        submittedAnchorId: claim!.job.anchorId,
+      })),
+    };
     yield* client.worker.prepare({
       payload: { requestId: randomUUID(), scope, captures: fixture.proposal.captures },
     });
