@@ -1,0 +1,409 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "job": {
+        "$ref": "#/$defs/JobView"
+      },
+      "epoch": {
+        "type": "integer",
+        "minimum": -9007199254740991,
+        "maximum": 9007199254740991
+      },
+      "attempt": {
+        "$ref": "#/$defs/ExecutionAttempt"
+      },
+      "leaseActive": {
+        "type": "boolean"
+      },
+      "stopRequested": {
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "job",
+      "epoch",
+      "attempt",
+      "leaseActive",
+      "stopRequested"
+    ],
+    "additionalProperties": true
+  },
+  "$defs": {
+    "ExecutionPolicy": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string",
+          "enum": [
+            "execution-v1"
+          ]
+        },
+        "activeJobMs": {
+          "type": "integer",
+          "maximum": 9007199254740991,
+          "exclusiveMinimum": 0
+        },
+        "attemptMs": {
+          "type": "integer",
+          "maximum": 9007199254740991,
+          "exclusiveMinimum": 0
+        },
+        "maxLaunches": {
+          "type": "number",
+          "enum": [
+            3
+          ]
+        },
+        "maxRepair": {
+          "type": "number",
+          "enum": [
+            1
+          ]
+        },
+        "maxTransient": {
+          "type": "number",
+          "enum": [
+            1
+          ]
+        },
+        "maxStale": {
+          "type": "number",
+          "enum": [
+            1
+          ]
+        }
+      },
+      "required": [
+        "version",
+        "activeJobMs",
+        "attemptMs",
+        "maxLaunches",
+        "maxRepair",
+        "maxTransient",
+        "maxStale"
+      ],
+      "additionalProperties": true
+    },
+    "ExecutionCounters": {
+      "type": "object",
+      "properties": {
+        "launches": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "repair": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "transient": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "stale": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "required": [
+        "launches",
+        "repair",
+        "transient",
+        "stale"
+      ],
+      "additionalProperties": true
+    },
+    "Receipt": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "number",
+          "enum": [
+            1
+          ]
+        },
+        "operationId": {
+          "type": "string",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+          "format": "uuid"
+        },
+        "publicationId": {
+          "type": "string",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+          "format": "uuid"
+        },
+        "jobId": {
+          "type": "string",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+          "format": "uuid"
+        },
+        "appliedRevision": {
+          "type": "string"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "noteIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+            "format": "uuid"
+          }
+        },
+        "publishedAt": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "operationId",
+        "publicationId",
+        "jobId",
+        "appliedRevision",
+        "sequence",
+        "noteIds",
+        "publishedAt"
+      ],
+      "additionalProperties": true
+    },
+    "JobView": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "number",
+          "enum": [
+            1
+          ]
+        },
+        "jobId": {
+          "type": "string",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+          "format": "uuid"
+        },
+        "stage": {
+          "type": "string",
+          "enum": [
+            "queued",
+            "acquiring",
+            "prepared",
+            "curating",
+            "validating",
+            "publishing",
+            "blocked",
+            "stopping",
+            "succeeded",
+            "failed",
+            "expired",
+            "cancelled"
+          ]
+        },
+        "submittedUrl": {
+          "type": "string"
+        },
+        "normalizedUrl": {
+          "type": "string"
+        },
+        "anchorId": {
+          "type": "string"
+        },
+        "sourceKey": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "startedAt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "deadline": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "policy": {
+          "$ref": "#/$defs/ExecutionPolicy"
+        },
+        "counters": {
+          "$ref": "#/$defs/ExecutionCounters"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "allowedActions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "cancel",
+              "resume",
+              "retry_retained",
+              "refresh"
+            ]
+          }
+        },
+        "receipt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Receipt"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "previousJobId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "retainedCapture": {
+          "type": "boolean"
+        },
+        "cleanupPending": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "jobId",
+        "stage",
+        "submittedUrl",
+        "normalizedUrl",
+        "anchorId",
+        "sourceKey",
+        "createdAt",
+        "startedAt",
+        "deadline",
+        "policy",
+        "counters",
+        "reason",
+        "warnings",
+        "allowedActions",
+        "receipt",
+        "previousJobId",
+        "retainedCapture",
+        "cleanupPending"
+      ],
+      "additionalProperties": true
+    },
+    "JobScope": {
+      "type": "object",
+      "properties": {
+        "jobId": {
+          "type": "string",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+          "format": "uuid"
+        },
+        "instanceId": {
+          "type": "string",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+          "format": "uuid"
+        },
+        "epoch": {
+          "type": "integer",
+          "maximum": 9007199254740991,
+          "exclusiveMinimum": 0
+        }
+      },
+      "required": [
+        "jobId",
+        "instanceId",
+        "epoch"
+      ],
+      "additionalProperties": true
+    },
+    "ExecutionAttempt": {
+      "type": "object",
+      "properties": {
+        "attemptId": {
+          "type": "string",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+          "format": "uuid"
+        },
+        "jobId": {
+          "type": "string",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+          "format": "uuid"
+        },
+        "scope": {
+          "$ref": "#/$defs/JobScope"
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "initial",
+            "repair",
+            "transient",
+            "stale"
+          ]
+        },
+        "number": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "authorizedAt": {
+          "type": "string"
+        },
+        "deadline": {
+          "type": "string"
+        },
+        "inputDigest": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "attemptId",
+        "jobId",
+        "scope",
+        "reason",
+        "number",
+        "authorizedAt",
+        "deadline",
+        "inputDigest"
+      ],
+      "additionalProperties": true
+    }
+  }
+}

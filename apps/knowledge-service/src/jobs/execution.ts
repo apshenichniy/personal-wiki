@@ -77,7 +77,10 @@ export const makeExecution = Effect.gen(function* () {
         return attempt;
       }),
     );
-  const complete = (identityId: string, input: typeof J.CompleteAttempt.Type) =>
+  const complete = (
+    identityId: string,
+    input: typeof J.CompleteAttempt.Type | typeof J.RecoverAttempt.Type,
+  ) =>
     store
       .transaction(
         Effect.gen(function* () {
@@ -93,8 +96,31 @@ export const makeExecution = Effect.gen(function* () {
             });
           const prior = yield* jobs.priorRequest(identityId, input.requestId, input, J.JobView);
           if (prior) return prior;
-          yield* jobs.owned(identityId, input.scope);
-          const job = saved.record;
+          const recovering = "completedAt" in input;
+          const now = yield* Clock.currentTimeMillis;
+          let job = saved.record;
+          if (recovering) {
+            if (
+              job.lease ||
+              job.stage !== "blocked" ||
+              job.reason !== "process_ownership_unknown" ||
+              !job.cleanupPending ||
+              job.stopReason ||
+              job.deadline === null ||
+              job.deadline <= now
+            )
+              return yield* new JobError({
+                code: "invalid_transition",
+                message: "Execution is not eligible for retained-result recovery.",
+              });
+            // Physical death is attested by the trusted, globally exclusive
+            // guardian. Grant only a completion lease; no launch is authorized.
+            job = {
+              ...job,
+              stage: "curating",
+              lease: { identityId, instanceId: input.scope.instanceId, expiresAt: now + 30_000 },
+            };
+          } else yield* jobs.owned(identityId, input.scope);
           const row = (yield* sql<{
             record: string;
             state: string;
@@ -112,8 +138,17 @@ export const makeExecution = Effect.gen(function* () {
           const attempt = yield* Schema.decodeUnknownEffect(Schema.fromJsonString(J.Attempt))(
             row.record,
           );
-          const now = yield* Clock.currentTimeMillis;
-          if (now >= Date.parse(attempt.deadline))
+          const completedAt = "completedAt" in input ? Date.parse(input.completedAt) : now;
+          if (
+            !Number.isFinite(completedAt) ||
+            completedAt > now ||
+            completedAt < Date.parse(attempt.authorizedAt)
+          )
+            return yield* new JobError({
+              code: "invalid_request",
+              message: "Invalid retained completion time.",
+            });
+          if (input.outcome === "output" && completedAt >= Date.parse(attempt.deadline))
             return yield* new JobError({
               code: "deadline_exceeded",
               message: "Attempt deadline elapsed; reconcile termination without accepting output.",
@@ -207,7 +242,33 @@ export const makeExecution = Effect.gen(function* () {
             : Effect.void,
         ),
       );
-  return { reserve, complete };
+  const pending = (identityId: string) =>
+    Effect.gen(function* () {
+      yield* store.assertOwner();
+      yield* jobs.authorizedRunner(identityId);
+      const now = yield* Clock.currentTimeMillis;
+      const result: (typeof J.ExecutionPending.Type)[number][] = [];
+      for (const { record: job } of yield* store.active()) {
+        if (!job.activeAttemptId || !job.cleanupPending) continue;
+        const row = (yield* sql<{
+          record: string;
+        }>`SELECT record FROM execution_attempts WHERE attempt_id=${job.activeAttemptId}`)[0];
+        if (!row)
+          return yield* new JobError({
+            code: "invalid_transition",
+            message: "Execution intent is missing.",
+          });
+        result.push({
+          job: yield* jobs.view(job),
+          epoch: job.epoch,
+          attempt: yield* Schema.decodeUnknownEffect(Schema.fromJsonString(J.Attempt))(row.record),
+          leaseActive: job.lease !== null && job.lease.expiresAt > now,
+          stopRequested: job.stopReason !== null || (job.deadline !== null && job.deadline <= now),
+        });
+      }
+      return result;
+    });
+  return { reserve, complete, pending };
 });
 export class JobExecution extends Context.Service<
   JobExecution,

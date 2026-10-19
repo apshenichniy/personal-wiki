@@ -188,3 +188,11 @@ The demo emits a complete redistributable middle-of-thread fixture after a schem
 round trip. It makes no provider calls. P6 owns real Apify transport, durable budget
 admission, raw-page retention and binding prepared sources to service-owned captures;
 P8 owns semantic selection and proposed Russian notes.
+
+## Supervised subscription execution (P7)
+
+The [Codex adapter contract](../../apps/runner/src/codex/README.md) records the pinned
+profile, physical ownership, recovery and platform limits. Tests use synthetic
+sources and real process boundaries. The actual subscription executor runs on
+Linux; macOS does not need an interactive Codex configuration or provider secrets
+for deterministic verification.

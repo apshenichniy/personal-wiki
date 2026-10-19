@@ -29,6 +29,14 @@ const WorkerHandlers = HttpApiBuilder.group(
     const lifecycle = yield* JobLifecycle;
     const publication = yield* JobPublication;
     return handlers.handleAll({
+      pendingExecutions: () => actor(credentials, (id) => execution.pending(id)),
+      recoverAttempt: ({ payload }) => actor(credentials, (id) => execution.complete(id, payload)),
+      settleExecution: ({ payload }) =>
+        actor(credentials, (id) =>
+          jobs
+            .authorizedRunner(id)
+            .pipe(Effect.andThen(lifecycle.reconciledProcess(payload.jobId, payload.epoch))),
+        ),
       failAcquisition: ({ payload }) =>
         actor(credentials, (id) => publication.failAcquisition(id, payload)),
       resolve: ({ payload }) => actor(credentials, (id) => resolution.resolve(id, payload)),

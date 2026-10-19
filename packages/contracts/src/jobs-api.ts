@@ -8,6 +8,20 @@ const errors = [400, 401, 403, 404, 409, 500, 503].map((status) =>
   ErrorEnvelope.pipe(HttpApiSchema.status(status)),
 );
 export class WorkerApi extends HttpApiGroup.make("worker").add(
+  HttpApiEndpoint.get("pendingExecutions", "/internal/v1/jobs/executions", {
+    success: J.ExecutionPending,
+    error: errors,
+  }),
+  HttpApiEndpoint.post("recoverAttempt", "/internal/v1/jobs/recover-attempt", {
+    payload: J.RecoverAttempt,
+    success: J.JobView,
+    error: errors,
+  }),
+  HttpApiEndpoint.post("settleExecution", "/internal/v1/jobs/settle-execution", {
+    payload: J.SettleExecution,
+    success: J.JobView,
+    error: errors,
+  }),
   HttpApiEndpoint.post("failAcquisition", "/internal/v1/jobs/fail-acquisition", {
     payload: J.FailAcquisition,
     success: J.JobView,

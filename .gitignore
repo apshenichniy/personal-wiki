@@ -48,3 +48,7 @@ DerivedData/
 xcuserdata/
 *.ipa
 *.dSYM/
+
+# Python supervision helpers
+__pycache__/
+*.pyc
