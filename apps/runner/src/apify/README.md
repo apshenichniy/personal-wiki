@@ -1,4 +1,4 @@
-# Apify boundary (P6 in progress)
+# Apify acquisition boundary
 
 The transport, local dispatch journal, authenticated Service adapter, raw retention and pinned X normalization are implemented and tested. `processor.ts` and `ingest.ts` compose P5 with the durable Service job APIs; `acquire.ts` claims one job and stops at prepared capture without model execution or publication. Live permission requires the private Service provisioning and privacy gate in the [operations guide](../../../../docs/operations/acquisition.md).
 
@@ -16,7 +16,7 @@ Checks: `mise exec -- bun test tests/apify-http.test.ts tests/apify-dispatch.tes
 
 `xquik.ts` maps raw/nested rows without flattening quote previews or discarding diagnostic-row positions. It preserves original long text, explicit parent metadata and article previews as distinct from actual bodies. Processor Article IDs are mapped through retained containing-post evidence to the Actor's `articleTweetIds` option. The caller must reconstruct this map from retained pages when replaying a plan. External/media references are inert metadata, not additional fetch targets.
 
-Additional checks: `mise exec -- bun test tests/apify-retention.test.ts tests/xquik.test.ts`. `tests/acquisition-pipeline.test.ts` covers acquisition-to-prepared composition and Service restart without another POST. Live prepared-capture validation remains outstanding.
+Additional checks: `mise exec -- bun test tests/apify-retention.test.ts tests/xquik.test.ts`. `tests/acquisition-pipeline.test.ts` covers acquisition-to-prepared composition and Service restart without another POST. A bounded live staging check reached a prepared post and separate Article capture; twelve archived raw objects passed authenticated checksum readback and anonymous denial. Discussion was explicitly partial under conservative budget reservations. The subsequent reconciliation-wait improvement is covered by the synthetic pipeline test; complete representative live acceptance remains P13.
 
 `recovery.ts` distinguishes remote execution from terminal retention/accounting debt. Unknown or running operations block acquisition; terminal debt preserves liability and is retried separately with a private fsynced backoff journal. Capacity failure is actionable and never causes repeated oversized downloads. Accounting refresh continues even if archival fails.
 

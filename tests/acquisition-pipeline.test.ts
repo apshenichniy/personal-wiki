@@ -40,8 +40,8 @@ test("X to retained thread and Article resumes across a Service restart without 
           inputSchemaDigest: "c".repeat(64),
           campaignId: "synthetic",
           eventNanos: 150_000,
-          platformNanos: 1000,
-          retrievalNanos: 1000,
+          platformNanos: 50_000_000,
+          retrievalNanos: 20_000_000,
         },
         [],
       );
@@ -218,6 +218,14 @@ test("X to retained thread and Article resumes across a Service restart without 
       }),
     );
     const first = await claim(client, randomUUID());
+    const heartbeat = Effect.gen(function* () {
+      while (true) {
+        yield* Effect.sleep("5 seconds");
+        yield* client.worker.heartbeat({
+          payload: { requestId: randomUUID(), scope: first.scope },
+        });
+      }
+    });
     const crashClient = {
       ...client,
       worker: {
@@ -227,6 +235,7 @@ test("X to retained thread and Article resumes across a Service restart without 
     };
     const interrupted = await Effect.runPromise(
       ingestX({ client: crashClient, http, spool: join(root, "spool"), claim: first }).pipe(
+        Effect.raceFirst(heartbeat),
         Effect.exit,
       ),
     );
@@ -263,6 +272,7 @@ test("X to retained thread and Article resumes across a Service restart without 
       ingestX({ client, http, spool: join(root, "spool"), claim: resumed }),
     );
     expect(result.stage).toBe("prepared");
+    expect(result.warnings.some((warning) => warning.endsWith(":budget"))).toBe(false);
     expect(result.counters.launches).toBe(0);
     expect(starts).toBe(paidBefore);
     expect(objectWrites).toBe(objectsBefore);
@@ -283,4 +293,4 @@ test("X to retained thread and Article resumes across a Service restart without 
     await apify.stop(true);
     await rm(root, { recursive: true, force: true });
   }
-}, 25000);
+}, 90000);

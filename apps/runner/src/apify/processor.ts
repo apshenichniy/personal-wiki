@@ -44,13 +44,37 @@ export function makeXAcquisition(options: {
     }).pipe(Effect.result);
     if (input._tag === "Failure")
       return empty("unavailable", "Required target relationship is unavailable.");
-    const dispatched = yield* service
-      .start(options.scope, {
-        planKey: `${plan.mode}:${hash(plan.key)}`,
-        inputJson: input.success,
-        replacementOf: null,
-      })
-      .pipe(Effect.result);
+    const start = service.start(options.scope, {
+      planKey: `${plan.mode}:${hash(plan.key)}`,
+      inputJson: input.success,
+      replacementOf: null,
+    });
+    let dispatched = yield* start.pipe(Effect.result);
+    // Conservative reservations can temporarily exhaust the job allowance while
+    // completed runs await their second billing sample. Reconcile within the
+    // original window before abandoning optional capture; never enlarge a cap.
+    for (
+      let retry = 0;
+      retry < 2 &&
+      dispatched._tag === "Failure" &&
+      "code" in dispatched.failure &&
+      dispatched.failure.code === "budget";
+      retry++
+    ) {
+      const pending = (yield* api.pending()).filter(
+        (op) =>
+          op.job.jobId === options.scope.jobId &&
+          op.run &&
+          P.terminal(op.status) &&
+          op.archived &&
+          !op.costStable &&
+          op.job.deadline > Date.now() + 11_000,
+      );
+      if (!pending.length) break;
+      yield* Effect.sleep("11 seconds");
+      for (const op of pending) yield* service.refresh(op, Date.now() + 15_000).pipe(Effect.ignore);
+      dispatched = yield* start.pipe(Effect.result);
+    }
     if (dispatched._tag === "Failure") {
       const error = dispatched.failure;
       if ("code" in error && error.code === "budget")

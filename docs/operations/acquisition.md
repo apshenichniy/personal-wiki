@@ -45,6 +45,8 @@ The command reconciles known remote obligations, claims one eligible job, renews
 
 `retentionPending` reports terminal evidence still awaiting archive completion; `accountingPending` reports unsettled cost reconciliation. This debt retains its full conservative accounting liability, but does not block unrelated jobs merely because no remote process is running. Failed retrievals use a persisted one-minute backoff in the private spool; a capacity failure requires operator intervention and is not repeatedly downloaded. Billing reconciliation runs independently and has its own persisted backoff; a terminal provider accounting outage keeps the conservative liability without monopolizing the queue. Backoff starts after a failed attempt finishes. An operator may remove a retry journal only after diagnosing/remediating its specific failure; never enlarge the accepted source limits or mark missing evidence archived just to clear the warning.
 
+Before abandoning an optional acquisition mode for budget, Runner can wait for two bounded billing refreshes of already terminal, archived operations within the original acquisition window. It never increases a cap or replays a dispatched POST. Inconsistent terminal dataset pagination is retried on the same GET page with bounded exponential delay; persistent inconsistency remains a failure.
+
 ## Private creation gate
 
 Before enabling unattended dispatch, perform one controlled, budgeted start through the same Service permit and Runner journal. Immediately verify its exact run ID and default stores:

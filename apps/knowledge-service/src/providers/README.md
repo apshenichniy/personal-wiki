@@ -1,6 +1,6 @@
-# Provider accounting authority (P6 in progress)
+# Provider accounting authority
 
-`ProviderLedger` is a service-owned Effect SQL module over a private SQLite accounting file. Staging and production must share this file on the single CX33. Library snapshots, namespace resets, or a Runner restart must not create a new campaign/month allowance. Its authenticated HTTP facade, Runner transport, private R2 archive and pinned X output normalization are implemented. The P5 processor now composes with durable job preparation. Full live Apify acquisition validation remains in progress; this is not yet a deployed ingestion feature.
+`ProviderLedger` is a service-owned Effect SQL module over a private SQLite accounting file. Staging and production must share this file on the single CX33. Library snapshots, namespace resets, or a Runner restart must not create a new campaign/month allowance. Its authenticated HTTP facade, Runner transport, private R2 archive and pinned X output normalization are implemented. The P5 processor now composes with durable job preparation. A bounded live staging acquisition and private R2 readback have passed; this is not yet a deployed ingestion feature. Full representative acceptance belongs to P13.
 
 Every acquisition operation keeps immutable job/window/namespace, input, plan identity, provider/platform/retrieval reserves, start intent, exact run/storage/build identities, raw-page checkpoints, and observed costs. A start permit is issued once. Its lost response leaves an unresolved liability; only exact response evidence or a trusted operator reconciliation can identify or dismiss an ambiguous start. Unknown/running work blocks another provider dispatch across namespaces.
 
