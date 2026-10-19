@@ -52,6 +52,10 @@ export const Asset = Schema.Struct({
   sha256: Schema.String,
 }).annotate({ identifier: "Asset" });
 export const Observation = Schema.Struct({
+  authorHandle: Schema.optional(Schema.NullOr(Schema.String.check(Schema.isMaxLength(128)))),
+  authorName: Schema.optional(Schema.NullOr(Schema.String.check(Schema.isMaxLength(256)))),
+  isBot: Schema.optional(Schema.NullOr(Schema.Boolean)),
+  role: Schema.optional(Schema.Literals(["main", "discussion", "context", "quote"])),
   providerId: ProviderId,
   canonicalUrl: Schema.String,
   text: BoundedText,

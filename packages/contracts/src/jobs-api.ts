@@ -1,5 +1,6 @@
 import { Schema } from "effect";
 import { HttpApi, HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from "effect/http-api";
+import * as C from "./curation.ts";
 import * as J from "./jobs.ts";
 import * as K from "./knowledge.ts";
 import { ErrorEnvelope } from "./index.ts";
@@ -8,6 +9,16 @@ const errors = [400, 401, 403, 404, 409, 500, 503].map((status) =>
   ErrorEnvelope.pipe(HttpApiSchema.status(status)),
 );
 export class WorkerApi extends HttpApiGroup.make("worker").add(
+  HttpApiEndpoint.post("prepareCuration", "/internal/v1/jobs/curation-context", {
+    payload: J.PrepareCuration,
+    success: C.CurationContext,
+    error: errors,
+  }),
+  HttpApiEndpoint.post("failCuration", "/internal/v1/jobs/fail-curation", {
+    payload: J.FailCuration,
+    success: J.JobView,
+    error: errors,
+  }),
   HttpApiEndpoint.get("pendingExecutions", "/internal/v1/jobs/executions", {
     success: J.ExecutionPending,
     error: errors,

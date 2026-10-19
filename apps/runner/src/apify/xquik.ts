@@ -60,6 +60,8 @@ export function xquikPost(value: unknown): P.XPost | null {
     text: short ?? "",
     longText: long,
     authorId: id(row(source.author).id),
+    authorHandle: text(row(source.author).username)?.slice(0, 128) ?? null,
+    authorName: text(row(source.author).name)?.slice(0, 256) ?? null,
     parentId,
     parentStatus:
       source.isReply === false

@@ -1,3 +1,4 @@
+import { curationModel } from "@personal-wiki/contracts/curation";
 import { Schema } from "effect";
 import { getEncoding } from "js-tiktoken";
 import { createHash } from "node:crypto";
@@ -20,7 +21,7 @@ export const hash = (text: string | Uint8Array) => createHash("sha256").update(t
 export const profile = {
   version: "codex-curation-v2",
   cliVersion: "0.163.0",
-  model: "gpt-5.6-sol",
+  model: curationModel,
   reasoning: "medium",
   contextWindow: 272000,
   tokenizer: "o200k_base",

@@ -82,7 +82,11 @@ export function captureFromPrepared(
             postedAt: null,
           },
         ]
-      : material.posts.map(({ post, canonicalUrl }) => ({
+      : material.posts.map(({ post, canonicalUrl, role }) => ({
+          authorHandle: post.authorHandle,
+          authorName: post.authorName,
+          isBot: post.isBot,
+          role,
           providerId: post.id,
           canonicalUrl,
           text: post.longText?.trim() ? post.longText : post.text,

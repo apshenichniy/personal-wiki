@@ -10,7 +10,8 @@
     "./processing": "./src/processing.ts",
     "./provider": "./src/provider.ts",
     "./provider-api": "./src/provider-api.ts",
-    "./x-url": "./src/x-url.ts"
+    "./x-url": "./src/x-url.ts",
+    "./curation": "./src/curation.ts"
   },
   "dependencies": {
     "effect": "4.0.5"

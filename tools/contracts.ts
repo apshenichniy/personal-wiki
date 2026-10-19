@@ -1,3 +1,4 @@
+import * as Curation from "@personal-wiki/contracts/curation";
 import * as Processing from "@personal-wiki/contracts/processing";
 import * as Provider from "@personal-wiki/contracts/provider";
 import * as ProviderApi from "@personal-wiki/contracts/provider-api";
@@ -20,6 +21,7 @@ for (const [name, schema] of Object.entries({
   ...Knowledge,
   ...Jobs,
   ...Processing,
+  ...Curation,
   ...Object.fromEntries(
     Object.entries(Provider)
       .filter(([, value]) => Schema.isSchema(value))
