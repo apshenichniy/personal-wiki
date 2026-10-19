@@ -147,6 +147,32 @@ class Recovery(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'unsupported_state_file'):
             copy_cut(source,self.root/'other',runner_spool=True)
 
+    def test_codex_temporary_aliases_are_excluded_without_following_links(self):
+        source=self.root/'runner';attempt=source/'agent-spool'/'22222222-2222-4222-8222-222222222222'/'11111111-1111-4111-8111-111111111111'
+        scratch=attempt/'auth/tmp/arg0-linux/codex-arg0example';scratch.mkdir(parents=True)
+        outside=self.root/'private-host-file';outside.write_text('not recovery evidence')
+        (scratch/'apply_patch').symlink_to(outside)
+        (scratch/'codex-linux-sandbox').symlink_to(self.root/'missing-executable')
+        (attempt/'work').mkdir();(attempt/'work/input.txt').write_text('retained input')
+        (attempt/'output.json').write_text('retained output');(attempt/'exit.json').write_text('retained exit')
+        (attempt/'auth/config.toml').write_text('retained profile')
+        copy_cut(source,self.root/'cut',runner_spool=True)
+        copied=self.root/'cut'/attempt.relative_to(source)
+        self.assertFalse((copied/'auth/tmp').exists())
+        for name in ('work/input.txt','output.json','exit.json','auth/config.toml'):
+            self.assertEqual((copied/name).read_bytes(),(attempt/name).read_bytes())
+        self.assertEqual(outside.read_text(),'not recovery evidence')
+        # The exception is restricted to actual CLI scratch directories in a
+        # fenced Runner spool, not an arbitrary tmp name or a linked directory.
+        with self.assertRaisesRegex(ValueError,'state_symlink'):
+            copy_cut(source,self.root/'not-runner')
+        shutil.rmtree(attempt/'auth/tmp');(attempt/'auth/tmp').symlink_to(outside)
+        with self.assertRaisesRegex(ValueError,'state_symlink'):
+            copy_cut(source,self.root/'linked-scratch',runner_spool=True)
+        (attempt/'auth/tmp').unlink();(source/'tmp').mkdir();(source/'tmp/link').symlink_to(outside)
+        with self.assertRaisesRegex(ValueError,'state_symlink'):
+            copy_cut(source,self.root/'unrelated-scratch',runner_spool=True)
+
     def test_killed_checkpoint_recovers_recorded_units_from_durable_journal(self):
         import host_backup
         script = """

@@ -17,7 +17,7 @@ Owner-admin installs `ops/backup/install-host.py` after the key, scoped R2 crede
 The daily unit holds the same deployment lock as the release controller. It stops both Runners, confirms empty cgroups and canonical physical locks, then stops/fences both publishers. Pocket ID stops only for its snapshot. The cut preserves:
 
 - Both library directories: full Git history/prepared refs, projection and operational SQLite, publication intents, proposals, assets and receipt/outbox state.
-- Both durable Runner spools (excluding only the known reaped guardian transport FIFO, while retaining input/output/exit evidence), the shared cost ledger and original bootstrap-accounting evidence.
+- Both durable Runner spools, the shared cost ledger and original bootstrap-accounting evidence. Exclude the known reaped guardian transport FIFO and each attempt's Codex `auth/tmp/` scratch directory; retain input/output/exit evidence and the rest of the CLI profile/state. An early CLI failure can leave executable aliases in scratch: backup never follows or restores those links. A symlink in durable state or in place of the scratch directory still fails the cut.
 - Private configuration/owner binding, Pocket ID database and encryption material, exact active release artifacts and pinned recovery tools. Codex login can require reauthentication after a disaster; recovery does not silently select another account or billing method.
 - Original object identities from library assets and shared provider page/intent records, followed by independently checksum-verified copies of the original bytes.
 
