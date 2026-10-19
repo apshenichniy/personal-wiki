@@ -84,4 +84,4 @@ class Records:
 
     def pending(self):
         return [json.loads(p.read_text()) for p in sorted(self.root.glob("*.json"))
-                if json.loads(p.read_text())["phase"] not in ("complete", "failed")]
+                if json.loads(p.read_text())["phase"] not in ("complete", "failed", "superseded")]

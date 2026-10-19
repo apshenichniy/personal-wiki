@@ -224,6 +224,29 @@ class Deployment(unittest.TestCase):
         self.assertEqual(restarted.active("staging")["digest"], second["digest"])
         self.assertEqual((restarted.releases.parent / "current-staging").resolve(), (restarted.releases / second["digest"]).resolve())
 
+    def test_failed_cutover_can_recover_to_last_healthy_release_without_reset(self):
+        first = self.upload()
+        second = self.upload("b" * 40)
+        third = self.upload("c" * 40)
+        self.engine.drive(first["operationId"])
+        self.engine.drive(second["operationId"])
+        with patch.object(self.host, "readiness", side_effect=ValueError("broken_binary")):
+            self.assertEqual(self.engine.drive(third["operationId"])["phase"], "failed")
+            self.assertEqual(self.engine.drive(third["operationId"])["phase"], "failed")
+        recovery = str(uuid.uuid4())
+        request = self.engine.rollback(recovery, "staging")
+        self.assertEqual(request["request"]["digest"], second["digest"])
+        self.host.crash = "checkpointed"
+        with self.assertRaises(Crash):
+            self.engine.drive(recovery)
+        restarted = Engine(self.engine.root, self.engine.releases, self.host)
+        self.assertEqual(restarted.drive(recovery)["phase"], "complete")
+        self.assertEqual(restarted.active("staging")["digest"], second["digest"])
+        self.assertEqual((restarted.releases.parent / "current-staging").resolve(), (restarted.releases / second["digest"]).resolve())
+        self.assertEqual(restarted.drive(third["operationId"])["phase"], "superseded")
+        self.assertEqual(restarted.resume(third["operationId"])["phase"], "superseded")
+        self.assertEqual(self.host.cut, "state-with-accepted-job-and-git-history")
+
     def test_rollback_retry_preserves_original_predecessor_and_rejects_identity_reuse(self):
         first = self.upload()
         second = self.upload("b" * 40)

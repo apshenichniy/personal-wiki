@@ -75,7 +75,12 @@ The Python suite verifies interrupted state transitions, idempotent replay, unch
 
 A deployment owns a durable critical-operation marker before stopping dispatch.
 A failure after that boundary blocks later installs and rollbacks, including after
-controller restart; resume that operation after correcting its cause. Completion
+controller restart; resume that operation after correcting its cause. If an activated
+release cannot start, an explicit rollback takes over the failed operation and
+selects its last healthy predecessor (not the predecessor of that predecessor).
+The failed operation becomes permanently superseded; recovery still fences the
+workers and checks the current schema. An initial bootstrap with no predecessor
+requires owner-administrative repair and cannot claim a rollback target. Completion
 releases the marker. Repeating a completed operation never rewrites the active
 release, and rollback retries keep the originally selected predecessor.
 

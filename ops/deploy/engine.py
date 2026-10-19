@@ -62,7 +62,16 @@ class Engine:
                 if request["operation"] != "rollback" or request["target"] != target:
                     raise ValueError("operation_conflict")
                 return self.status(op_id)
-            previous = self.previous(target)
+            recovery_of = self.critical_owner()
+            if recovery_of is not None:
+                failed = self.records.get(recovery_of)
+                if failed["phase"] != "failed" or failed["request"]["target"] != target:
+                    raise ValueError("unfinished_deployment_requires_resume")
+                previous = failed.get("previous")
+                if not previous:
+                    raise ValueError("no_previous_release")
+            else:
+                previous = self.previous(target)
             request = validate_request({"operationId": op_id, "operation": "rollback", "target": target,
                                         "revision": previous["revision"], "digest": previous["digest"]})
             folder = self.uploads / op_id
@@ -72,7 +81,10 @@ class Engine:
                 if not destination.exists():
                     os.link(self.root / "artifacts" / previous["digest"] / name, destination)
             sync_directory(folder)
-            self.records.create(request)
+            record = self.records.create(request)
+            if recovery_of is not None:
+                record["recoveryOf"] = recovery_of
+                self.records.put(record)
             return self.status(op_id)
 
     def critical_owner(self):
@@ -106,8 +118,18 @@ class Engine:
             record = self.records.get(op_id)
             owner = self.critical_owner()
             if owner is not None and owner != op_id:
-                raise ValueError("unfinished_deployment_requires_resume")
-            if record["phase"] == "complete":
+                failed = self.records.get(owner)
+                if record.get("recoveryOf") != owner or failed["phase"] != "failed":
+                    raise ValueError("unfinished_deployment_requires_resume")
+                # Explicit recovery is the only operation allowed to take over a
+                # failed cutover. Persist ownership before retiring its predecessor.
+                atomic_json(self.root / "inflight.json", {"operationId": op_id})
+            if record.get("recoveryOf") is not None:
+                failed = self.records.get(record["recoveryOf"])
+                if failed["phase"] != "superseded":
+                    failed["supersededBy"] = op_id
+                    self.records.put(failed, "superseded")
+            if record["phase"] in ("complete", "superseded"):
                 return self.status(op_id)
             if record["phase"] == "failed":
                 record["phase"] = record["resumePhase"]
@@ -151,8 +173,11 @@ class Engine:
                             os.link(upload / name, cache / name)
                     sync_directory(cache)
                     record["previous"] = self.active(target)
-                    if req["operation"] == "rollback" and self.previous(target)["digest"] != digest:
-                        raise ValueError("rollback_target_mismatch")
+                    if req["operation"] == "rollback":
+                        expected = (self.records.get(record["recoveryOf"])["previous"]
+                                    if record.get("recoveryOf") else self.previous(target))
+                        if expected["digest"] != digest:
+                            raise ValueError("rollback_target_mismatch")
                     self.records.put(record, "verified")
                 manifest = json.loads((release / "release.json").read_text())
                 if record["phase"] == "verified":
