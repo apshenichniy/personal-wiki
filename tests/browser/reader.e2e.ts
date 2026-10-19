@@ -182,6 +182,8 @@ test("background polling stops, reconnect rechecks, and a reader waits for an ex
   await page.getByRole("link", { name: "Читать заметку" }).click();
   await expect(page.locator(".prose")).toBeVisible();
   const noteUrl = page.url();
+  await expect(page.locator(".freshness")).toContainText("Проверено");
+  const checkedBefore = await page.locator(".freshness").innerText();
   await page.clock.install();
   let requests = 0;
   page.on("request", (request) => {
@@ -200,6 +202,11 @@ test("background polling stops, reconnect rechecks, and a reader waits for an ex
     document.dispatchEvent(new Event("visibilitychange"));
   });
   await expect(page.locator(".prose")).toBeVisible();
+  // Showing retained prose precedes completion of the foreground poll. Wait
+  // for its new timestamp before advancing the clock past the next poll;
+  // otherwise the timer can be scheduled after our only clock advance.
+  await expect(page.locator(".freshness")).not.toHaveText(checkedBefore);
+  await expect(page.locator(".freshness")).toContainText("Проверено");
   await context.setOffline(true);
   await page.clock.fastForward(15000);
   await expect(page.locator(".freshness")).toContainText("Обновление приостановлено");

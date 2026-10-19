@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { Schema } from "effect";
 import { randomUUID } from "node:crypto";
 import * as K from "@personal-wiki/contracts/knowledge";
-import { buildProposal, validateCuration } from "../packages/curation/src/index.ts";
+import { buildProposal, validateCuration, CurationError } from "../packages/curation/src/index.ts";
 import { contextInput, curationOutputSchema } from "../apps/runner/src/curation.ts";
 import { contextFixture, editorial } from "./helpers/curation.ts";
 
@@ -57,6 +57,37 @@ test("quality checks reject missing main material, invented identities and contr
   reject({ limitations: [] });
   reject({ main: note.main.map((p) => ({ ...p, text: "English only" })) });
   expect(() => validateCuration(context, { ...valid, contextId: randomUUID() })).toThrow();
+});
+
+test("citation repair identifies the exact note and passage without allowing cross-material IDs", async () => {
+  const context = await contextFixture(true);
+  const valid = editorial(context);
+  const note = valid.notes[0]!;
+  const invalid = {
+    ...valid,
+    notes: [
+      {
+        ...note,
+        overview: { ...note.overview, supports: ["100", "900"] },
+        main: [{ ...note.main[0]!, supports: ["100", "100"] }, ...note.main.slice(1)],
+      },
+      valid.notes[1]!,
+    ],
+  };
+  let checks: readonly string[] = [];
+  try {
+    validateCuration(context, invalid);
+  } catch (error) {
+    expect(error).toBeInstanceOf(CurationError);
+    checks = (error as CurationError).checks;
+  }
+  expect(checks).toContain(
+    `Note ${note.noteId}, overview: unexpected support IDs [900]. Use only this material's observation providerIds; link the other note through relatedNoteIds.`,
+  );
+  expect(checks).toContain(
+    `Note ${note.noteId}, main[0]: repeated support IDs [100]. List each supporting ID once.`,
+  );
+  expect(() => validateCuration(context, valid)).not.toThrow();
 });
 
 test("weaker refresh preserves dated original evidence and stable note identity", async () => {

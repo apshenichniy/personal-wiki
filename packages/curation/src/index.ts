@@ -39,9 +39,22 @@ export function validateCuration(context: C.CurationContext, output: C.CurationR
       );
     if (!note.main.every((p) => p.supports.some((id) => focus.has(id))))
       checks.push("Every main passage must cite admitted main material.");
-    for (const passage of [note.overview, ...note.main, ...note.discussion]) {
-      if (!unique(passage.supports) || passage.supports.some((id) => !known.has(id)))
-        checks.push("Every passage must cite unique, capture-pinned post/Article IDs.");
+    const passages = [
+      { position: "overview", passage: note.overview },
+      ...note.main.map((passage, i) => ({ position: `main[${i}]`, passage })),
+      ...note.discussion.map((passage, i) => ({ position: `discussion[${i}]`, passage })),
+    ];
+    for (const { position, passage } of passages) {
+      const unexpected = [...new Set(passage.supports.filter((id) => !known.has(id)))];
+      const repeated = [...new Set(passage.supports.filter((id, i, ids) => ids.indexOf(id) !== i))];
+      if (unexpected.length)
+        checks.push(
+          `Note ${note.noteId}, ${position}: unexpected support IDs [${unexpected.join(",")}]. Use only this material's observation providerIds; link the other note through relatedNoteIds.`,
+        );
+      if (repeated.length)
+        checks.push(
+          `Note ${note.noteId}, ${position}: repeated support IDs [${repeated.join(",")}]. List each supporting ID once.`,
+        );
       if (!/[А-Яа-яЁё]/u.test(passage.text))
         checks.push("Reading passages must be written in Russian.");
     }
