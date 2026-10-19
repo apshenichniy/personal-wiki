@@ -1,0 +1,49 @@
+[Unit]
+Description=Personal Wiki Knowledge Service (%i)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=wiki-service
+Group=wiki-service
+WorkingDirectory=/opt/personal-wiki/current-%i
+EnvironmentFile=/etc/personal-wiki/deploy/%i.env
+Environment=WIKI_WEB_DIR=/opt/personal-wiki/current-%i/web
+Environment=WIKI_OWNER_ACCESS_FILE=/run/personal-wiki-service-%i/owner-access.json
+Environment=WIKI_MACHINE_CREDENTIALS_FILE=/run/personal-wiki-service-%i/machine-credentials.json
+Environment=WIKI_R2_CREDENTIALS_FILE=/run/personal-wiki-service-%i/r2.json
+Environment=WIKI_PROVIDER_LEDGER_FILE=/var/lib/personal-wiki-accounting/provider-accounting.sqlite
+RuntimeDirectory=personal-wiki-service-%i
+RuntimeDirectoryMode=0700
+LoadCredential=owner-access.json:/etc/personal-wiki/deploy/%i/owner-access.json
+LoadCredential=machine-credentials.json:/etc/personal-wiki/deploy/%i/machine-credentials.json
+LoadCredential=r2.json:/etc/personal-wiki/deploy/%i/r2.json
+ExecStartPre=/usr/bin/install -m 0600 %d/owner-access.json /run/personal-wiki-service-%i/owner-access.json
+ExecStartPre=/usr/bin/install -m 0600 %d/machine-credentials.json /run/personal-wiki-service-%i/machine-credentials.json
+ExecStartPre=/usr/bin/install -m 0600 %d/r2.json /run/personal-wiki-service-%i/r2.json
+ExecStart=/usr/bin/python3 /opt/personal-wiki/current-%i/locked-service.py /opt/personal-wiki/current-%i/bun /opt/personal-wiki/current-%i/service.js
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=60
+KillMode=control-group
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+ReadWritePaths=/var/lib/personal-wiki-%i /var/lib/personal-wiki-accounting
+InaccessiblePaths=/etc/personal-wiki /var/lib/personal-wiki-runner /var/lib/personal-wiki-deploy
+MemoryMax=1280M
+MemorySwapMax=0
+CPUQuota=200%
+TasksMax=96
+LimitNOFILE=4096
+
+[Install]
+WantedBy=multi-user.target

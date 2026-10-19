@@ -1,0 +1,45 @@
+[Unit]
+Description=Personal Wiki Runner (%i)
+After=personal-wiki-service@%i.service
+Requires=personal-wiki-service@%i.service
+
+[Service]
+Type=simple
+User=wiki-runner
+Group=wiki-runner
+WorkingDirectory=/opt/personal-wiki/current-%i
+Environment=HOME=/var/lib/personal-wiki-runner
+Environment=WIKI_AGENT_SLOT=/var/lib/personal-wiki-runner/agent-slot
+Environment=WIKI_RUNNER_CONFIG_FILE=/run/personal-wiki-runner-%i/runner.json
+RuntimeDirectory=personal-wiki-runner-%i
+RuntimeDirectoryMode=0700
+LoadCredential=runner.json:/etc/personal-wiki/deploy/%i/runner.json
+LoadCredential=runner-token:/etc/personal-wiki/deploy/%i/runner-token
+LoadCredential=apify-token:/etc/personal-wiki/deploy/%i/apify-token
+ExecStartPre=/usr/bin/install -m 0600 %d/runner.json /run/personal-wiki-runner-%i/runner.json
+ExecStartPre=/usr/bin/install -m 0600 %d/runner-token /run/personal-wiki-runner-%i/runner-token
+ExecStartPre=/usr/bin/install -m 0600 %d/apify-token /run/personal-wiki-runner-%i/apify-token
+ExecStart=/usr/bin/python3 /opt/personal-wiki/current-%i/locked-runner.py /opt/personal-wiki/current-%i/bun /opt/personal-wiki/current-%i/runner.js
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=60
+KillMode=control-group
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+ReadWritePaths=/var/lib/personal-wiki-runner
+InaccessiblePaths=/etc/personal-wiki /var/lib/personal-wiki-accounting /var/lib/personal-wiki-staging /var/lib/personal-wiki-production /var/lib/personal-wiki-deploy
+MemoryMax=3072M
+MemorySwapMax=0
+CPUQuota=250%
+TasksMax=192
+LimitNOFILE=4096
+
+[Install]
+WantedBy=multi-user.target
