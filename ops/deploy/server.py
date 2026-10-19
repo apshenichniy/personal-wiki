@@ -41,28 +41,15 @@ class Handler(socketserver.StreamRequestHandler):
             if action in ("status", "resume"):
                 if set(value) != {"action", "operationId"}:
                     raise ValueError("invalid_request")
-                op = engine.records.get(operation_id(value["operationId"]))
-                if action == "resume" and op["phase"] == "failed":
-                    op["error"] = None
-                    engine.records.put(op, op["resumePhase"])
-                respond(self.wfile, engine.status(op["operationId"]))
+                op_id = operation_id(value["operationId"])
+                respond(self.wfile, engine.resume(op_id) if action == "resume" else engine.status(op_id))
                 return
             if action == "rollback":
-                if set(value) != {"action", "operationId", "target"} or value["target"] not in ("staging", "production"):
+                if set(value) != {"action", "operationId", "target"}:
                     raise ValueError("invalid_request")
-                previous = engine.previous(value["target"])
-                req = validate_request({"operation": "rollback", "operationId": value["operationId"],
-                                        "target": value["target"], "revision": previous["revision"], "digest": previous["digest"]})
                 with uploads_lock:
-                    if not engine.records.path(req["operationId"]).exists():
-                        folder = engine.uploads / req["operationId"]
-                        folder.mkdir(mode=0o700, exist_ok=True)
-                        for name in ("artifact.tar.gz", "attestation.jsonl"):
-                            destination = folder / name
-                            if not destination.exists():
-                                os.link(ROOT / "artifacts" / previous["digest"] / name, destination)
-                    engine.records.create(req)
-                respond(self.wfile, engine.status(req["operationId"]))
+                    result = engine.rollback(value["operationId"], value["target"])
+                respond(self.wfile, result)
                 return
             if action != "install" or set(value) != {"action", "request", "size", "bundle"}:
                 raise ValueError("invalid_request")

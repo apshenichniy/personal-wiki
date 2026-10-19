@@ -66,9 +66,11 @@ def unpack(archive, destination, revision):
     if manifest.get("files") != hashes:
         raise ValueError("release_file_mismatch")
     destination.mkdir(mode=0o755)
+    destination.chmod(0o755)
     for name, data in files.items():
         path = destination / name
         path.parent.mkdir(mode=0o755, exist_ok=True)
+        path.parent.chmod(0o755)
         path.write_bytes(data)
         path.chmod(0o755 if name == "bun" else 0o644)
     return manifest

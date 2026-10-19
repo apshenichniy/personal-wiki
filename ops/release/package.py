@@ -40,6 +40,7 @@ def package(root, output):
                         ("tools/check-archive.ts", "check-archive.js")]:
         subprocess.run([str(bun), "build", entry, "--target=bun", f"--outfile={build / name}"], check=True)
     shutil.copyfile(bun, build / "bun")
+    (build / "bun").chmod(0o755)
     for name in ["locked-service.py", "locked-runner.py", "agent-guard.py", "inspect-agent.py"]:
         shutil.copyfile(root / "tools/runtime" / name, build / name)
     shutil.copyfile(root / "skills/knowledge/curate-x/SKILL.md", build / "curate-x.md")

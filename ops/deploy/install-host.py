@@ -88,11 +88,9 @@ def main():
             if not (config / name).exists():
                 shutil.copyfile(original / name, config / name)
                 (config / name).chmod(0o600)
-        credentials = private_json(original / "machine-credentials.json", {"credentials": [
+        credentials = private_json(config / "machine-credentials.json", {"credentials": [
             {"identityId": str(uuid.uuid4()), "role": role, "token": "wk_" + secrets.token_urlsafe(32)}
             for role in ("runner", "operator")]})
-        if not (config / "machine-credentials.json").exists():
-            shutil.copyfile(original / "machine-credentials.json", config / "machine-credentials.json")
         for name, content in (("runner-token", next(c["token"] for c in credentials["credentials"] if c["role"] == "runner")),
                               ("apify-token", Path("/etc/personal-wiki/secrets/apify-token").read_text().strip())):
             if not (config / name).exists():
@@ -107,12 +105,6 @@ def main():
             "codex": {"binary": str(codex), "binarySha256": codex_digest, "python": "/usr/bin/python3",
                       "guardian": current + "/agent-guard.py", "slotDirectory": str(slot),
                       "spool": str(runner / "agent-spool"), "authFile": "/var/lib/personal-wiki-runner/.codex/auth.json"}})
-        # Host readiness reads the same immutable private originals as systemd.
-        if not (original / "runner.json").exists():
-            shutil.copyfile(config / "runner.json", original / "runner.json")
-        for name in ("runner-token", "apify-token"):
-            if not (original / name).exists():
-                shutil.copyfile(config / name, original / name)
         env = Path(f"/etc/personal-wiki/deploy/{target}.env")
         env.write_text(f"WIKI_DATA_DIR={data}\nWIKI_NAMESPACE={target}\nPORT={worker}\nWIKI_PUBLIC_PORT={public}\n")
         env.chmod(0o600)

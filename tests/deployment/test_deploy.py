@@ -197,6 +197,50 @@ class Deployment(unittest.TestCase):
                 unpack(file, self.root / "unpacked", "a" * 40)
         self.assertFalse((self.root / "unpacked").exists())
 
+    def test_installed_directories_are_traversable_under_controller_umask(self):
+        req = self.upload()
+        mask = os.umask(0o077)
+        try:
+            self.assertEqual(self.engine.drive(req["operationId"])["phase"], "complete")
+        finally:
+            os.umask(mask)
+        release = self.engine.releases / req["digest"]
+        for directory in (release, release / "web"):
+            self.assertEqual(directory.stat().st_mode & 0o777, 0o755)
+        self.assertEqual((release / "bun").stat().st_mode & 0o777, 0o755)
+
+    def test_failed_critical_operation_blocks_later_deploy_until_resumed(self):
+        first = self.upload()
+        with patch.object(self.host, "resume_dispatch", side_effect=ValueError("dispatch_unavailable")):
+            self.assertEqual(self.engine.drive(first["operationId"])["phase"], "failed")
+        second = self.upload("b" * 40)
+        restarted = Engine(self.engine.root, self.engine.releases, self.host)
+        with self.assertRaisesRegex(ValueError, "unfinished_deployment_requires_resume"):
+            restarted.drive(second["operationId"])
+        self.assertEqual(restarted.active("staging")["digest"], first["digest"])
+        self.assertEqual(restarted.drive(first["operationId"])["phase"], "complete")
+        self.assertEqual(restarted.drive(second["operationId"])["phase"], "complete")
+        self.assertEqual(restarted.drive(first["operationId"])["phase"], "complete")
+        self.assertEqual(restarted.active("staging")["digest"], second["digest"])
+        self.assertEqual((restarted.releases.parent / "current-staging").resolve(), (restarted.releases / second["digest"]).resolve())
+
+    def test_rollback_retry_preserves_original_predecessor_and_rejects_identity_reuse(self):
+        first = self.upload()
+        second = self.upload("b" * 40)
+        self.engine.drive(first["operationId"])
+        self.engine.drive(second["operationId"])
+        op_id = str(uuid.uuid4())
+        pending = self.engine.rollback(op_id, "staging")
+        self.assertEqual(pending["request"]["digest"], first["digest"])
+        completed = self.engine.drive(op_id)
+        self.assertEqual(completed["phase"], "complete")
+        self.assertEqual(self.engine.previous("staging")["digest"], second["digest"])
+        self.assertEqual(self.engine.rollback(op_id, "staging"), completed)
+        with self.assertRaisesRegex(ValueError, "operation_conflict"):
+            self.engine.rollback(op_id, "production")
+        with self.assertRaisesRegex(ValueError, "operation_conflict"):
+            self.engine.rollback(first["operationId"], "staging")
+
     def test_provenance_enforces_all_identity_dimensions(self):
         req = self.upload()
         folder = self.engine.uploads / req["operationId"]

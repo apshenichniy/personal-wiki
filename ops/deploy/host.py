@@ -32,7 +32,7 @@ class Host:
         verify_provenance(archive, bundle, revision, digest, GH)
 
     def preflight(self, target, manifest):
-        config = Path("/etc/personal-wiki/staging" if target == "staging" else "/etc/personal-wiki/secrets")
+        config = Path(f"/etc/personal-wiki/deploy/{target}")
         for name in ("owner-access.json", "machine-credentials.json", "r2.json"):
             file = config / name
             if not file.is_file() or file.is_symlink() or file.stat().st_mode & 0o077:
@@ -106,7 +106,7 @@ class Host:
 
     def readiness(self, target, release):
         settings = self.settings["targets"][target]
-        config = Path("/etc/personal-wiki/staging" if target == "staging" else "/etc/personal-wiki/secrets")
+        config = Path(f"/etc/personal-wiki/deploy/{target}")
         credentials = json.loads((config / "machine-credentials.json").read_text())
         operator = next(c["token"] for c in credentials["credentials"] if c["role"] == "operator")
         worker = f'http://127.0.0.1:{settings["workerPort"]}'

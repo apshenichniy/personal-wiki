@@ -42,6 +42,50 @@ class Engine:
             raise ValueError("no_previous_release")
         return active["previous"]
 
+    def resume(self, op_id):
+        with exclusive(self.root / "deployment.lock"):
+            record = self.records.get(op_id)
+            if record["phase"] == "failed":
+                record["error"] = None
+                self.records.put(record, record["resumePhase"])
+            return self.status(op_id)
+
+    def rollback(self, op_id, target):
+        operation_id(op_id)
+        if target not in TARGETS:
+            raise ValueError("invalid_target")
+        with exclusive(self.root / "deployment.lock"):
+            # Resolve the predecessor once: retries refer to the durable request,
+            # even after the successful rollback has changed the predecessor.
+            if self.records.path(op_id).exists():
+                request = self.records.get(op_id)["request"]
+                if request["operation"] != "rollback" or request["target"] != target:
+                    raise ValueError("operation_conflict")
+                return self.status(op_id)
+            previous = self.previous(target)
+            request = validate_request({"operationId": op_id, "operation": "rollback", "target": target,
+                                        "revision": previous["revision"], "digest": previous["digest"]})
+            folder = self.uploads / op_id
+            folder.mkdir(mode=0o700, exist_ok=True)
+            for name in ("artifact.tar.gz", "attestation.jsonl"):
+                destination = folder / name
+                if not destination.exists():
+                    os.link(self.root / "artifacts" / previous["digest"] / name, destination)
+            sync_directory(folder)
+            self.records.create(request)
+            return self.status(op_id)
+
+    def critical_owner(self):
+        path = self.root / "inflight.json"
+        if not path.exists():
+            return None
+        op_id = json.loads(path.read_text())["operationId"]
+        if self.records.get(op_id)["phase"] == "complete":
+            path.unlink()
+            sync_directory(self.root)
+            return None
+        return op_id
+
     def recovery_gate(self, record, schema):
         if record["request"]["target"] != "production":
             return
@@ -60,6 +104,9 @@ class Engine:
     def drive(self, op_id):
         with exclusive(self.root / "deployment.lock"):
             record = self.records.get(op_id)
+            owner = self.critical_owner()
+            if owner is not None and owner != op_id:
+                raise ValueError("unfinished_deployment_requires_resume")
             if record["phase"] == "complete":
                 return self.status(op_id)
             if record["phase"] == "failed":
@@ -112,6 +159,7 @@ class Engine:
                     self.host.preflight(target, manifest)
                     if shutil.disk_usage(self.releases).free < 5 * 1024**3:
                         raise ValueError("insufficient_disk_headroom")
+                    atomic_json(self.root / "inflight.json", {"operationId": op_id})
                     self.records.put(record, "checkpointing")
                 if record["phase"] == "checkpointing":
                     # Stop dispatch on both namespaces. Unit cgroups fence every
@@ -156,6 +204,7 @@ class Engine:
                     atomic_json(self.root / f"active-{target}.json", active)
                     self.host.resume_dispatch(target)
                     self.records.put(record, "complete")
+                    self.critical_owner()
             except Exception as error:
                 record["resumePhase"] = record["phase"]
                 record["error"] = str(error) if isinstance(error, ValueError) else "deployment_failed"

@@ -70,3 +70,19 @@ mise exec -- bun run verify
 ```
 
 The Python suite verifies interrupted state transitions, idempotent replay, unchanged knowledge during rollback, unknown schema/fencing/backup failures, archive confinement and verifier policy. Actual cryptographic provenance and real unit/SSH interruption evidence require the trusted staging release. Keep synthetic fixtures and public metadata separate from private originals and authentication evidence.
+
+### Controller recovery and credential authority
+
+A deployment owns a durable critical-operation marker before stopping dispatch.
+A failure after that boundary blocks later installs and rollbacks, including after
+controller restart; resume that operation after correcting its cause. Completion
+releases the marker. Repeating a completed operation never rewrites the active
+release, and rollback retries keep the originally selected predecessor.
+
+Runtime credentials, preflight and readiness all use
+`/etc/personal-wiki/deploy/{staging,production}` as their authoritative configuration.
+Initial provisioning imports owner-access and R2 files from the prepared secret
+inventory; it does not keep those import files synchronized. Rotate the canonical
+files through owner administration with dispatch stopped, update the corresponding
+runner token when rotating machine credentials, and restart both affected units so
+systemd reloads credentials. The installer preserves existing identities.
