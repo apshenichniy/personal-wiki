@@ -9,6 +9,7 @@ import shutil
 import socket
 import socketserver
 import struct
+import subprocess
 import threading
 import time
 from artifact import MAX_ARCHIVE
@@ -108,7 +109,7 @@ def work():
         if not restored:
             try:
                 restored = engine.restore_runtime()
-            except (OSError, ValueError, KeyError) as error:
+            except (OSError, ValueError, KeyError, subprocess.SubprocessError) as error:
                 # A failed cutover, unavailable identity provider, or altered
                 # release must not be bypassed by independently enabled units.
                 code = str(error) if type(error) is ValueError else "runtime_prerequisite_unavailable"
