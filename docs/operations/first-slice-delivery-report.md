@@ -1,6 +1,6 @@
 # First X-to-wiki slice: delivery evidence
 
-**2026-10-19 — G1–G5 passed; ready for owner acceptance.** This report concerns the approved first slice, not the entire product roadmap. G6 is reserved for the owner; the [delivery epic](https://github.com/apshenichniy/personal-wiki/issues/23) stays open for that observation.
+**2026-10-19 — accepted by the owner; G1–G6 complete.** This report concerns the approved first slice, not the entire product roadmap. After the G1–G5 handoff, the owner confirmed that the result worked and explicitly requested closure of the [delivery epic](https://github.com/apshenichniy/personal-wiki/issues/23). G6 is recorded as owner-reported acceptance, not an independently witnessed physical-device test. See the [brief retrospective](../retrospectives/2026-10-19-first-slice.md).
 
 ## Delivered boundary
 
@@ -34,7 +34,7 @@ Canonical commands are documented in [local development](../development/local.md
 | G3: verified artifact | Pass | Signed provenance, digest/expected source verification and successful same-byte promotion. Restricted CI identity cannot execute arbitrary root commands. |
 | G4: isolated live staging | Pass | Four real X cases, five real notes, retained Article, bounded Apify/privacy checks, subscription Codex, real Pocket ID login, desktop/390px reading/search/source checks. |
 | G5: operational delivery | Pass | Real cold reboot, interrupted deployment, compatible rollback, encrypted/empty restore, resource measurements, exact-byte production promotion and a real production browser submission/retained retry/publication. |
-| G6: owner acceptance | Pending owner | Actual iPhone use with Mac off and personal assessment of note quality; not inferred from browser emulation. |
+| G6: owner acceptance | Accepted by owner | Explicit confirmation and request to close the epic on 2026-10-19. This is owner-reported acceptance; no additional device-by-device observations are inferred. |
 
 ## Mandatory contract coverage
 
@@ -90,7 +90,7 @@ The promotion created its own recovery-gated migration snapshot. After the final
 
 Only production dispatch is enabled after promotion; staging remains a separate private acceptance library. The application stores sources and knowledge on the VPS/R2, with encrypted independent backup. Public URL access does not grant access to notes or originals. Cloudflare may reject generic automated HTTP clients before the origin; ordinary browser access and direct application denials were checked independently.
 
-G6 checklist for the owner:
+G6 checklist supplied at handoff (retained for traceability; owner acceptance recorded above):
 
 1. Switch the Mac off and open the private production wiki on the actual iPhone; sign in with the existing passkey.
 2. Submit an X link, leave/reopen the page, and confirm that the server completes the job and shows its note.
