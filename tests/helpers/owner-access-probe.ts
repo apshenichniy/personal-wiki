@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { Console, Effect, Layer } from "effect";
 import { SqlClient } from "effect/sql";
+import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
+import { HttpApiClient } from "effect/http-api";
+import { ReaderApi } from "@personal-wiki/contracts/reader-api";
 import { jobRuntime } from "../../apps/knowledge-service/src/jobs/runtime.ts";
 import { Library } from "../../apps/knowledge-service/src/storage/library.ts";
 import { Jobs } from "../../apps/knowledge-service/src/jobs/service.ts";
@@ -52,6 +55,12 @@ const program = Effect.gen(function* () {
   const jobs = yield* Jobs;
   const app = ownerHandler(context);
   yield* Effect.addFinalizer(() => Effect.promise(app.dispose));
+  const server = yield* Effect.acquireRelease(
+    Effect.sync(() =>
+      Bun.serve({ hostname: "127.0.0.1", port: 0, fetch: (request) => app.handler(request) }),
+    ),
+    (server) => Effect.promise(() => server.stop(true)),
+  );
   const request = (path: string, init: RequestInit = {}) =>
     Effect.tryPromise(() =>
       app.handler(
@@ -178,6 +187,17 @@ const program = Effect.gen(function* () {
   assert.equal((yield* finish(expiredLogin)).status, 401);
   const owner = yield* login();
   const authenticated = { cookie: owner.cookie };
+  const sdk = yield* HttpApiClient.make(ReaderApi, {
+    baseUrl: server.url.href,
+    transformClient: (client) =>
+      HttpClient.mapRequest(
+        client,
+        HttpClientRequest.setHeaders({ host: "wiki.example.test", cookie: owner.cookie }),
+      ),
+  }).pipe(Effect.provide(FetchHttpClient.layer));
+  const binary = yield* sdk.knowledge.asset({ params: { assetId } });
+  assert.match(new TextDecoder().decode(binary.body), /Durable widgets/);
+  assert.equal(binary.headers["content-disposition"], "attachment; filename=retained-source.bin");
   const note = yield* request(`/api/v1/notes/${noteId}`, { headers: authenticated });
   assert.equal(note.status, 200);
   assert.match(yield* Effect.promise(() => note.text()), /Надёжная публикация/);

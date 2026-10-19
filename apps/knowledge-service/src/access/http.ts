@@ -1,5 +1,5 @@
 import { Effect, Layer } from "effect";
-import { HttpApiBuilder } from "effect/http-api";
+import { HttpApiBuilder, HttpApiSchema } from "effect/http-api";
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
 import { ReaderApi } from "@personal-wiki/contracts/reader-api";
 import { withErrorBoundary } from "../http.ts";
@@ -36,6 +36,19 @@ const knowledge = HttpApiBuilder.group(
       capture: ({ params, query }) =>
         library.capture(params.captureId, query.revision).pipe(Effect.orDie),
       search: ({ payload }) => library.search(payload.query, payload.revision).pipe(Effect.orDie),
+      asset: ({ params }) =>
+        Effect.gen(function* () {
+          const bytes = yield* library.asset(params.assetId);
+          // Recheck after archive I/O: revocation during a download denies delivery.
+          yield* current;
+          return HttpApiSchema.withHeaders({
+            body: new Uint8Array(bytes),
+            headers: {
+              "content-disposition": "attachment; filename=retained-source.bin" as const,
+              "accept-ranges": "none" as const,
+            },
+          });
+        }).pipe(Effect.orDie),
     });
   }),
 );
@@ -133,25 +146,6 @@ const callback = HttpRouter.add(
     });
   }),
 );
-const assets = HttpRouter.add(
-  "GET",
-  "/api/v1/assets/:assetId",
-  Effect.gen(function* () {
-    const library = yield* Library;
-    const request = yield* HttpServerRequest.HttpServerRequest;
-    const path = new URL(request.url, "http://localhost").pathname;
-    const bytes = yield* library.asset(path.slice("/api/v1/assets/".length));
-    // A revoked session cannot finish a slow archive fetch into a new response.
-    yield* current;
-    return HttpServerResponse.uint8Array(bytes, {
-      headers: {
-        "content-type": "application/octet-stream",
-        "content-disposition": "attachment; filename=retained-source.bin",
-        "accept-ranges": "none",
-      },
-    });
-  }).pipe(Effect.orDie),
-);
 
 const OwnerBoundary = HttpRouter.middleware(
   (httpEffect) =>
@@ -205,6 +199,5 @@ export const OwnerRoutes = Layer.mergeAll(
   HttpApiBuilder.layer(ReaderApi).pipe(Layer.provide([knowledge, jobs, session])),
   login,
   callback,
-  assets,
   OwnerBoundary,
 );
