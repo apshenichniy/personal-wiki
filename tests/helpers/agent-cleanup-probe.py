@@ -15,7 +15,7 @@ guardian = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(guardian)
 assert ctypes.CDLL(None, use_errno=True).prctl(36, 1, 0, 0, 0) == 0
 with tempfile.TemporaryDirectory(prefix="wiki-cleanup-") as root:
-    for delay, timeout, expected in [(0.2, 2, True), (2, 0.1, False)]:
+    for delay, timeout, expected, terminate in [(0.2, 2, True, False), (2, 0.1, False, False), (10, 2, True, True)]:
         path = Path(root, "lock")
         held = os.open(path, os.O_CREAT | os.O_RDWR, 0o600)
         fcntl.flock(held, fcntl.LOCK_EX)
@@ -36,6 +36,8 @@ os._exit(0)
         started = time.monotonic()
         try:
             assert not guardian.group_alive(leader.pid)
+            if terminate:
+                guardian.signal_adopted(signal.SIGKILL)
             actual = guardian.confirm_cleanup(leader, check, timeout)
             assert actual is expected, f"late release: expected {expected}, got {actual}"
             if expected:
