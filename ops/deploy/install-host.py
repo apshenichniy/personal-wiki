@@ -46,7 +46,7 @@ def main():
         command("useradd", "--system", "--home-dir", "/nonexistent", "--shell", "/usr/sbin/nologin", "wiki-service")
     source = Path(__file__).resolve().parent
     controller = directory("/opt/personal-wiki-deploy", mode=0o755)
-    for name in ("server.py", "engine.py", "artifact.py", "state.py", "host.py"):
+    for name in ("server.py", "engine.py", "artifact.py", "state.py", "host.py", "check-sandbox.py"):
         shutil.copyfile(source / name, controller / name)
         (controller / name).chmod(0o644)
     shutil.copyfile(source / "client.py", "/usr/local/bin/wiki-deployctl")
@@ -120,6 +120,7 @@ def main():
     for name in ("personal-wiki-deploy.service", "personal-wiki-service@.service", "personal-wiki-runner@.service"):
         shutil.copyfile(source / name, Path("/etc/systemd/system") / name)
     command("systemctl", "daemon-reload")
+    command("python3", str(controller / "check-sandbox.py"), "/etc/systemd/system/personal-wiki-runner@.service")
     command("systemctl", "enable", "--now", "personal-wiki-deploy.service")
     print("Controller installed. Runtime dispatch remains governed by private settings; no knowledge service was started.")
 

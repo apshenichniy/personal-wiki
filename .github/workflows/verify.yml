@@ -35,6 +35,12 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y bubblewrap apparmor
           sudo apparmor_parser -r .github/bwrap.apparmor
+      - name: Verify the deployed Runner policy around the inner sandbox
+        run: |
+          sudo useradd --system --user-group --shell /usr/sbin/nologin wiki-runner
+          sudo install -d -m 0700 /etc/personal-wiki /var/lib/personal-wiki-accounting /var/lib/personal-wiki-staging /var/lib/personal-wiki-production /var/lib/personal-wiki-deploy
+          sudo install -d -m 0700 -o wiki-runner -g wiki-runner /var/lib/personal-wiki-runner
+          sudo python3 ops/deploy/check-sandbox.py
       - name: Frozen install
         run: mise exec -- bun install --frozen-lockfile
       - name: Install pinned browser and system dependencies
