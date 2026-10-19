@@ -2,7 +2,7 @@ import { constants } from "node:fs";
 import { link, lstat, mkdir, open, unlink, rename } from "node:fs/promises";
 import { join } from "node:path";
 import { createHash, randomUUID } from "node:crypto";
-import { Clock, Effect, Schema } from "effect";
+import { Clock, Effect, Schedule, Schema } from "effect";
 import type { makeJobClient } from "@personal-wiki/client";
 import { ProviderRawUpload } from "@personal-wiki/contracts/provider-api";
 import * as P from "@personal-wiki/contracts/provider";
@@ -240,13 +240,15 @@ export function makeRetention(options: {
         if (bytes >= 67_108_864) return yield* fail("capacity");
         let input = yield* journal.load(id, `dataset-${offset}`);
         if (!input) {
-          const response = yield* options.http.page(
-            operation.run.datasetId,
-            offset,
-            100,
-            67_108_864 - bytes,
-            deadline,
-          );
+          const response = yield* options.http
+            .page(operation.run.datasetId, offset, 100, 67_108_864 - bytes, deadline)
+            .pipe(
+              Effect.retry({
+                times: 3,
+                schedule: Schedule.exponential("250 millis"),
+                while: (error) => error.code === "protocol" && Date.now() < deadline,
+              }),
+            );
           input = yield* journal.save(
             inputFor(id, "dataset", response.raw, offset, response.total),
           );

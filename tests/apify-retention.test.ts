@@ -226,122 +226,123 @@ test("Runner recovery closes a cancelled reservation and reconciles costs despit
   }
 });
 
-test("retention replays exact spooled bytes after Service failure without a second provider download", async () => {
-  const root = await mkdtemp(join(tmpdir(), "wiki-retention-"));
-  const operation = op();
-  const pages: P.Page[] = [];
-  let pageGets = 0;
-  let runGets = 0;
-  let failUpload = true;
-  const received: string[] = [];
-  const provider = Bun.serve({
-    hostname: "127.0.0.1",
-    port: 0,
-    fetch(request) {
-      expect(request.method).toBe("GET");
-      const path = new URL(request.url).pathname;
-      if (path === "/v2/actor-runs/run") {
-        runGets++;
-        return Response.json({
-          data: {
-            id: "run",
-            actId: "actor",
-            buildId: "build",
-            defaultDatasetId: "dataset",
-            defaultKeyValueStoreId: "kv",
-            status: "SUCCEEDED",
-            startedAt: new Date(operation.run!.startedAt).toISOString(),
-            finishedAt: new Date(operation.finishedAt!).toISOString(),
-            usageTotalUsd: runGets * 0.001,
+for (const eventual of [false, true])
+  test(`retention replays exact bytes after upload failure (eventual pagination: ${eventual})`, async () => {
+    const root = await mkdtemp(join(tmpdir(), "wiki-retention-"));
+    const operation = op();
+    const pages: P.Page[] = [];
+    let pageGets = 0;
+    let runGets = 0;
+    let failUpload = true;
+    const received: string[] = [];
+    const provider = Bun.serve({
+      hostname: "127.0.0.1",
+      port: 0,
+      fetch(request) {
+        expect(request.method).toBe("GET");
+        const path = new URL(request.url).pathname;
+        if (path === "/v2/actor-runs/run") {
+          runGets++;
+          return Response.json({
+            data: {
+              id: "run",
+              actId: "actor",
+              buildId: "build",
+              defaultDatasetId: "dataset",
+              defaultKeyValueStoreId: "kv",
+              status: "SUCCEEDED",
+              startedAt: new Date(operation.run!.startedAt).toISOString(),
+              finishedAt: new Date(operation.finishedAt!).toISOString(),
+              usageTotalUsd: runGets * 0.001,
+            },
+          });
+        }
+        if (path === "/v2/key-value-stores/kv/records/run-report")
+          return new Response(null, { status: 404 });
+        expect(path).toBe("/v2/datasets/dataset/items");
+        pageGets++;
+        return Response.json([{ id: "100", text: `Response ${pageGets}` }], {
+          headers: {
+            "x-apify-pagination-offset": "0",
+            "x-apify-pagination-limit": "100",
+            "x-apify-pagination-count": "1",
+            "x-apify-pagination-total": eventual && pageGets === 1 ? "0" : "1",
           },
         });
-      }
-      if (path === "/v2/key-value-stores/kv/records/run-report")
-        return new Response(null, { status: 404 });
-      expect(path).toBe("/v2/datasets/dataset/items");
-      pageGets++;
-      return Response.json([{ id: "100", text: `Response ${pageGets}` }], {
-        headers: {
-          "x-apify-pagination-offset": "0",
-          "x-apify-pagination-limit": "100",
-          "x-apify-pagination-count": "1",
-          "x-apify-pagination-total": "1",
-        },
-      });
-    },
-  });
-  const service = Bun.serve({
-    hostname: "127.0.0.1",
-    port: 0,
-    async fetch(request) {
-      const path = new URL(request.url).pathname;
-      const input = (await request.json()) as {
-        kind: string;
-        base64: string;
-        offset: number;
-        total: number;
-        sha256: string;
-      };
-      if (path.endsWith("/pages")) return Response.json(pages);
-      if (path.endsWith("/inspect"))
-        return Response.json({ shouldStop: true, operations: [operation] });
-      if (path.endsWith("/archive")) return Response.json({ ...operation, archived: true });
-      expect(path).toBe("/internal/v1/providers/retain");
-      if (input.kind === "dataset") {
-        received.push(input.base64);
-        if (failUpload) {
-          failUpload = false;
-          return Response.json(
-            {
-              code: "unavailable",
-              message: "Synthetic loss before retention",
-              requestId: crypto.randomUUID(),
-            },
-            { status: 503 },
-          );
+      },
+    });
+    const service = Bun.serve({
+      hostname: "127.0.0.1",
+      port: 0,
+      async fetch(request) {
+        const path = new URL(request.url).pathname;
+        const input = (await request.json()) as {
+          kind: string;
+          base64: string;
+          offset: number;
+          total: number;
+          sha256: string;
+        };
+        if (path.endsWith("/pages")) return Response.json(pages);
+        if (path.endsWith("/inspect"))
+          return Response.json({ shouldStop: true, operations: [operation] });
+        if (path.endsWith("/archive")) return Response.json({ ...operation, archived: true });
+        expect(path).toBe("/internal/v1/providers/retain");
+        if (input.kind === "dataset") {
+          received.push(input.base64);
+          if (failUpload) {
+            failUpload = false;
+            return Response.json(
+              {
+                code: "unavailable",
+                message: "Synthetic loss before retention",
+                requestId: crypto.randomUUID(),
+              },
+              { status: 503 },
+            );
+          }
         }
-      }
-      const page: P.Page = {
-        operationId: operation.operationId,
-        pageKey: input.kind === "dataset" ? `dataset:${input.offset}:${input.total}` : input.kind,
-        assetId: crypto.randomUUID(),
-        sha256: input.sha256,
-        byteLength: Buffer.from(input.base64, "base64").length,
-        offset: input.offset,
-        itemCount: input.kind === "dataset" ? 1 : 0,
+        const page: P.Page = {
+          operationId: operation.operationId,
+          pageKey: input.kind === "dataset" ? `dataset:${input.offset}:${input.total}` : input.kind,
+          assetId: crypto.randomUUID(),
+          sha256: input.sha256,
+          byteLength: Buffer.from(input.base64, "base64").length,
+          offset: input.offset,
+          itemCount: input.kind === "dataset" ? 1 : 0,
+        };
+        pages.push(page);
+        return Response.json(page);
+      },
+    });
+    try {
+      const client = await Effect.runPromise(makeJobClient(service.url.origin, "synthetic-token"));
+      const options = {
+        client,
+        http: makeApifyHttp(Redacted.make("synthetic-token"), provider.url.origin),
+        spool: join(root, "raw"),
       };
-      pages.push(page);
-      return Response.json(page);
-    },
+      expect(
+        await Effect.runPromise(
+          makeRetention(options)(operation, Date.now() + 10000).pipe(Effect.result),
+        ),
+      ).toMatchObject({ _tag: "Failure" });
+      expect(pageGets).toBe(eventual ? 2 : 1);
+      expect(runGets).toBe(1);
+      expect(
+        (await Effect.runPromise(makeRetention(options)(operation, Date.now() + 10000))).archived,
+      ).toBe(true);
+      expect(pageGets).toBe(eventual ? 2 : 1);
+      expect(runGets).toBe(1);
+      expect(received).toHaveLength(2);
+      expect(received[0]).toBe(received[1]);
+      expect(pages).toHaveLength(2);
+    } finally {
+      await service.stop(true);
+      await provider.stop(true);
+      await rm(root, { recursive: true, force: true });
+    }
   });
-  try {
-    const client = await Effect.runPromise(makeJobClient(service.url.origin, "synthetic-token"));
-    const options = {
-      client,
-      http: makeApifyHttp(Redacted.make("synthetic-token"), provider.url.origin),
-      spool: join(root, "raw"),
-    };
-    expect(
-      await Effect.runPromise(
-        makeRetention(options)(operation, Date.now() + 10000).pipe(Effect.result),
-      ),
-    ).toMatchObject({ _tag: "Failure" });
-    expect(pageGets).toBe(1);
-    expect(runGets).toBe(1);
-    expect(
-      (await Effect.runPromise(makeRetention(options)(operation, Date.now() + 10000))).archived,
-    ).toBe(true);
-    expect(pageGets).toBe(1);
-    expect(runGets).toBe(1);
-    expect(received).toHaveLength(2);
-    expect(received[0]).toBe(received[1]);
-    expect(pages).toHaveLength(2);
-  } finally {
-    await service.stop(true);
-    await provider.stop(true);
-    await rm(root, { recursive: true, force: true });
-  }
-});
 
 test("raw spool rejects corrupt, changed and symlinked evidence", async () => {
   const root = await mkdtemp(join(tmpdir(), "wiki-raw-spool-"));
