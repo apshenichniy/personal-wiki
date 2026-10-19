@@ -32,6 +32,8 @@ class Host:
         verify_provenance(archive, bundle, revision, digest, GH)
 
     def preflight(self, target, manifest):
+        if Path("/var/lib/personal-wiki-backup/checkpoint-owner.json").exists():
+            raise ValueError("backup_checkpoint_requires_recovery")
         config = Path(f"/etc/personal-wiki/deploy/{target}")
         for name in ("owner-access.json", "machine-credentials.json", "r2.json"):
             file = config / name

@@ -14,10 +14,11 @@ for path in (Path('/etc/personal-wiki/backup/r2.json'), Path('/etc/personal-wiki
         raise SystemExit('Private backup credentials and externally retained recovery key required')
 root = Path('/var/lib/personal-wiki-backup');root.mkdir(exist_ok=True,mode=0o700)
 target = Path('/opt/personal-wiki-backup');target.mkdir(exist_ok=True,mode=0o700)
-for name in ('core.py','host_backup.py','restore.py','status.py'):
+for name in ('core.py','host_backup.py','restore.py','status.py','checkpoint_recover.py'):
     shutil.copyfile(source/name,target/name);(target/name).chmod(0o600)
-for name in ('personal-wiki-backup@.service','personal-wiki-backup.timer'):
+for name in ('personal-wiki-backup@.service','personal-wiki-backup.timer','personal-wiki-backup-recover.service'):
     shutil.copyfile(source/name,Path('/etc/systemd/system')/name)
 subprocess.run(['systemctl','daemon-reload'],check=True)
+subprocess.run(['systemctl','enable','personal-wiki-backup-recover.service'],check=True)
 # The operator initializes restic and verifies a first point before enabling the timer.
 print('Backup component installed; timer activation follows a verified recovery point.')

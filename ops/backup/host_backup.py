@@ -10,7 +10,7 @@ import time
 from contextlib import contextmanager
 from core import Restic, VERSION, copy_cut, manifest
 sys.path.insert(0, str(Path('/opt/personal-wiki-deploy') if Path('/opt/personal-wiki-deploy').is_dir() else Path(__file__).resolve().parents[1] / 'deploy'))
-from state import atomic_json, exclusive, operation_id, schema_version
+from state import atomic_json, exclusive, operation_id, schema_version, sync_directory
 from host import Host as DeploymentHost
 
 ROOT = Path('/var/lib/personal-wiki-backup')
@@ -50,13 +50,32 @@ def active(unit):
     return subprocess.run(['systemctl', 'is-active', '--quiet', unit]).returncode == 0
 
 
+def recover_checkpoint(owner=None):
+    path = ROOT / 'checkpoint-owner.json'
+    if not path.exists():
+        return
+    record = json.loads(path.read_text())
+    if owner is not None and record['owner'] != owner:
+        raise ValueError('different_backup_checkpoint_owner')
+    allowed = {'pocket-id.service', *[f'personal-wiki-{kind}@{target}.service'
+        for kind in ('service', 'runner') for target in ('staging', 'production')]}
+    if not isinstance(record['previous'], list) or not set(record['previous']) <= allowed:
+        raise ValueError('invalid_checkpoint_units')
+    for unit in record['previous']:
+        run('systemctl', 'start', unit)
+    path.unlink()
+    sync_directory(ROOT)
+
+
 @contextmanager
-def checkpoint():
+def checkpoint(owner):
+    recover_checkpoint()
     host = DeploymentHost()
     services = [f'personal-wiki-service@{t}.service' for t in ('staging', 'production')]
     runners = [f'personal-wiki-runner@{t}.service' for t in ('staging', 'production')]
     previous = [unit for unit in [*services, *runners] if active(unit)]
     identity_active = active('pocket-id.service')
+    atomic_json(ROOT / 'checkpoint-owner.json', {'owner': owner, 'previous': (['pocket-id.service'] if identity_active else []) + previous})
     try:
         host.stop_runners()
         for target in ('staging', 'production'):
@@ -66,16 +85,13 @@ def checkpoint():
             run('systemctl', 'stop', 'pocket-id.service')
         yield host
     finally:
-        if identity_active:
-            run('systemctl', 'start', 'pocket-id.service')
-        for unit in previous:
-            run('systemctl', 'start', unit)
+        recover_checkpoint(owner)
 
 
 def snapshot_cut(cut, host):
     for namespace in ('staging', 'production'):
         copy_cut(Path(f'/var/lib/personal-wiki-{namespace}'), cut / 'libraries' / namespace)
-        copy_cut(Path(f'/var/lib/personal-wiki-runner/{namespace}'), cut / 'runners' / namespace)
+        copy_cut(Path(f'/var/lib/personal-wiki-runner/{namespace}'), cut / 'runners' / namespace, runner_spool=True)
     copy_cut(Path('/var/lib/personal-wiki-accounting'), cut / 'accounting')
     copy_cut(Path('/etc/personal-wiki/deploy'), cut / 'configuration/deploy')
     copy_cut(Path('/etc/pocket-id'), cut / 'configuration/pocket-id')
@@ -109,7 +125,7 @@ def backup(kind, op_id=None):
         # Interrupted attempts remain forensic inputs; never reuse a mutable cut.
         cut = ROOT / ('cut-' + point + '-' + __import__('uuid').uuid4().hex)
     cut.mkdir(mode=0o700)
-    with checkpoint() as host:
+    with checkpoint(op_id or 'daily') as host:
         metadata = snapshot_cut(cut, host)
     if not metadata['releases']:
         raise ValueError('verified_release_required')

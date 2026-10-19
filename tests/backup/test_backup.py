@@ -1,4 +1,5 @@
 import json
+from contextlib import closing
 import os
 from pathlib import Path
 import shutil
@@ -7,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 import unittest
 from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'ops/backup'))
@@ -93,7 +95,7 @@ class Recovery(unittest.TestCase):
         db.execute('PRAGMA journal_mode=WAL');db.execute('CREATE TABLE obligations (id INTEGER PRIMARY KEY,value INTEGER)');db.executemany('INSERT INTO obligations VALUES (?,0)',[(i,) for i in range(100)]);db.commit()
         stop=threading.Event()
         def write():
-            with sqlite3.connect(file) as other:
+            with closing(sqlite3.connect(file)) as other:
                 while not stop.is_set():
                     with other:other.execute('UPDATE obligations SET value=value+1')
         writer=threading.Thread(target=write);writer.start()
@@ -101,10 +103,70 @@ class Recovery(unittest.TestCase):
             copy_cut(source,self.root/'cut')
         finally:
             stop.set();writer.join();db.close()
-        with sqlite3.connect(self.root/'cut/library.sqlite') as cut:
+        with closing(sqlite3.connect(self.root/'cut/library.sqlite')) as cut:
             self.assertEqual(cut.execute('SELECT count(*),count(DISTINCT value) FROM obligations').fetchone(),(100,1))
             self.assertEqual(cut.execute('PRAGMA journal_mode').fetchone(),('delete',))
         self.assertFalse((self.root/'cut/library.sqlite-wal').exists())
+
+    def test_guardian_transport_fifo_is_excluded_but_durable_result_survives(self):
+        source=self.root/'runner';attempt=source/'agent-spool'/'22222222-2222-4222-8222-222222222222'/'11111111-1111-4111-8111-111111111111'
+        (attempt/'work').mkdir(parents=True);os.mkfifo(attempt/'work/result.json')
+        (attempt/'output.json').write_text('{"retained":true}')
+        (attempt/'exit.json').write_text('{"processStopped":true}')
+        copy_cut(source,self.root/'cut',runner_spool=True)
+        copied=self.root/'cut'/attempt.relative_to(source)
+        self.assertFalse((copied/'work/result.json').exists())
+        self.assertEqual((copied/'output.json').read_text(),'{"retained":true}')
+        self.assertTrue((copied/'exit.json').is_file())
+        os.mkfifo(source/'unexpected-pipe')
+        with self.assertRaisesRegex(ValueError,'unsupported_state_file'):
+            copy_cut(source,self.root/'other',runner_spool=True)
+
+    def test_killed_checkpoint_recovers_recorded_units_from_durable_journal(self):
+        import host_backup
+        script = """
+import sys,time
+from pathlib import Path
+sys.path.insert(0,sys.argv[1])
+import host_backup as h
+h.ROOT=Path(sys.argv[2]);h.active=lambda unit: not unit.endswith('@production.service')
+class Host:
+ def stop_runners(self):pass
+ def stop_service(self,target):pass
+ def assert_fenced(self,target):pass
+h.DeploymentHost=Host;h.run=lambda *args:None
+with h.checkpoint('daily'):
+ (h.ROOT/'stopped').touch()
+ time.sleep(60)
+"""
+        child=subprocess.Popen([sys.executable,'-c',script,str(Path(host_backup.__file__).parent),str(self.root)])
+        try:
+            deadline=time.monotonic()+5
+            while not (self.root/'stopped').exists() and time.monotonic()<deadline:time.sleep(.01)
+            self.assertTrue((self.root/'stopped').exists())
+            child.kill();child.wait(timeout=5)
+            self.assertTrue((self.root/'checkpoint-owner.json').exists())
+            with patch.object(host_backup,'ROOT',self.root),patch.object(host_backup,'run') as run:
+                host_backup.recover_checkpoint('daily')
+            self.assertEqual([call.args for call in run.call_args_list],[('systemctl','start','pocket-id.service'),('systemctl','start','personal-wiki-service@staging.service'),('systemctl','start','personal-wiki-runner@staging.service')])
+            self.assertFalse((self.root/'checkpoint-owner.json').exists())
+        finally:
+            if child.poll() is None:child.kill();child.wait()
+
+    def test_restore_quarantines_without_erasing_unknown_cost_evidence(self):
+        from restore import prepare
+        root=self.root/'recovered';(root/'accounting').mkdir(parents=True)
+        ledger=root/'accounting/provider-accounting.sqlite'
+        with closing(sqlite3.connect(ledger)) as db, db:
+            db.execute('CREATE TABLE provider_configuration(singleton INTEGER,quarantined INTEGER,reason TEXT)')
+            db.execute('INSERT INTO provider_configuration VALUES(1,0,NULL)')
+            db.execute('CREATE TABLE provider_operations(record TEXT)')
+            db.execute('INSERT INTO provider_operations VALUES(?)', ('{"phase":"unknown","reserved":100000000}',))
+        prepare(root,self.root/'unused-tools')
+        with closing(sqlite3.connect(ledger)) as db, db:
+            self.assertEqual(db.execute('SELECT quarantined,reason FROM provider_configuration').fetchone(),(1,'restore_external_accounting_unknown'))
+            self.assertEqual(db.execute('SELECT record FROM provider_operations').fetchone(),('{"phase":"unknown","reserved":100000000}',))
+        self.assertEqual(json.loads((root/'recovery-state.json').read_text())['dispatch'],False)
 
     def test_cut_refuses_symlink_and_restore_refuses_existing_target(self):
         source=self.root/'live';source.mkdir();(source/'secret').symlink_to('/etc/passwd')

@@ -6,6 +6,7 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 ExecStart=/usr/bin/python3 /opt/personal-wiki-backup/host_backup.py %i
+ExecStopPost=/usr/bin/python3 /opt/personal-wiki-backup/checkpoint_recover.py %i
 UMask=0077
 TimeoutStartSec=7200
 NoNewPrivileges=true

@@ -1,6 +1,7 @@
 // Offline cut only. Called by the root-owned backup service, never by Runner.
 import { Database } from "bun:sqlite";
-import { Effect } from "effect";
+import { Effect, Schema } from "effect";
+import { Asset } from "@personal-wiki/contracts/knowledge";
 import { mkdir, writeFile, readFile } from "node:fs/promises";
 import { join, isAbsolute } from "node:path";
 import {
@@ -12,6 +13,8 @@ const root = process.argv[2];
 if (!root || !isAbsolute(root)) process.exit(1);
 const program = Effect.gen(function* () {
   const objects = new Map<string, ObjectIdentity>();
+  const destination = join(root, "originals");
+  yield* Effect.promise(() => mkdir(destination, { recursive: true, mode: 0o700 }));
   const add = (value: ObjectIdentity) => {
     const prior = objects.get(value.key);
     if (prior && (prior.sha256 !== value.sha256 || prior.byteLength !== value.byteLength))
@@ -24,9 +27,26 @@ const program = Effect.gen(function* () {
     const db = new Database(path, { readonly: true });
     try {
       for (const row of db.query<{ payload: string }, []>("SELECT payload FROM assets").all()) {
-        const asset = JSON.parse(row.payload);
+        const asset = yield* Schema.decodeEffect(Schema.fromJsonString(Asset))(row.payload);
         if (asset.objectKey.startsWith("providers/"))
           add({ key: asset.objectKey, sha256: asset.sha256, byteLength: asset.byteLength });
+        else {
+          if (asset.objectKey !== `objects/${asset.assetId}`)
+            throw new Error("Unsupported retained object");
+          const bytes = yield* Effect.promise(() =>
+            readFile(join(root, "libraries", namespace, "objects", asset.assetId)),
+          );
+          if (bytes.length !== asset.byteLength || digest(bytes) !== asset.sha256)
+            throw new Error("Retained local object differs");
+          yield* Effect.promise(() =>
+            writeFile(join(destination, asset.sha256), bytes, { mode: 0o600 }),
+          );
+          add({
+            key: `local/${namespace}/${asset.assetId}`,
+            sha256: asset.sha256,
+            byteLength: asset.byteLength,
+          });
+        }
       }
     } finally {
       db.close();
@@ -56,8 +76,7 @@ const program = Effect.gen(function* () {
   } finally {
     accounting.close();
   }
-  const destination = join(root, "originals");
-  yield* Effect.promise(() => mkdir(destination, { recursive: true, mode: 0o700 }));
+
   for (const namespace of ["staging", "production"]) {
     const selected = [...objects.values()].filter((o) =>
       o.key.startsWith(`providers/${namespace}/`),

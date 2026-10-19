@@ -212,6 +212,18 @@ test("restore revokes old capabilities, preserves old launch limits and permits 
         )
       )._tag,
     ).toBe("Failure");
+    expect(
+      (
+        await Effect.runPromise(
+          fresh.jobs
+            .cancel({ payload: { requestId: randomUUID(), jobId: oldId } })
+            .pipe(Effect.result),
+        )
+      )._tag,
+    ).toBe("Failure");
+    expect((await Effect.runPromise(fresh.jobs.get({ params: { jobId: oldId } }))).stage).toBe(
+      "blocked",
+    );
     await Effect.runPromise(
       fresh.jobs.submit({
         payload: {
@@ -250,3 +262,49 @@ test("restore revokes old capabilities, preserves old launch limits and permits 
     await rm(temp, { recursive: true, force: true });
   }
 }, 45000);
+
+test("backup rejects registered local originals that are missing or corrupt", async () => {
+  const cut = await mkdtemp(join(tmpdir(), "wiki-backup-assets-"));
+  try {
+    const library = join(cut, "libraries/staging"),
+      accounting = join(cut, "accounting");
+    await mkdir(join(library, "objects"), { recursive: true, mode: 0o700 });
+    await mkdir(accounting, { mode: 0o700 });
+    const id = randomUUID(),
+      bytes = Buffer.from("A retained original with exact content.");
+    const db = new Database(join(library, "library.sqlite"));
+    db.run("CREATE TABLE assets(payload TEXT)");
+    db.run("INSERT INTO assets VALUES (?)", [
+      JSON.stringify({
+        schemaVersion: 1,
+        assetId: id,
+        objectKey: `objects/${id}`,
+        mediaType: "text/plain",
+        byteLength: bytes.length,
+        sha256: digest(bytes),
+      }),
+    ]);
+    db.close();
+    const ledger = new Database(join(accounting, "provider-accounting.sqlite"));
+    ledger.run("CREATE TABLE provider_operations(operation_id TEXT,record TEXT)");
+    for (const table of ["provider_pages", "provider_page_intents"])
+      ledger.run(`CREATE TABLE ${table}(operation_id TEXT,record TEXT)`);
+    ledger.close();
+    const check = async () => {
+      const child = Bun.spawn([process.execPath, "tools/backup-assets.ts", cut], {
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+      return child.exited;
+    };
+    await writeFile(join(library, "objects", id), bytes);
+    expect(await check()).toBe(0);
+    expect(await Bun.file(join(cut, "originals", digest(bytes))).text()).toBe(bytes.toString());
+    await writeFile(join(library, "objects", id), "corrupt");
+    expect(await check()).toBe(1);
+    await rm(join(library, "objects", id));
+    expect(await check()).toBe(1);
+  } finally {
+    await rm(cut, { recursive: true, force: true });
+  }
+}, 15000);

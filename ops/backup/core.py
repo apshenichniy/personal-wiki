@@ -1,7 +1,10 @@
 """Encrypted recovery points. Plaintext cuts never leave the private backup workspace."""
 import hashlib
+from contextlib import closing
 import json
 import os
+import re
+import stat
 from pathlib import Path
 import shutil
 import sqlite3
@@ -20,7 +23,7 @@ def hash_file(path):
         return hashlib.file_digest(file, 'sha256').hexdigest()
 
 
-def copy_cut(source, destination):
+def copy_cut(source, destination, runner_spool=False):
     """Caller fences writers; SQLite backup includes a surviving WAL after a crash."""
     source, destination = Path(source), Path(destination)
     if source.is_symlink() or not source.is_dir():
@@ -33,7 +36,7 @@ def copy_cut(source, destination):
             raise ValueError('state_symlink')
         target = destination / entry.name
         if entry.is_dir():
-            copy_cut(entry, target)
+            copy_cut(entry, target, runner_spool=runner_spool)
         elif entry.is_file():
             if any(entry.name.endswith(suffix) and entry.with_name(entry.name[:-len(suffix)]).is_file()
                    for suffix in ('-wal', '-shm', '-journal')):
@@ -41,7 +44,7 @@ def copy_cut(source, destination):
             with entry.open('rb') as file:
                 sqlite = file.read(16) == b'SQLite format 3\0'
             if sqlite:
-                with sqlite3.connect(f'file:{entry}?mode=ro', uri=True) as live, sqlite3.connect(target) as cut:
+                with closing(sqlite3.connect(f'file:{entry}?mode=ro', uri=True)) as live, closing(sqlite3.connect(target)) as cut:
                     live.backup(cut)
                     cut.execute('PRAGMA journal_mode=DELETE')
                     if cut.execute('PRAGMA integrity_check').fetchone() != ('ok',):
@@ -51,6 +54,13 @@ def copy_cut(source, destination):
             target.chmod(0o600)
             with target.open('rb') as file:
                 os.fsync(file.fileno())
+        elif (runner_spool and stat.S_ISFIFO(entry.lstat().st_mode) and entry.name == 'result.json'
+              and entry.parent.name == 'work' and re.fullmatch(r'[a-f0-9-]{36}', entry.parent.parent.name)
+              and re.fullmatch(r'[a-f0-9-]{36}', entry.parents[2].name)
+              and entry.parents[3].name == 'agent-spool'):
+            # The reaped guardian's transport FIFO has no durable bytes. Keep its
+            # adjacent input, output.json and exit evidence, never recreate a pipe.
+            continue
         else:
             raise ValueError('unsupported_state_file')
     sync_directory(destination)
@@ -87,7 +97,7 @@ def verify_cut(root):
         with file.open('rb') as stream:
             sqlite = stream.read(16) == b'SQLite format 3\0'
         if sqlite:
-            with sqlite3.connect(f'file:{file}?mode=ro', uri=True) as db:
+            with closing(sqlite3.connect(f'file:{file}?mode=ro', uri=True)) as db:
                 if db.execute('PRAGMA integrity_check').fetchone() != ('ok',):
                     raise ValueError('restored_sqlite_invalid')
     for repo in (root / 'libraries').glob('*/knowledge.git'):

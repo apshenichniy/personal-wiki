@@ -1,0 +1,14 @@
+[Unit]
+Description=Recover an interrupted Personal Wiki backup checkpoint
+After=network-online.target
+Before=personal-wiki-deploy.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/personal-wiki-backup/checkpoint_recover.py boot
+UMask=0077
+TimeoutStartSec=180
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

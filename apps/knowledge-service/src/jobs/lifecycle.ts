@@ -26,6 +26,11 @@ export const makeLifecycle = Effect.gen(function* () {
     reason: "cancelled" | "deadline",
   ) {
     const job = saved.record;
+    if (job.reason === "restore_accounting_unknown")
+      return yield* new JobError({
+        code: "invalid_transition",
+        message: "Restored execution accounting requires independent reconciliation.",
+      });
     if (isTerminal(job.stage) || (yield* inCommit(job))) return job;
     if (job.operationId)
       yield* sql`UPDATE operations SET phase='cancelled' WHERE operation_id=${job.operationId} AND phase IN ('received','prepared')`;
