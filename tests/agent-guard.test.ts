@@ -355,3 +355,21 @@ test("kernel containment prevents fork+exec escape even when the child closes in
     await rm(f.root, { recursive: true, force: true });
   }
 }, 10000);
+
+test.skipIf(process.platform !== "linux")(
+  "cleanup waits for a late inherited lock and reaps escaped-group descendants",
+  async () => {
+    const child = Bun.spawn([python, join(import.meta.dir, "helpers/agent-cleanup-probe.py")], {
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const [status, output, error] = await Promise.all([
+      child.exited,
+      new Response(child.stdout).text(),
+      new Response(child.stderr).text(),
+    ]);
+    expect({ status, error }).toEqual({ status: 0, error: "" });
+    expect(output).toContain("persistent holder remains blocked");
+  },
+  10000,
+);

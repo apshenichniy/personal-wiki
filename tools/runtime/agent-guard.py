@@ -77,6 +77,31 @@ def group_alive(group):
         return True
 
 
+def confirm_cleanup(child, lock, timeout=5):
+    # Bubblewrap's leader can disappear before its adopted descendants release
+    # inherited descriptors. Group death alone is not the final boundary proof.
+    end = time.monotonic() + timeout
+    while True:
+        child.poll()
+        reaped = False
+        try:
+            while os.waitpid(-1, os.WNOHANG)[0]:
+                pass
+        except ChildProcessError:
+            reaped = True
+        acquired = False
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            acquired = True
+        except BlockingIOError:
+            pass
+        if reaped and acquired and not group_alive(child.pid):
+            return True
+        if time.monotonic() >= end:
+            return False
+        time.sleep(.02)
+
+
 def tree_bytes(root):
     total = 0
     for directory, dirs, files in os.walk(root, followlinks=False):
@@ -347,10 +372,7 @@ def main():
     # Reopening after closing only our copy detects surviving lock holders.
     os.close(lock)
     lock = os.open(slot / "execution.lock", os.O_RDWR | os.O_NOFOLLOW)
-    try:
-        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-    except BlockingIOError:
-        gone = False
+    gone = confirm_cleanup(child, lock)
     if not gone:
         print('{"status":"blocked","reason":"process_cleanup_unconfirmed"}', flush=True)
         return 76
