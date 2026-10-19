@@ -2,7 +2,7 @@
 
 A personal knowledge base maintained by agents, with a private Markdown library, retained sources, and offline native readers.
 
-**Status:** autonomous first-slice implementation is in progress. The initial Service/Runner path is synthetic; production ingestion and delivery gates are not yet complete. A separate compatibility spike informed the selected server stack.
+**Status:** the first X-to-wiki slice is deployed privately on CX33. Real Apify/Codex acceptance, same-artifact production promotion and G1–G5 verification are complete; actual iPhone/Mac-off acceptance remains with the owner. Native and offline clients are later slices. See the [delivery report and owner acceptance checklist](docs/operations/first-slice-delivery-report.md) for exact evidence and current gates.
 
 - [Local development and verification](docs/development/local.md) — pinned setup, two-process synthetic path and canonical verification command.
 - [Knowledge base brief](docs/knowledge-base-brief.md) — the primary input to wayfinder: requirements, owner decisions, architecture proposals, and open questions.
@@ -24,4 +24,4 @@ Repository documentation and tickets are written in English. Conversation with t
 
 This public repository contains the product's code and planning documents. The owner's actual knowledge library, source archive, credentials, and runtime data belong in separate private storage.
 
-An infrastructure-only [CI access check](docs/operations/ci-access.md) is configured. The application verification workflow runs synthetic checks without provider credentials. Production deployment remains separate implementation work. The project license remains to be chosen.
+GitHub Actions runs synthetic application verification without provider credentials and promotes signed release artifacts through the [restricted deployment boundary](docs/operations/ci-access.md). [Release/rollback](docs/operations/releases.md) and [encrypted recovery](docs/operations/recovery.md) have operator runbooks. The project license remains to be chosen.
