@@ -4,6 +4,8 @@ import * as J from "@personal-wiki/contracts/jobs";
 import * as K from "@personal-wiki/contracts/knowledge";
 import { publicationFault } from "../storage/faults.ts";
 import { digest, stable } from "../storage/io.ts";
+import { CurationError } from "@personal-wiki/curation";
+import { JobCuration } from "./curation.ts";
 import { Jobs } from "./service.ts";
 import { JobStore } from "./store.ts";
 import { JobScheduler } from "./scheduler.ts";
@@ -13,6 +15,7 @@ import type { JobRecord } from "./model.ts";
 export const makeExecution = Effect.gen(function* () {
   const root = yield* Config.String("WIKI_DATA_DIR");
   const jobs = yield* Jobs;
+  const curation = yield* JobCuration;
   const store = yield* JobStore;
   const scheduler = yield* JobScheduler;
   const sql = store.sql;
@@ -40,6 +43,7 @@ export const makeExecution = Effect.gen(function* () {
             code: "unavailable",
             message: "Codex access must be restored before execution.",
           });
+        if (input.contextId) yield* curation.get(input.contextId, job.jobId);
         const now = yield* Clock.currentTimeMillis;
         const reservation = yield* Effect.try({
           try: () => nextLaunch(job.policy, job.counters, input.reason, job.deadline!, now),
@@ -60,6 +64,7 @@ export const makeExecution = Effect.gen(function* () {
           authorizedAt: new Date(now).toISOString(),
           deadline: new Date(reservation.attemptDeadline).toISOString(),
           inputDigest: input.inputDigest,
+          ...(input.contextId ? { contextId: input.contextId } : {}),
         };
         yield* sql`INSERT INTO execution_attempts VALUES(${attempt.attemptId},${job.jobId},${attempt.number},${stable(attempt)},'authorized',NULL)`;
         yield* store.put(
@@ -164,8 +169,10 @@ export const makeExecution = Effect.gen(function* () {
           let next: JobRecord = { ...job, activeAttemptId: null, cleanupPending: false };
           let state: string = input.outcome;
           if (input.outcome === "output") {
-            const parsed = yield* Schema.decodeUnknownEffect(Schema.fromJsonString(K.Proposal))(
-              input.output!,
+            const parsed = yield* (
+              attempt.contextId
+                ? curation.proposal(attempt.contextId, job.jobId, input.output!)
+                : Schema.decodeUnknownEffect(Schema.fromJsonString(K.Proposal))(input.output!)
             ).pipe(Effect.result);
             const valid =
               parsed._tag === "Success" &&
@@ -187,6 +194,13 @@ export const makeExecution = Effect.gen(function* () {
                 reason: null,
               };
               state = "output_retained";
+            } else if (
+              parsed._tag === "Failure" &&
+              parsed.failure instanceof CurationError &&
+              parsed.failure.code === "capacity"
+            ) {
+              state = "output_capacity";
+              next = { ...next, stage: "failed", lease: null, reason: "curation_capacity" };
             } else {
               state = "invalid_output";
               const eligible = yield* Effect.try(() =>

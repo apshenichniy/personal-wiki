@@ -1,0 +1,256 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$ref": "#/$defs/CurationResult",
+  "$defs": {
+    "CurationResult": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "number",
+          "enum": [
+            1
+          ]
+        },
+        "skillVersion": {
+          "type": "string",
+          "enum": [
+            "x-curation-v1"
+          ]
+        },
+        "contextId": {
+          "type": "string",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+          "format": "uuid"
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "noteId": {
+                "type": "string",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                "format": "uuid"
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "overview": {
+                "type": "object",
+                "properties": {
+                  "heading": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 240
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 16000
+                  },
+                  "attribution": {
+                    "type": "string",
+                    "enum": [
+                      "source",
+                      "participant",
+                      "inference"
+                    ]
+                  },
+                  "supports": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "minItems": 1,
+                    "maxItems": 50
+                  }
+                },
+                "required": [
+                  "heading",
+                  "text",
+                  "attribution",
+                  "supports"
+                ],
+                "additionalProperties": true
+              },
+              "main": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "heading": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "maxLength": 240
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 16000
+                    },
+                    "attribution": {
+                      "type": "string",
+                      "enum": [
+                        "source",
+                        "participant",
+                        "inference"
+                      ]
+                    },
+                    "supports": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "minItems": 1,
+                      "maxItems": 50
+                    }
+                  },
+                  "required": [
+                    "heading",
+                    "text",
+                    "attribution",
+                    "supports"
+                  ],
+                  "additionalProperties": true
+                },
+                "minItems": 1,
+                "maxItems": 120
+              },
+              "discussion": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "heading": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "maxLength": 240
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 16000
+                    },
+                    "attribution": {
+                      "type": "string",
+                      "enum": [
+                        "source",
+                        "participant",
+                        "inference"
+                      ]
+                    },
+                    "supports": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "minItems": 1,
+                      "maxItems": 50
+                    }
+                  },
+                  "required": [
+                    "heading",
+                    "text",
+                    "attribution",
+                    "supports"
+                  ],
+                  "additionalProperties": true
+                },
+                "maxItems": 100
+              },
+              "selection": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "postId": {
+                      "type": "string"
+                    },
+                    "decision": {
+                      "type": "string",
+                      "enum": [
+                        "include",
+                        "omit",
+                        "consolidate"
+                      ]
+                    },
+                    "reason": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 500
+                    }
+                  },
+                  "required": [
+                    "postId",
+                    "decision",
+                    "reason"
+                  ],
+                  "additionalProperties": true
+                },
+                "maxItems": 300
+              },
+              "relatedNoteIds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                  "format": "uuid"
+                },
+                "maxItems": 13
+              },
+              "limitations": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000
+                },
+                "maxItems": 32
+              }
+            },
+            "required": [
+              "noteId",
+              "title",
+              "overview",
+              "main",
+              "discussion",
+              "selection",
+              "relatedNoteIds",
+              "limitations"
+            ],
+            "additionalProperties": true
+          },
+          "minItems": 1,
+          "maxItems": 2
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "skillVersion",
+        "contextId",
+        "notes"
+      ],
+      "additionalProperties": true
+    }
+  }
+}

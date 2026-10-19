@@ -12,6 +12,11 @@ const migrations = {
     yield* sql`CREATE TABLE owner_logins (verifier TEXT PRIMARY KEY, state TEXT NOT NULL, nonce TEXT NOT NULL, pkce TEXT NOT NULL, return_to TEXT NOT NULL, expires_at INTEGER NOT NULL, epoch INTEGER NOT NULL)`;
     yield* sql`CREATE TABLE owner_sessions (verifier TEXT PRIMARY KEY, owner_key TEXT NOT NULL, expires_at INTEGER NOT NULL)`;
   }),
+  "0006_curation": Effect.gen(function* () {
+    const sql = yield* SqlClient.SqlClient;
+    yield* sql`CREATE TABLE curation_contexts (context_id TEXT PRIMARY KEY, job_id TEXT NOT NULL REFERENCES ingestion_jobs(job_id), record TEXT NOT NULL)`;
+    yield* sql`CREATE TABLE curation_feedback (job_id TEXT PRIMARY KEY REFERENCES ingestion_jobs(job_id), checks TEXT NOT NULL)`;
+  }),
   "0005_capture_policy": Effect.gen(function* () {
     const sql = yield* SqlClient.SqlClient;
     yield* sql`CREATE TABLE job_capture_policies (job_id TEXT PRIMARY KEY REFERENCES ingestion_jobs(job_id), payload TEXT NOT NULL)`;

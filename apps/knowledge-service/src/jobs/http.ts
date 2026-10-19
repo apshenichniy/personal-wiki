@@ -3,6 +3,7 @@ import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
 import { HttpApiBuilder } from "effect/http-api";
 import { WorkflowApi } from "@personal-wiki/contracts/jobs-api";
 import { SourceResolution } from "./resolution.ts";
+import { JobCuration } from "./curation.ts";
 import { Jobs } from "./service.ts";
 import { JobExecution } from "./execution.ts";
 import { JobLifecycle } from "./lifecycle.ts";
@@ -26,9 +27,12 @@ const WorkerHandlers = HttpApiBuilder.group(
     const jobs = yield* Jobs;
     const resolution = yield* SourceResolution;
     const execution = yield* JobExecution;
+    const curation = yield* JobCuration;
     const lifecycle = yield* JobLifecycle;
     const publication = yield* JobPublication;
     return handlers.handleAll({
+      prepareCuration: ({ payload }) => actor(credentials, (id) => curation.prepare(id, payload)),
+      failCuration: ({ payload }) => actor(credentials, (id) => curation.fail(id, payload)),
       pendingExecutions: () => actor(credentials, (id) => execution.pending(id)),
       recoverAttempt: ({ payload }) => actor(credentials, (id) => execution.complete(id, payload)),
       settleExecution: ({ payload }) =>

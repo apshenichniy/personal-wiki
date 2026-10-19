@@ -102,11 +102,13 @@ export const Attempt = Schema.Struct({
   authorizedAt: Instant,
   deadline: Instant,
   inputDigest: Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/)),
+  contextId: Schema.optional(Id),
 }).annotate({ identifier: "ExecutionAttempt" });
 export const ReserveAttempt = Schema.Struct({
   ...WorkerRequest.fields,
   reason: AttemptReason,
   inputDigest: Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/)),
+  contextId: Schema.optional(Id),
 });
 export const CompleteAttempt = Schema.Struct({
   ...WorkerRequest.fields,
@@ -182,4 +184,13 @@ export const SettleExecution = Schema.Struct({
   jobId: Id,
   epoch: Schema.Int,
   processStopped: Schema.Literal(true),
+});
+
+export const PrepareCuration = Schema.Struct({
+  ...WorkerRequest.fields,
+  query: Schema.String.check(Schema.isMaxLength(512)),
+});
+export const FailCuration = Schema.Struct({
+  ...WorkerRequest.fields,
+  reason: Schema.Literals(["curation_capacity", "curation_configuration"]),
 });

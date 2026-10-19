@@ -8,6 +8,7 @@ import { Library } from "../storage/library.ts";
 import { JobStore } from "./store.ts";
 import { JobScheduler } from "./scheduler.ts";
 import { Jobs } from "./service.ts";
+import { JobCuration } from "./curation.ts";
 import { JobExecution } from "./execution.ts";
 import { JobLifecycle } from "./lifecycle.ts";
 import { JobPublication } from "./publication.ts";
@@ -24,6 +25,7 @@ export const jobRuntime = (
   const storage = JobStore.layer.pipe(Layer.provideMerge(Library.layer(root, provider?.archive)));
   const scheduled = JobScheduler.layer(root).pipe(Layer.provideMerge(storage));
   const jobs = Jobs.layer(root).pipe(Layer.provideMerge(scheduled));
+  const contextual = JobCuration.layer.pipe(Layer.provideMerge(jobs));
   const accounting = ProviderLedger.layer(
     provider?.path ?? join(root, "disabled-provider-accounting.sqlite"),
   );
@@ -42,7 +44,7 @@ export const jobRuntime = (
     JobPublication.layer,
     MachineCredentials.layer,
     JobProviders.layer(provider?.namespace ?? "staging", provider !== undefined),
-  ).pipe(Layer.provideMerge(Layer.mergeAll(jobs, archive)));
+  ).pipe(Layer.provideMerge(Layer.mergeAll(contextual, archive)));
   return Layer.effectDiscard(
     Effect.gen(function* () {
       const lifecycle = yield* JobLifecycle;
