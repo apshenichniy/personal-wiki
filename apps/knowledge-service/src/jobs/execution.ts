@@ -4,6 +4,7 @@ import * as J from "@personal-wiki/contracts/jobs";
 import * as K from "@personal-wiki/contracts/knowledge";
 import { publicationFault } from "../storage/faults.ts";
 import { digest, stable } from "../storage/io.ts";
+import { CurationError } from "@personal-wiki/curation";
 import { JobCuration } from "./curation.ts";
 import { Jobs } from "./service.ts";
 import { JobStore } from "./store.ts";
@@ -193,6 +194,13 @@ export const makeExecution = Effect.gen(function* () {
                 reason: null,
               };
               state = "output_retained";
+            } else if (
+              parsed._tag === "Failure" &&
+              parsed.failure instanceof CurationError &&
+              parsed.failure.code === "capacity"
+            ) {
+              state = "output_capacity";
+              next = { ...next, stage: "failed", lease: null, reason: "curation_capacity" };
             } else {
               state = "invalid_output";
               const eligible = yield* Effect.try(() =>

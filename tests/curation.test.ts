@@ -3,7 +3,7 @@ import { Schema } from "effect";
 import { randomUUID } from "node:crypto";
 import * as K from "@personal-wiki/contracts/knowledge";
 import { buildProposal, validateCuration } from "../packages/curation/src/index.ts";
-import { contextInput } from "../apps/runner/src/curation.ts";
+import { contextInput, curationOutputSchema } from "../apps/runner/src/curation.ts";
 import { contextFixture, editorial } from "./helpers/curation.ts";
 
 test("server builds two connected Russian notes, inline exact citations, selection audit and safe prose", async () => {
@@ -124,4 +124,22 @@ test("model context includes full main text and bot/role metadata; capacity fail
       "Synthetic",
     ),
   ).toThrow();
+});
+
+test("Codex output schema has an inline object root with recursively closed objects", () => {
+  const schema = JSON.parse(curationOutputSchema());
+  expect(schema.type).toBe("object");
+  expect(schema.$ref).toBeUndefined();
+  const visit = (value: unknown) => {
+    if (Array.isArray(value)) {
+      value.forEach(visit);
+      return;
+    }
+    if (value === null || typeof value !== "object") return;
+    if ("type" in value && value.type === "object") {
+      expect("additionalProperties" in value && value.additionalProperties).toBe(false);
+    }
+    Object.values(value).forEach(visit);
+  };
+  visit(schema);
 });

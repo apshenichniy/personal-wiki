@@ -80,6 +80,20 @@ export function validateCuration(context: C.CurationContext, output: C.CurationR
   return output;
 }
 
+const coverageLabels: Record<string, string> = {
+  acquired: "получен",
+  bounded: "захвачен в установленных пределах; полнота не гарантируется",
+  limited: "неполный",
+  partial: "частичный",
+  uncertain: "полнота не установлена",
+  unavailable: "недоступен",
+  not_acquired: "не получено",
+  not_required: "не требовался",
+  not_applicable: "не применяется",
+  preview: "только предварительный фрагмент",
+};
+const coverageLabel = (value: string) => coverageLabels[value] ?? "см. ограничения источника";
+
 export function buildProposal(
   context: C.CurationContext,
   output: C.CurationResult,
@@ -122,7 +136,7 @@ export function buildProposal(
       return `- [${prose(title ?? id)}](/notes/${id})`;
     });
     const limitations = [...new Set([...note.limitations, ...capture.warnings])];
-    let markdown = `# ${prose(note.title)}\n\nИсточник: [X](${slot.source.canonicalUrl}). Захват: ${capture.endedAt}.\n\nПокрытие: основной материал — ${prose(capture.coverage.main)}; обсуждение — ${prose(capture.coverage.discussion)}; контекст — ${prose(capture.coverage.context)}.\n\n## Кратко\n\n${passage(note.overview)}\n\n## Подробный пересказ\n\n${note.main.map(passage).join("\n\n")}\n\n## Обсуждение\n\n${note.discussion.length ? note.discussion.map(passage).join("\n\n") : "Содержательных дополнений в отобранном обсуждении нет; это не означает отсутствия других ответов в X."}\n\n## Связанные заметки\n\n${related.join("\n") || "Подходящие заметки в доступном контексте не найдены."}\n\n## Ограничения\n\n${limitations.map((x) => `- ${prose(x)}`).join("\n")}\n`;
+    let markdown = `# ${prose(note.title)}\n\nИсточник: [X](${slot.source.canonicalUrl}). Захват: ${capture.endedAt}.\n\nПокрытие: основной материал — ${coverageLabel(capture.coverage.main)}; обсуждение — ${coverageLabel(capture.coverage.discussion)}; контекст — ${coverageLabel(capture.coverage.context)}.\n\n## Кратко\n\n${passage(note.overview)}\n\n## Подробный пересказ\n\n${note.main.map(passage).join("\n\n")}\n\n## Обсуждение\n\n${note.discussion.length ? note.discussion.map(passage).join("\n\n") : "Содержательных дополнений в отобранном обсуждении нет; это не означает отсутствия других ответов в X."}\n\n## Связанные заметки\n\n${related.join("\n") || "Подходящие заметки в доступном контексте не найдены."}\n\n## Ограничения\n\n${limitations.map((x) => `- ${prose(x)}`).join("\n")}\n`;
     const previous = context.previous.find((p) => p.note.noteId === note.noteId);
     const captureIds = [capture.captureId];
     if (previous) {

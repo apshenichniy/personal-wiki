@@ -1,6 +1,7 @@
 import { Schema } from "effect";
 import * as K from "./knowledge.ts";
 
+export const curationModel = "gpt-5.6-sol" as const;
 export const SkillVersion = Schema.Literal("x-curation-v1");
 export const Excerpt = Schema.Struct({
   noteId: K.Id,

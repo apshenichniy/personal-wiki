@@ -128,7 +128,7 @@ export const makeCuration = Effect.gen(function* () {
         ),
       );
       return yield* Effect.try({
-        try: () => buildProposal(context, parsed, "gpt-5.6-sol"),
+        try: () => buildProposal(context, parsed, C.curationModel),
         catch: (e) =>
           e instanceof CurationError
             ? e

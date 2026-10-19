@@ -8,8 +8,23 @@ import { admit, CodexError, failure } from "./codex/profile.ts";
 import { curatePrepared } from "./codex/curate.ts";
 import type { CodexRuntime } from "./codex/execute.ts";
 
+// Codex Structured Outputs requires an inline object root and closed objects.
+// Effect's public JSON Schema intentionally permits extra fields and uses a root ref.
+function closedObjects(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(closedObjects);
+  if (value === null || typeof value !== "object") return value;
+  const fields = Object.fromEntries(
+    Object.entries(value).map(([key, item]) => [key, closedObjects(item)]),
+  );
+  return fields.type === "object" ? { ...fields, additionalProperties: false } : fields;
+}
+export function curationOutputSchema() {
+  const document = Schema.toJsonSchemaDocument(CurationResult);
+  const root = document.definitions.CurationResult;
+  if (!root) throw failure("configuration");
+  return JSON.stringify(closedObjects({ ...root, $defs: document.definitions }));
+}
 export function contextInput(context: CurationContext, instructions: string) {
-  const schema = Schema.toJsonSchemaDocument(CurationResult);
   const data = {
     schemaVersion: 1,
     skillVersion: context.skillVersion,
@@ -39,7 +54,7 @@ export function contextInput(context: CurationContext, instructions: string) {
   const input = {
     prompt: JSON.stringify(data),
     instructions,
-    schema: JSON.stringify({ ...schema.schema, $defs: schema.definitions }),
+    schema: curationOutputSchema(),
     related: context.related.map((note) => JSON.stringify(note)),
   };
   admit(input);
