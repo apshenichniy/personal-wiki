@@ -7,6 +7,7 @@ import { JobError } from "./jobs/policy.ts";
 import { jobRuntime } from "./jobs/runtime.ts";
 import { loadR2Archive } from "./storage/raw-archive.ts";
 import { Server, Ready, BunRuntime } from "./server.ts";
+import { OwnerServer } from "./access/server.ts";
 const Runtime = Layer.unwrap(
   Effect.gen(function* () {
     const root = yield* Config.String("WIKI_DATA_DIR");
@@ -37,11 +38,12 @@ const Serving = HttpRouter.serve(
         ),
       }),
     ),
-    Layer.provideMerge(Runtime),
   ),
   {
     disableListenLog: true,
     disableLogger: true,
   },
 ).pipe(Layer.provideMerge(Server));
-Layer.launch(Ready.pipe(Layer.provide(Serving))).pipe(BunRuntime.runMain);
+Layer.launch(
+  Layer.mergeAll(Ready.pipe(Layer.provide(Serving)), OwnerServer).pipe(Layer.provide(Runtime)),
+).pipe(BunRuntime.runMain);

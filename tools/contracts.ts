@@ -1,5 +1,6 @@
 import * as Curation from "@personal-wiki/contracts/curation";
 import * as Processing from "@personal-wiki/contracts/processing";
+import { ReaderApi, OwnerSession } from "@personal-wiki/contracts/reader-api";
 import * as Provider from "@personal-wiki/contracts/provider";
 import * as ProviderApi from "@personal-wiki/contracts/provider-api";
 import { WorkflowApi } from "@personal-wiki/contracts/jobs-api";
@@ -13,11 +14,13 @@ import { EchoRequest, EchoResponse, ErrorEnvelope, WikiApi } from "@personal-wik
 const documents = new Map<string, unknown>([
   ["openapi.json", OpenApi.fromApi(WikiApi)],
   ["jobs-openapi.json", OpenApi.fromApi(WorkflowApi)],
+  ["reader-openapi.json", OpenApi.fromApi(ReaderApi)],
 ]);
 for (const [name, schema] of Object.entries({
   EchoRequest,
   EchoResponse,
   ErrorEnvelope,
+  OwnerSession,
   ...Knowledge,
   ...Jobs,
   ...Processing,

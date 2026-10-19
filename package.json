@@ -25,6 +25,7 @@
     "ajv": "8.17.1",
     "ajv-formats": "3.0.1",
     "effect": "4.0.5",
+    "jose": "6.2.12",
     "oxfmt": "0.73.0",
     "oxlint": "1.88.0",
     "oxlint-tsgolint": "7.0.2004",

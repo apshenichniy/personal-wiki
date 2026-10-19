@@ -5,6 +5,13 @@ import { join } from "node:path";
 import { io, prepareDirectory, LibraryError } from "./io.ts";
 
 const migrations = {
+  "0007_owner_access": Effect.gen(function* () {
+    const sql = yield* SqlClient.SqlClient;
+    yield* sql`CREATE TABLE owner_auth_state (singleton INTEGER PRIMARY KEY CHECK(singleton=1), epoch INTEGER NOT NULL)`;
+    yield* sql`INSERT INTO owner_auth_state VALUES(1,0)`;
+    yield* sql`CREATE TABLE owner_logins (verifier TEXT PRIMARY KEY, state TEXT NOT NULL, nonce TEXT NOT NULL, pkce TEXT NOT NULL, return_to TEXT NOT NULL, expires_at INTEGER NOT NULL, epoch INTEGER NOT NULL)`;
+    yield* sql`CREATE TABLE owner_sessions (verifier TEXT PRIMARY KEY, owner_key TEXT NOT NULL, expires_at INTEGER NOT NULL)`;
+  }),
   "0006_curation": Effect.gen(function* () {
     const sql = yield* SqlClient.SqlClient;
     yield* sql`CREATE TABLE curation_contexts (context_id TEXT PRIMARY KEY, job_id TEXT NOT NULL REFERENCES ingestion_jobs(job_id), record TEXT NOT NULL)`;

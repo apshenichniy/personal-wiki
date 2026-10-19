@@ -7,6 +7,7 @@
     "./knowledge": "./src/knowledge.ts",
     "./jobs": "./src/jobs.ts",
     "./jobs-api": "./src/jobs-api.ts",
+    "./reader-api": "./src/reader-api.ts",
     "./processing": "./src/processing.ts",
     "./provider": "./src/provider.ts",
     "./provider-api": "./src/provider-api.ts",
