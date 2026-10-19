@@ -33,7 +33,13 @@ The server owns identifiers, source storage, Markdown rendering and publication.
    one selection decision and a concrete reason for every non-main observation.
    Included/consolidated posts must appear in the discussion with citations.
 
-4. **Attribute each passage.** `supports` contains exact captured post/Article IDs.
+4. **Attribute each passage.** For each note, first match its `noteId` to one
+   supplied material. Every `supports` entry must be an exact `providerId` from
+   that material's `observations`, listed once. An ID received in another material
+   is not a valid citation here. Keep the Article's detail in its own note and
+   connect the post and Article with `relatedNoteIds`; do not copy Article IDs into
+   the post's passages. IDs mentioned inside source text, quoted IDs and external
+   links are not admitted citations unless present in this material's observations.
    Cite each main post in the detailed body. Use `source` for the source's account,
    `participant` for a participant's statement, and `inference` for your synthesis.
    In prose distinguish allegations, disagreement and established facts. Identify
