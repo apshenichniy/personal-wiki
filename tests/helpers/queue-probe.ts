@@ -53,6 +53,9 @@ const program = Effect.gen(function* () {
     yield* publicationFault(root, "job-persisted");
   }
   const scheduler = yield* makeScheduler(root);
+  // Dispatch writes/fsyncs its crash marker asynchronously. Do not let this
+  // synthetic worker finish the job before that background fault kills it.
+  if (process.env.WIKI_TEST_FAULT === "queue-offered") yield* Effect.never;
   phase = "waiting-for-delivery";
   while (scheduler.current()?.jobId !== id) yield* Effect.sleep("20 millis");
   yield* publicationFault(root, "queue-claimed");
