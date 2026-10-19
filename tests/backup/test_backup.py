@@ -89,6 +89,31 @@ class Recovery(unittest.TestCase):
         cut=self.cut();next((cut/'originals').iterdir()).unlink();manifest(cut,{'checkpointAt':1})
         with self.assertRaisesRegex(ValueError,'missing_original_bytes'):verify_cut(cut)
 
+    def test_closed_accounting_evidence_on_readonly_directory(self):
+        source=self.root/'evidence';source.mkdir()
+        file=source/'accounting.sqlite'
+        with closing(sqlite3.connect(file)) as db:
+            db.execute('PRAGMA journal_mode=WAL')
+            db.execute('CREATE TABLE costs (nanos INTEGER)')
+            db.execute('INSERT INTO costs VALUES (102731147)');db.commit()
+        before=hash_file(file)
+        source.chmod(0o500);file.chmod(0o400)
+        try:
+            copy_cut(source,self.root/'cut',immutable_sqlite=True)
+            self.assertEqual(hash_file(file),before)
+            self.assertEqual({p.name for p in source.iterdir()},{'accounting.sqlite'})
+            with closing(sqlite3.connect(self.root/'cut/accounting.sqlite')) as restored:
+                self.assertEqual(restored.execute('SELECT nanos FROM costs').fetchone(),(102731147,))
+        finally:source.chmod(0o700);file.chmod(0o600)
+
+    def test_immutable_evidence_refuses_uncheckpointed_sidecars(self):
+        source=self.root/'evidence';source.mkdir()
+        with closing(sqlite3.connect(source/'accounting.sqlite')) as db:
+            db.execute('PRAGMA journal_mode=WAL')
+            db.execute('CREATE TABLE costs (nanos INTEGER)');db.commit()
+            with self.assertRaisesRegex(ValueError,'immutable_sqlite_has_sidecar'):
+                copy_cut(source,self.root/'cut',immutable_sqlite=True)
+
     def test_snapshot_includes_wal_and_complete_transaction_under_writer(self):
         source=self.root/'live';source.mkdir()
         file=source/'library.sqlite';db=sqlite3.connect(file)

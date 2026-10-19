@@ -96,7 +96,7 @@ def snapshot_cut(cut, host):
     copy_cut(Path('/etc/personal-wiki/deploy'), cut / 'configuration/deploy')
     copy_cut(Path('/etc/pocket-id'), cut / 'configuration/pocket-id')
     copy_cut(Path('/var/lib/pocket-id'), cut / 'identity')
-    copy_cut(Path('/etc/personal-wiki/private'), cut / 'configuration/bootstrap')
+    copy_cut(Path('/etc/personal-wiki/private'), cut / 'configuration/bootstrap', immutable_sqlite=True)
     releases = {}
     for namespace in ('staging', 'production'):
         record = DEPLOY / f'active-{namespace}.json'

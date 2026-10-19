@@ -23,7 +23,7 @@ def hash_file(path):
         return hashlib.file_digest(file, 'sha256').hexdigest()
 
 
-def copy_cut(source, destination, runner_spool=False):
+def copy_cut(source, destination, runner_spool=False, immutable_sqlite=False):
     """Caller fences writers; SQLite backup includes a surviving WAL after a crash."""
     source, destination = Path(source), Path(destination)
     if source.is_symlink() or not source.is_dir():
@@ -36,7 +36,7 @@ def copy_cut(source, destination, runner_spool=False):
             raise ValueError('state_symlink')
         target = destination / entry.name
         if entry.is_dir():
-            copy_cut(entry, target, runner_spool=runner_spool)
+            copy_cut(entry, target, runner_spool=runner_spool, immutable_sqlite=immutable_sqlite)
         elif entry.is_file():
             if any(entry.name.endswith(suffix) and entry.with_name(entry.name[:-len(suffix)]).is_file()
                    for suffix in ('-wal', '-shm', '-journal')):
@@ -44,7 +44,15 @@ def copy_cut(source, destination, runner_spool=False):
             with entry.open('rb') as file:
                 sqlite = file.read(16) == b'SQLite format 3\0'
             if sqlite:
-                with closing(sqlite3.connect(f'file:{entry}?mode=ro', uri=True)) as live, closing(sqlite3.connect(target)) as cut:
+                # Historical bootstrap evidence is an immutable, closed snapshot
+                # in /etc. Its WAL-mode header must not cause SQLite to create
+                # new sidecars on that read-only mount. Never use this mode for
+                # a live library/accounting database or ignore retained WAL data.
+                if immutable_sqlite and any(entry.with_name(entry.name + suffix).exists()
+                                            for suffix in ('-wal', '-shm', '-journal')):
+                    raise ValueError('immutable_sqlite_has_sidecar')
+                uri = f'file:{entry}?mode=ro' + ('&immutable=1' if immutable_sqlite else '')
+                with closing(sqlite3.connect(uri, uri=True)) as live, closing(sqlite3.connect(target)) as cut:
                     live.backup(cut)
                     cut.execute('PRAGMA journal_mode=DELETE')
                     if cut.execute('PRAGMA integrity_check').fetchone() != ('ok',):
