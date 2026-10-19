@@ -163,9 +163,14 @@ export const CaptureDetail = Schema.Struct({
 export const SearchRequest = Schema.Struct({
   query: Schema.String.check(Schema.isMaxLength(512)),
   revision: Schema.optional(Revision),
+  cursor: Schema.optional(Schema.String.check(Schema.isMaxLength(1024))),
+  limit: Schema.optional(
+    Schema.Int.check(Schema.isGreaterThan(0), Schema.isLessThanOrEqualTo(100)),
+  ),
 }).annotate({ identifier: "SearchRequest" });
 export const SearchResult = Schema.Struct({
   appliedRevision: Revision,
+  nextCursor: Schema.optional(Schema.NullOr(Schema.String)),
   results: Schema.Array(
     Schema.Struct({
       note: Note,

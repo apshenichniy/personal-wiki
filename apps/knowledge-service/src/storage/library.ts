@@ -1,3 +1,4 @@
+import { readPage, type PageOptions } from "./pagination.ts";
 import { publicationFault } from "./faults.ts";
 import { ownershipLayer } from "./ownership.ts";
 import { Clock, Context, Effect, Layer, Schema, Semaphore } from "effect";
@@ -722,19 +723,22 @@ export const makeLibrary = Effect.fn("Knowledge.makeLibrary")(function* (
         return yield* fail("unavailable", "Retained asset verification failed.");
       return bytes;
     });
-  const search = (query: string, revision?: string) =>
+  const search = (query: string, revision?: string, options: PageOptions = {}) =>
     sql.withTransaction(
       Effect.gen(function* () {
-        const state = yield* read(revision);
+        const page = yield* Effect.try({
+          try: () => readPage(query, options, revision),
+          catch: () => invalid("Invalid search page or cursor."),
+        });
+        const state = yield* read(page.revision);
         const terms = yield* Effect.try({
           try: () => queryTerms(query),
           catch: () => invalid("Search exceeds the supported bounds."),
         });
         if (!terms)
-          return {
-            appliedRevision: state.appliedRevision,
-            results: state.snapshot.notes
-              .slice(-20)
+          return page.finish(
+            state.snapshot.notes
+              .slice()
               .reverse()
               .map((note) => ({
                 note,
@@ -743,7 +747,8 @@ export const makeLibrary = Effect.fn("Knowledge.makeLibrary")(function* (
                 representationId: null,
                 excerpt: note.title,
               })),
-          };
+            state.appliedRevision,
+          );
         const hits = yield* sql<{
           note_id: string;
           kind: "title" | "body" | "original";
@@ -765,9 +770,8 @@ export const makeLibrary = Effect.fn("Knowledge.makeLibrary")(function* (
             representationId: hit.representation_id,
             excerpt: hit.content.slice(0, 240),
           });
-          if (results.length === 20) break;
         }
-        return { appliedRevision: state.appliedRevision, results };
+        return page.finish(results, state.appliedRevision);
       }),
     );
   const rebuild = () =>

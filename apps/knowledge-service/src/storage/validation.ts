@@ -1,3 +1,4 @@
+import { citationTitle } from "@personal-wiki/contracts/citation";
 import { Snapshot, Proposal, Draft, Note, Asset } from "@personal-wiki/contracts/knowledge";
 import { invalid } from "./io.ts";
 
@@ -105,7 +106,12 @@ export function validateBatch(
         !note.captureIds.includes(citation.captureId) ||
         !observation ||
         observation.canonicalUrl !== citation.canonicalUrl ||
-        !note.markdown.includes(`](${citation.canonicalUrl})`)
+        !(
+          note.markdown.includes(`](${citation.canonicalUrl})`) ||
+          note.markdown.includes(
+            `](${citation.canonicalUrl} "${citationTitle(citation.citationId)}")`,
+          )
+        )
       )
         throw invalid("Citation does not resolve to retained inline evidence.");
     }

@@ -70,6 +70,17 @@ export const JobView = Schema.Struct({
   allowedActions: Schema.Array(JobAction),
   receipt: Schema.NullOr(Receipt),
   previousJobId: Schema.NullOr(Id),
+  captureSummary: Schema.optional(
+    Schema.Array(
+      Schema.Struct({
+        captureId: Id,
+        endedAt: Instant,
+        posts: Schema.Int,
+        coverage: Capture.fields.coverage,
+        warnings: Schema.Array(Schema.String),
+      }),
+    ),
+  ),
   retainedCapture: Schema.Boolean,
   cleanupPending: Schema.Boolean,
 }).annotate({ identifier: "JobView" });

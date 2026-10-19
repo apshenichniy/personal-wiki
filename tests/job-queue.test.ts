@@ -71,3 +71,52 @@ for (const fault of [undefined, "job-persisted", "queue-offered", "queue-claimed
     }
   }, 25000);
 }
+
+test("the queue-offered crash probe cannot finish work before its intended crash boundary", async () => {
+  const root = await mkdtemp(join(tmpdir(), "wiki-queue-boundary-"));
+  const child = Bun.spawn(
+    [
+      "python3",
+      "tools/runtime/locked-service.py",
+      process.execPath,
+      "tests/helpers/queue-probe.ts",
+    ],
+    {
+      env: {
+        PATH: process.env.PATH,
+        WIKI_DATA_DIR: root,
+        WIKI_TEST_JOB_ID: crypto.randomUUID(),
+        WIKI_TEST_FAULT: "queue-offered",
+        WIKI_TEST_PAUSE: "1",
+      },
+      stdout: "pipe",
+      stderr: "pipe",
+    },
+  );
+  const output = new Response(child.stdout).text();
+  const errors = new Response(child.stderr).text();
+  try {
+    const marker = () => Bun.file(join(root, "fault-queue-offered")).exists();
+    const end = Date.now() + 5000;
+    while (!(await marker()) && Date.now() < end) await Bun.sleep(20);
+    expect(await marker(), child.exitCode === null ? "Probe still running" : await errors).toBe(
+      true,
+    );
+    // Hold the fault after its durable marker. The old probe wrongly completed
+    // the synthetic job concurrently, so restart then waited for terminal work.
+    await Bun.sleep(500);
+    const { Database } = await import("bun:sqlite");
+    const db = new Database(join(root, "library.sqlite"), { readonly: true });
+    try {
+      const row = db.query("SELECT stage FROM ingestion_jobs").get() as { stage: string };
+      expect(row.stage).toBe("queued");
+    } finally {
+      db.close();
+    }
+  } finally {
+    child.kill("SIGTERM");
+    await child.exited;
+    await Promise.all([output, errors]);
+    await rm(root, { recursive: true, force: true });
+  }
+}, 10000);

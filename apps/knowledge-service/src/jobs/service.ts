@@ -69,6 +69,14 @@ export const makeJobs = Effect.fn("Jobs.make")(function* (root: string) {
       allowedActions: actions,
       receipt,
       previousJobId: job.previousJobId,
+      captureSummary:
+        job.capture?.captures.map((capture) => ({
+          captureId: capture.captureId,
+          endedAt: capture.endedAt,
+          posts: capture.observations.length,
+          coverage: capture.coverage,
+          warnings: capture.warnings,
+        })) ?? [],
       retainedCapture: job.capture !== null,
       cleanupPending: job.cleanupPending,
     };
@@ -349,7 +357,19 @@ export const makeJobs = Effect.fn("Jobs.make")(function* (root: string) {
         return result;
       }),
     );
+  const recent = () =>
+    store.transaction(
+      Effect.gen(function* () {
+        const rows = yield* sql<{ job_id: string }>`SELECT job_id FROM ingestion_jobs
+      ORDER BY CASE WHEN stage IN ('succeeded','failed','expired','cancelled') THEN 1 ELSE 0 END, rowid DESC LIMIT 51`;
+        return {
+          jobs: yield* Effect.forEach(rows.slice(0, 50), (row) => get(row.job_id)),
+          hasMore: rows.length > 50,
+        };
+      }),
+    );
   return {
+    recent,
     submit,
     get,
     view,

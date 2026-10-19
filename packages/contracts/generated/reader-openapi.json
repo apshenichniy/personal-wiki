@@ -2074,6 +2074,408 @@
         }
       }
     },
+    "/api/v1/jobs": {
+      "get": {
+        "tags": [
+          "jobs"
+        ],
+        "operationId": "jobs.recent",
+        "parameters": [],
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "jobs": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/JobView"
+                      }
+                    },
+                    "hasMore": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "jobs",
+                    "hasMore"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "internal_error",
+                        "idempotency_conflict",
+                        "stale_proposal",
+                        "already_published",
+                        "revision_changed",
+                        "not_found",
+                        "unavailable",
+                        "cancelled",
+                        "invalid_transition",
+                        "deadline_exceeded",
+                        "launch_limit",
+                        "stale_owner",
+                        "unauthenticated",
+                        "forbidden",
+                        "conflict",
+                        "disabled",
+                        "budget",
+                        "deadline",
+                        "remote_pending",
+                        "capacity"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/submissions": {
       "post": {
         "tags": [
@@ -5016,6 +5418,68 @@
               }
             ]
           },
+          "captureSummary": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "captureId": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+                      "format": "uuid"
+                    },
+                    "endedAt": {
+                      "type": "string"
+                    },
+                    "posts": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "coverage": {
+                      "type": "object",
+                      "properties": {
+                        "main": {
+                          "type": "string"
+                        },
+                        "discussion": {
+                          "type": "string"
+                        },
+                        "context": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "main",
+                        "discussion",
+                        "context"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "captureId",
+                    "endedAt",
+                    "posts",
+                    "coverage",
+                    "warnings"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "retainedCapture": {
             "type": "boolean"
           },
@@ -5276,6 +5740,23 @@
           "appliedRevision": {
             "type": "string"
           },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "results": {
             "type": "array",
             "items": {
@@ -5461,6 +5942,29 @@
             "anyOf": [
               {
                 "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cursor": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1024
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "limit": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 100,
+                "exclusiveMinimum": 0
               },
               {
                 "type": "null"

@@ -7,14 +7,16 @@ import { JobLifecycle } from "../jobs/lifecycle.ts";
 import { loadAccessConfiguration } from "./config.ts";
 import { discoverOwnerProvider } from "./oidc.ts";
 import { OwnerSessions } from "./sessions.ts";
-import { OwnerRoutes } from "./http.ts";
+import { loadWebBundle, type WebBundle } from "./web.ts";
+import { ownerRoutes } from "./http.ts";
 import { JobError } from "../jobs/policy.ts";
 
 export const ownerHandler = (
   context: Context.Context<OwnerSessions | Library | Jobs | JobLifecycle>,
+  web?: WebBundle,
 ) =>
   HttpRouter.toWebHandler(
-    OwnerRoutes.pipe(
+    ownerRoutes(web).pipe(
       Layer.provideMerge(Layer.succeedContext(context)),
       Layer.provide(BunHttpServer.layerHttpServices),
     ),
@@ -32,12 +34,14 @@ export const OwnerServer = Layer.unwrap(
       try: () => discoverOwnerProvider(settings),
       catch: () => new JobError({ code: "unavailable", message: "Owner OIDC discovery failed." }),
     });
+    const webPath = yield* Config.String("WIKI_WEB_DIR").pipe(Config.withDefault(""));
+    const web = webPath ? yield* Effect.tryPromise(() => loadWebBundle(webPath)) : undefined;
     const port = yield* Config.Int("WIKI_PUBLIC_PORT").pipe(Config.withDefault(3001));
     if (port < 0 || port > 65535) return yield* Effect.die("Invalid public listener port");
     return Layer.effectDiscard(
       Effect.gen(function* () {
         const context = yield* Effect.context<OwnerSessions | Library | Jobs | JobLifecycle>();
-        const app = ownerHandler(context);
+        const app = ownerHandler(context, web);
         const server = yield* Effect.acquireRelease(
           Effect.sync(() =>
             Bun.serve({

@@ -9,6 +9,7 @@ const root = process.env.WIKI_DATA_DIR;
 const id = process.env.WIKI_TEST_JOB_ID;
 if (!root || !id) throw new Error("Synthetic probe configuration required");
 const Storage = JobStore.layer.pipe(Layer.provideMerge(Library.layer(root)));
+let phase = "startup";
 const program = Effect.gen(function* () {
   const store = yield* JobStore;
   if (!(yield* store.get(id))) {
@@ -52,6 +53,10 @@ const program = Effect.gen(function* () {
     yield* publicationFault(root, "job-persisted");
   }
   const scheduler = yield* makeScheduler(root);
+  // Dispatch writes/fsyncs its crash marker asynchronously. Do not let this
+  // synthetic worker finish the job before that background fault kills it.
+  if (process.env.WIKI_TEST_FAULT === "queue-offered") return yield* Effect.never;
+  phase = "waiting-for-delivery";
   while (scheduler.current()?.jobId !== id) yield* Effect.sleep("20 millis");
   yield* publicationFault(root, "queue-claimed");
   yield* store.transaction(
@@ -65,6 +70,7 @@ const program = Effect.gen(function* () {
     }),
   );
   yield* scheduler.settle(id, 1);
+  phase = "waiting-for-acknowledgement";
   let state = "";
   while (state !== "completed") {
     state =
@@ -88,5 +94,22 @@ const program = Effect.gen(function* () {
       deadline: jobs[0]!.record.deadline,
     }),
   );
-}).pipe(Effect.timeout("15 seconds"), Effect.scoped, Effect.provide(Storage));
+}).pipe(
+  Effect.timeout("15 seconds"),
+  Effect.tapCause(() =>
+    Effect.gen(function* () {
+      const store = yield* JobStore;
+      yield* Console.error(
+        JSON.stringify({
+          probePhase: phase,
+          queue: yield* store.sql`SELECT id,state,attempts,acquired_at,acquired_by FROM job_queue`,
+          schedules: yield* store.sql`SELECT * FROM scheduling_outbox`,
+          jobs: yield* store.sql`SELECT job_id,stage,generation,ready,version FROM ingestion_jobs`,
+        }),
+      );
+    }),
+  ),
+  Effect.scoped,
+  Effect.provide(Storage),
+);
 await Effect.runPromise(program);
