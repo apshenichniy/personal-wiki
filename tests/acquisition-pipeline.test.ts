@@ -4,12 +4,14 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { Effect, Redacted } from "effect";
-import { makeJobClient } from "@personal-wiki/client";
+import { makeClient, makeJobClient } from "@personal-wiki/client";
 import { ProviderLedger } from "../apps/knowledge-service/src/providers/ledger.ts";
 import { makeApifyHttp } from "../apps/runner/src/apify/http.ts";
 import { ingestX } from "../apps/runner/src/apify/ingest.ts";
 import { defaultCapturePolicy } from "../packages/source-processing/src/index.ts";
 import { launch } from "./helpers/service.ts";
+import { editorial } from "./helpers/curation.ts";
+import { postSource, prepareSource } from "./helpers/source.ts";
 
 test("X to retained thread and Article resumes across a Service restart without another Actor POST", async () => {
   const root = await mkdtemp(join(tmpdir(), "wiki-acquisition-pipeline-"));
@@ -287,6 +289,125 @@ test("X to retained thread and Article resumes across a Service restart without 
     expect(ready.capture!.captures[1]?.observations[0]?.text).toContain(
       "Complete substantive article source",
     );
+    // Retrying normalized text alone misses the additional provider archive
+    // assets. Exercise the actual acquired evidence through two explicit retries.
+    let retainedJobId = ready.scope.jobId;
+    await Effect.runPromise(
+      owner.jobs.cancel({
+        payload: { requestId: randomUUID(), jobId: retainedJobId },
+      }),
+    );
+    await Effect.runPromise(
+      owner.jobs.submit({
+        payload: { requestId: randomUUID(), mode: "save", url: "https://x.com/example/status/555" },
+      }),
+    );
+    const foreign = await claim(client, randomUUID());
+    const reader = await Effect.runPromise(makeClient(service.url, runner));
+    const fixture = await prepareSource(
+      {
+        knowledge: {
+          reserve: ({ payload }) =>
+            client.worker.reserve({ payload: { ...payload, scope: foreign.scope } }),
+          list: () => reader.knowledge.list({ query: {} }),
+          upload: ({ payload }) =>
+            client.worker.upload({
+              payload: {
+                requestId: randomUUID(),
+                scope: foreign.scope,
+                asset: payload,
+              },
+            }),
+        },
+      },
+      [postSource("555")],
+    );
+    const rawId = main.assetIds.find(
+      (id) => !ready.capture!.draft.slots.some((s) => s.assetId === id),
+    )!;
+    const foreignCapture = fixture.proposal.captures[0]!;
+    const denied = await Effect.runPromise(
+      client.worker
+        .prepare({
+          payload: {
+            requestId: randomUUID(),
+            scope: foreign.scope,
+            captures: [{ ...foreignCapture, assetIds: [...foreignCapture.assetIds, rawId] }],
+          },
+        })
+        .pipe(Effect.result),
+    );
+    expect(denied._tag).toBe("Failure");
+    if (denied._tag === "Failure")
+      expect(denied.failure.message).toContain("Asset is outside the reserved or published scope");
+    await Effect.runPromise(
+      owner.jobs.cancel({
+        payload: { requestId: randomUUID(), jobId: foreign.scope.jobId },
+      }),
+    );
+    for (let retry = 0; retry < 2; retry++) {
+      await Effect.runPromise(
+        owner.jobs.cancel({
+          payload: { requestId: randomUUID(), jobId: retainedJobId },
+        }),
+      );
+      const next = await Effect.runPromise(
+        owner.jobs.retryRetained({
+          payload: { requestId: randomUUID(), jobId: retainedJobId },
+        }),
+      );
+      expect(next.previousJobId).toBe(retainedJobId);
+      retainedJobId = next.jobId;
+    }
+    await service.stop();
+    service = await launch(
+      join(root, "library"),
+      env,
+      false,
+      "tests/helpers/provider-pipeline-service.ts",
+    );
+    client = await Effect.runPromise(makeJobClient(service.url, runner));
+    const retained = await claim(client, randomUUID());
+    expect(retained.scope.jobId).toBe(retainedJobId);
+    expect(retained.capture?.captures).toEqual(ready.capture!.captures);
+    const context = await Effect.runPromise(
+      client.worker.prepareCuration({
+        payload: { requestId: randomUUID(), scope: retained.scope, query: "" },
+      }),
+    );
+    const attempt = await Effect.runPromise(
+      client.worker.authorizeAttempt({
+        payload: {
+          requestId: randomUUID(),
+          scope: retained.scope,
+          reason: "initial",
+          inputDigest: "d".repeat(64),
+          contextId: context.contextId,
+        },
+      }),
+    );
+    const completed = await Effect.runPromise(
+      client.worker.completeAttempt({
+        payload: {
+          requestId: randomUUID(),
+          scope: retained.scope,
+          attemptId: attempt.attemptId,
+          processStopped: true,
+          outcome: "output",
+          output: JSON.stringify(editorial(context)),
+        },
+      }),
+    );
+    expect(completed.stage).toBe("validating");
+    const published = await Effect.runPromise(
+      client.worker.publish({
+        payload: { requestId: randomUUID(), scope: retained.scope },
+      }),
+    );
+    expect(published.stage).toBe("succeeded");
+    expect(published.receipt?.noteIds).toHaveLength(2);
+    expect(starts).toBe(paidBefore);
+    expect(objectWrites).toBe(objectsBefore);
   } finally {
     await service.stop();
     await archive.stop(true);
