@@ -22,6 +22,7 @@ class ControllerWorker(unittest.TestCase):
                 engine = Mock()
                 engine.records.pending.side_effect = [[], [{"operationId": "later-operation"}], []]
                 engine.restore_runtime.side_effect = [failure, True]
+                engine.drive.return_value = {"phase": "complete"}
                 output = io.StringIO()
                 with patch.object(server, "engine", engine), contextlib.redirect_stdout(output), \
                      patch.object(server.time, "sleep", side_effect=[None, None, StopProbe()]):
