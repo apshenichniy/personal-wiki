@@ -3,7 +3,11 @@ import { mkdtemp, rm, writeFile, readFile, chmod, symlink, stat } from "node:fs/
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Effect, Redacted } from "effect";
-import { dispatchOnce, type DispatchIdentity } from "../apps/runner/src/apify/dispatch.ts";
+import {
+  dispatchOnce,
+  retainedDispatch,
+  type DispatchIdentity,
+} from "../apps/runner/src/apify/dispatch.ts";
 import { makeApifyHttp, type StartRequest } from "../apps/runner/src/apify/http.ts";
 
 const run = {
@@ -56,6 +60,8 @@ for (const mode of ["intent", "receipt"] as const) {
         );
         child.kill("SIGKILL");
         await child.exited;
+        const retained = await Effect.runPromise(retainedDispatch(h.root, h.identity));
+        expect(retained?.run.id ?? null).toBe(mode === "receipt" ? run.id : null);
         let permits = 0;
         const result = await Effect.runPromise(
           Effect.result(

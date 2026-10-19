@@ -182,6 +182,23 @@ export function makeRetention(options: {
         offset += retained.itemCount;
       }
     } while (offset < total);
+    if (!pages.some((page) => page.pageKey === "report")) {
+      if (bytes >= 67_108_864) return yield* fail("capacity");
+      const saved = yield* journal.load(id, "report");
+      const report = saved
+        ? null
+        : yield* options.http
+            .report(operation.run.keyValueStoreId, 67_108_864 - bytes, deadline)
+            .pipe(
+              Effect.catchTag("ApifyTransportError", (error) =>
+                error.code === "http" && error.status === 404
+                  ? Effect.succeed(null)
+                  : Effect.fail(error),
+              ),
+            );
+      const input = saved ?? (report ? yield* journal.save(inputFor(id, "report", report)) : null);
+      if (input) yield* api.retain({ payload: input });
+    }
     return yield* api.archive({ payload: { operationId: id } });
   });
 }

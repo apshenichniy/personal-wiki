@@ -8,7 +8,7 @@ const fail = (code: P.ProviderError["code"], message: string) =>
   Effect.fail(new P.ProviderError({ code, message }));
 const decode = <A>(schema: Schema.ConstraintDecoder<A, never>, json: string) =>
   Schema.decodeUnknownEffect(Schema.fromJsonString(schema))(json);
-const Baseline = Schema.Struct({
+export const Baseline = Schema.Struct({
   baselineId: P.Name,
   month: P.Month,
   campaignId: Schema.NullOr(P.Name),

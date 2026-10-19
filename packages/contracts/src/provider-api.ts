@@ -4,6 +4,7 @@ import { Id } from "./knowledge.ts";
 import { WorkerRequest } from "./jobs.ts";
 import { ErrorEnvelope } from "./index.ts";
 import * as P from "./provider.ts";
+import { CapturePolicy } from "./processing.ts";
 const errors = [400, 401, 403, 404, 409, 500, 503].map((status) =>
   ErrorEnvelope.pipe(HttpApiSchema.status(status)),
 );
@@ -43,6 +44,11 @@ export const ProviderRawBytes = Schema.Struct({
   base64: ProviderRawUpload.fields.base64,
 });
 export class ProviderApi extends HttpApiGroup.make("providers").add(
+  HttpApiEndpoint.post("configure", "/internal/v1/providers/configure", {
+    payload: Schema.Struct({ ...WorkerRequest.fields, policy: CapturePolicy }),
+    success: CapturePolicy,
+    error: errors,
+  }),
   HttpApiEndpoint.post("retain", "/internal/v1/providers/retain", {
     payload: ProviderRawUpload,
     success: P.Page,

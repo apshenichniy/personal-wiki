@@ -13,6 +13,21 @@ import {
   runFixture,
 } from "./fixtures/x/scenarios.ts";
 
+test("required main capacity fails explicitly while optional discussion capacity preserves useful main text", async () => {
+  for (const mode of ["anchor", "direct"] as const) {
+    const driver = fixtureDriver((request) =>
+      request.mode === mode ? { status: "capacity" } : { posts: [post("100")] },
+    );
+    const result = await runFixture(input(), driver);
+    expect(result.outcome).toBe(mode === "anchor" ? "capacity" : "ready");
+    if (mode === "direct") {
+      expect(result.coverage.warnings).toContain("direct:processing_gap");
+      expect(result.materials[0]?.originalText).toContain("Original point 100.");
+    }
+    expect(driver.calls.at(-1)?.mode).toBe(mode);
+  }
+});
+
 for (const id of ["100", "101"])
   test(`author thread from ${id} preserves complete original text and contextual roles`, async () => {
     const driver = poolDriver(numberedThread);

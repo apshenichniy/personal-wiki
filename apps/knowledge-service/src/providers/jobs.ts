@@ -1,19 +1,27 @@
-import { Clock, Context, Effect, Layer } from "effect";
+import { Clock, Context, Effect, Layer, Schema } from "effect";
 import type * as J from "@personal-wiki/contracts/jobs";
 import { JobStore } from "../jobs/store.ts";
 import { Jobs } from "../jobs/service.ts";
 import { JobError } from "../jobs/policy.ts";
-import { isTerminal } from "../jobs/model.ts";
+import { isTerminal, type JobRecord } from "../jobs/model.ts";
 import { ProviderLedger } from "./ledger.ts";
 import * as P from "@personal-wiki/contracts/provider";
 import { admitActorInput } from "./admission.ts";
 import { ProviderArchive, rawObject } from "./archive.ts";
 import { Library } from "../storage/library.ts";
+import { CapturePolicy } from "@personal-wiki/contracts/processing";
+import { stable } from "../storage/io.ts";
 import type { ProviderRawUpload } from "@personal-wiki/contracts/provider-api";
 
 const invalid = (message: string) => new JobError({ code: "invalid_transition", message });
 const providerCleanup = (reason: string | null) =>
   reason === "provider_start_unknown" || reason === "provider_execution_pending";
+const acquisitionStopped = (job: JobRecord, now: number) =>
+  isTerminal(job.stage) ||
+  job.stopReason !== null ||
+  job.lease === null ||
+  job.lease.expiresAt <= now ||
+  (job.startedAt !== null && now >= job.startedAt + 300_000);
 
 export const makeJobProviders = (namespace: typeof P.Namespace.Type, enabled = true) =>
   Effect.gen(function* () {
@@ -22,6 +30,36 @@ export const makeJobProviders = (namespace: typeof P.Namespace.Type, enabled = t
     const ledger = yield* ProviderLedger;
     const archive = yield* ProviderArchive;
     const library = yield* Library;
+    const configure = (
+      identityId: string,
+      scope: J.JobScope,
+      proposed: typeof CapturePolicy.Type,
+    ) =>
+      store.transaction(
+        Effect.gen(function* () {
+          const job = (yield* jobs.owned(identityId, scope)).record;
+          if (job.stage !== "acquiring" || job.capture)
+            return yield* invalid("Capture policy requires an acquisition job.");
+          const old = (yield* store.sql<{
+            payload: string;
+          }>`SELECT payload FROM job_capture_policies WHERE job_id=${scope.jobId}`)[0];
+          if (old)
+            return yield* Schema.decodeUnknownEffect(Schema.fromJsonString(CapturePolicy))(
+              old.payload,
+            );
+          const policy = yield* Schema.decodeUnknownEffect(CapturePolicy)(proposed);
+          if (
+            policy.version !== "x-capture-v1" ||
+            policy.main > 50 ||
+            policy.discussion > 200 ||
+            policy.context > 30 ||
+            policy.direct + policy.latest + policy.nestedReserve > policy.discussion
+          )
+            return yield* invalid("Policy exceeds the first-slice representation bounds.");
+          yield* store.sql`INSERT INTO job_capture_policies VALUES(${scope.jobId},${stable(policy)})`;
+          return policy;
+        }),
+      );
     const member = Effect.fn("Provider.jobMembership")(function* (
       identityId: string,
       operationId: string,
@@ -157,6 +195,10 @@ export const makeJobProviders = (namespace: typeof P.Namespace.Type, enabled = t
       store.transaction(
         Effect.gen(function* () {
           const { saved } = yield* member(identityId, operationId);
+          // A retained receipt may arrive after cancellation or lease expiry.
+          // Adopt its identity for cleanup without reviving the acquisition.
+          if (acquisitionStopped(saved.record, yield* Clock.currentTimeMillis))
+            yield* ledger.requestStop(saved.record.jobId);
           const result = yield* ledger.attachRun(operationId, run, evidence);
           if (saved.record.cleanupPending && providerCleanup(saved.record.reason))
             yield* store.put(
@@ -232,12 +274,7 @@ export const makeJobProviders = (namespace: typeof P.Namespace.Type, enabled = t
               message: "Provider job not found in this namespace.",
             });
           const now = yield* Clock.currentTimeMillis;
-          const shouldStop =
-            isTerminal(job.stage) ||
-            job.stopReason !== null ||
-            job.lease === null ||
-            job.lease.expiresAt <= now ||
-            (job.startedAt !== null && now >= job.startedAt + 300_000);
+          const shouldStop = acquisitionStopped(job, now);
           if (shouldStop) yield* ledger.requestStop(jobId);
           yield* settle(jobId);
           return {
@@ -305,8 +342,20 @@ export const makeJobProviders = (namespace: typeof P.Namespace.Type, enabled = t
       identityId: string,
       operationId: string,
     ) {
-      yield* member(identityId, operationId);
-      return yield* ledger.pages(operationId);
+      const { operation } = yield* member(identityId, operationId);
+      const retained = yield* ledger.pages(operationId);
+      // A process can die after archive checkpointing and before the namespace
+      // library registration. Discovery repairs this cross-database boundary.
+      for (const page of retained)
+        yield* library.registerRaw(operation.job.jobId, {
+          schemaVersion: 1,
+          assetId: page.assetId,
+          objectKey: rawObject(namespace, page).key,
+          mediaType: "application/json",
+          byteLength: page.byteLength,
+          sha256: page.sha256,
+        });
+      return retained;
     });
     const completeArchive = Effect.fn("Provider.archiveAuthorized")(function* (
       identityId: string,
@@ -316,6 +365,7 @@ export const makeJobProviders = (namespace: typeof P.Namespace.Type, enabled = t
       return yield* archive.complete(operationId);
     });
     return {
+      configure,
       reserve,
       begin,
       unknown,

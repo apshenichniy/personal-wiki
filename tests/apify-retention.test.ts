@@ -79,6 +79,8 @@ test("retention replays exact spooled bytes after Service failure without a seco
           },
         });
       }
+      if (path === "/v2/key-value-stores/kv/records/run-report")
+        return new Response(null, { status: 404 });
       expect(path).toBe("/v2/datasets/dataset/items");
       pageGets++;
       return Response.json([{ id: "100", text: `Response ${pageGets}` }], {

@@ -673,7 +673,8 @@
                   "unavailable",
                   "failed",
                   "budget",
-                  "deadline"
+                  "deadline",
+                  "capacity"
                 ]
               },
               "raw": {

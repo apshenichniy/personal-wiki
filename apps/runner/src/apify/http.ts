@@ -298,5 +298,22 @@ export function makeApifyHttp(token: Redacted.Redacted<string>, testOrigin?: str
     status: (runId: string, deadline: number) => runRequest(runId, deadline, false),
     abort: (runId: string, deadline: number) => runRequest(runId, deadline, true),
     page,
+    report: (keyValueStoreId: string, remainingBytes: number, deadline: number) =>
+      Effect.gen(function* () {
+        yield* Effect.try({
+          try: () => {
+            id(keyValueStoreId);
+            integer(remainingBytes, 1, 67_108_864);
+          },
+          catch: () => error("invalid_request"),
+        });
+        return yield* request(
+          `/v2/key-value-stores/${keyValueStoreId}/records/run-report`,
+          "GET",
+          deadline,
+          Math.min(pageBytes, remainingBytes),
+          false,
+        );
+      }),
   };
 }

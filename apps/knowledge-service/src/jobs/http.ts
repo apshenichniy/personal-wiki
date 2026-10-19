@@ -29,6 +29,8 @@ const WorkerHandlers = HttpApiBuilder.group(
     const lifecycle = yield* JobLifecycle;
     const publication = yield* JobPublication;
     return handlers.handleAll({
+      failAcquisition: ({ payload }) =>
+        actor(credentials, (id) => publication.failAcquisition(id, payload)),
       resolve: ({ payload }) => actor(credentials, (id) => resolution.resolve(id, payload)),
       claim: ({ payload }) => actor(credentials, (id) => jobs.claim(id, payload)),
       heartbeat: ({ payload }) => actor(credentials, (id) => jobs.heartbeat(id, payload)),
@@ -73,6 +75,8 @@ const ProviderHandlers = HttpApiBuilder.group(
     const credentials = yield* MachineCredentials;
     const providers = yield* JobProviders;
     return handlers.handleAll({
+      configure: ({ payload }) =>
+        actor(credentials, (id) => providers.configure(id, payload.scope, payload.policy)),
       retain: ({ payload }) => actor(credentials, (id) => providers.retain(id, payload)),
       pages: ({ payload }) => actor(credentials, (id) => providers.pages(id, payload.operationId)),
       raw: ({ payload }) =>

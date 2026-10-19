@@ -8,6 +8,11 @@ const errors = [400, 401, 403, 404, 409, 500, 503].map((status) =>
   ErrorEnvelope.pipe(HttpApiSchema.status(status)),
 );
 export class WorkerApi extends HttpApiGroup.make("worker").add(
+  HttpApiEndpoint.post("failAcquisition", "/internal/v1/jobs/fail-acquisition", {
+    payload: J.FailAcquisition,
+    success: J.JobView,
+    error: errors,
+  }),
   HttpApiEndpoint.post("resolve", "/internal/v1/jobs/resolve", {
     payload: J.ResolveSource,
     success: J.SourceResolution,

@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { mkdtemp, writeFile, rm } from "node:fs/promises";
+import { mkdtemp, writeFile, rm, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomBytes, randomUUID } from "node:crypto";
@@ -162,11 +162,43 @@ test("built provider HTTP enforces roles and one-use permits while allowing canc
       buildId: "syntheticBuild",
       startedAt: Date.now(),
     };
-    await Effect.runPromise(
-      client.providers.attach({
-        payload: { operationId: operation.operationId, run: providerRun, evidence: null },
+    const recoverySpool = join(root, "receipt-recovery");
+    await mkdir(recoverySpool, { mode: 0o700 });
+    await writeFile(
+      join(recoverySpool, `${operation.operationId}.intent.json`),
+      JSON.stringify({
+        operationId: operation.operationId,
+        inputDigest: operation.digest,
+        actorId: "syntheticActor",
+        buildId: "syntheticBuild",
       }),
+      { mode: 0o600 },
     );
+    await writeFile(
+      join(recoverySpool, `${operation.operationId}.response.json`),
+      JSON.stringify({
+        data: {
+          id: providerRun.runId,
+          actId: "syntheticActor",
+          buildId: providerRun.buildId,
+          defaultDatasetId: providerRun.datasetId,
+          defaultKeyValueStoreId: providerRun.keyValueStoreId,
+          startedAt: new Date(providerRun.startedAt).toISOString(),
+          finishedAt: null,
+          status: "RUNNING",
+        },
+      }),
+      { mode: 0o600 },
+    );
+    const recovered = await Effect.runPromise(
+      makeServiceAcquisition({
+        client,
+        http: makeApifyHttp(Redacted.make("synthetic"), "http://127.0.0.1:1"),
+        spool: recoverySpool,
+      }).recover(permitted.operation),
+    );
+    expect(recovered.run).toEqual(providerRun);
+    expect(recovered.stopRequested).toBe(true);
     expect(
       (await Effect.runPromise(client.providers.inspect({ payload: { jobId: claim.scope.jobId } })))
         .shouldStop,

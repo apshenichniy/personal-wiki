@@ -78,6 +78,33 @@ async function createPrivate(root: string, path: string, bytes: Uint8Array) {
   return true;
 }
 
+/** Recovery never creates an intent or asks for a fresh permit. A complete
+ * durable receipt is positive evidence even after the original lease expired. */
+export const retainedDispatch = (root: string, identity: DispatchIdentity) =>
+  io(async () => {
+    const canonical = JSON.stringify({
+      operationId: identity.operationId,
+      inputDigest: identity.inputDigest,
+      actorId: identity.actorId,
+      buildId: identity.buildId,
+    });
+    const intent = await readPrivate(join(root, `${identity.operationId}.intent.json`));
+    const bytes = await readPrivate(join(root, `${identity.operationId}.response.json`));
+    if (!bytes) return null;
+    if (!intent || new TextDecoder().decode(intent) !== canonical)
+      throw failure("identity_conflict");
+    const raw: RawResponse = {
+      bytes,
+      sha256: createHash("sha256").update(bytes).digest("hex"),
+      json: JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)),
+      headers: new Headers(),
+    };
+    const run = decodeRun(raw, true);
+    if (run.actId !== identity.actorId || run.buildId !== identity.buildId)
+      throw failure("identity_conflict");
+    return { raw, run };
+  });
+
 /** Local intent precedes the Service's one-use permit. A surviving intent without
  * a complete receipt is an unresolved start, even if its previous process died.
  * A receipt is fsynced before Service acknowledgment and can be adopted without
