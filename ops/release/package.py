@@ -37,7 +37,9 @@ def package(root, output):
                         ("apps/runner/src/run.ts", "runner.js"),
                         ("tools/provision-provider.ts", "provision-provider.js"),
                         ("tools/revoke-owner-sessions.ts", "revoke-owner-sessions.js"),
-                        ("tools/check-archive.ts", "check-archive.js")]:
+                        ("tools/check-archive.ts", "check-archive.js"),
+                        ("tools/backup-assets.ts", "backup-assets.js"),
+                        ("tools/prepare-restore.ts", "prepare-restore.js")]:
         subprocess.run([str(bun), "build", entry, "--target=bun", f"--outfile={build / name}"], check=True)
     shutil.copyfile(bun, build / "bun")
     (build / "bun").chmod(0o755)

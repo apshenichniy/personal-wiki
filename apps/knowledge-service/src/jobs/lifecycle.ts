@@ -128,6 +128,7 @@ export const makeLifecycle = Effect.gen(function* () {
           job.stage !== "blocked" ||
           job.cleanupPending ||
           job.reason === "retry_scheduled" ||
+          job.reason === "restore_accounting_unknown" ||
           job.stopReason ||
           job.deadline === null ||
           job.deadline <= now
@@ -228,6 +229,7 @@ export const makeLifecycle = Effect.gen(function* () {
         const now = yield* Clock.currentTimeMillis;
         for (const saved of yield* store.active()) {
           const job = saved.record;
+          if (job.reason === "restore_accounting_unknown") continue;
           if (yield* inCommit(job)) continue;
           if (job.stopReason || job.stage === "stopping") continue;
           if (job.deadline !== null && job.deadline <= now) {

@@ -12,6 +12,7 @@ MAX_ARCHIVE = 160 * 1024 * 1024
 MAX_EXPANDED = 384 * 1024 * 1024
 BASE_FILES = {"bun", "service.js", "runner.js", "provision-provider.js", "revoke-owner-sessions.js",
               "locked-service.py", "locked-runner.py", "agent-guard.py", "inspect-agent.py", "curate-x.md", "web/manifest.json", "release.json", "check-archive.js"}
+OPTIONAL_FILES = {"backup-assets.js", "prepare-restore.js"}
 
 
 def sha256(path):
@@ -47,12 +48,12 @@ def unpack(archive, destination, revision):
     with tarfile.open(archive, "r:gz") as tar:
         for entry in tar:
             name = entry.name
-            if (name not in BASE_FILES and not re.fullmatch(r"web/main-[A-Za-z0-9_-]+\.(?:js|css)", name)) or name in files:
+            if (name not in BASE_FILES | OPTIONAL_FILES and not re.fullmatch(r"web/main-[A-Za-z0-9_-]+\.(?:js|css)", name)) or name in files:
                 raise ValueError("unexpected_release_path")
             if not entry.isfile() or entry.size < 0:
                 raise ValueError("release_links_forbidden")
             total += entry.size
-            if total > MAX_EXPANDED or len(files) >= 20:
+            if total > MAX_EXPANDED or len(files) >= 24:
                 raise ValueError("release_capacity")
             files[name] = tar.extractfile(entry).read()
     if not BASE_FILES.issubset(files):

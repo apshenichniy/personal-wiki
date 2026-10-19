@@ -196,6 +196,8 @@ class Engine:
                         raise ValueError("incompatible_schema")
                     if req["operation"] == "rollback" and schema != compatibility["target"]:
                         raise ValueError("incompatible_rollback")
+                    if target == "production":
+                        self.host.prepare_recovery(op_id)
                     self.recovery_gate(record, schema)
                     record["checkpoint"] = self.host.checkpoint_identity(target)
                     self.records.put(record, "checkpointed")

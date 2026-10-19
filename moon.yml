@@ -31,6 +31,10 @@ tasks:
     options:
       cache: false
     command: python3 -m unittest discover -s tests/deployment -v
+  backup:
+    options:
+      cache: false
+    command: python3 -m unittest discover -s tests/backup -v
   browser:
     options:
       cache: false
@@ -44,4 +48,5 @@ tasks:
     options:
       cache: false
     command: bun run tools/verified.ts
-    deps: [typecheck, diagnostics, lint, format, contracts, test, negative, browser, deployment]
+    deps:
+      [typecheck, diagnostics, lint, format, contracts, test, negative, browser, deployment, backup]

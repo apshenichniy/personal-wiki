@@ -97,6 +97,9 @@ class Host:
                     digest.update(hashlib.file_digest(stream, "sha256").digest())
         return digest.hexdigest()
 
+    def prepare_recovery(self, op_id):
+        run("systemctl", "start", f"personal-wiki-backup@{op_id}.service", timeout=3600)
+
     def checkpoint(self, phase):
         # Test doubles inject crashes here; production has no fault-injection flag.
         pass
